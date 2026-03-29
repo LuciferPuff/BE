@@ -3,7 +3,7 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 export default async function Home() {
   const supabase = getSupabaseClient();
   let statusText =
-    "Saknar NEXT_PUBLIC_SUPABASE_URL och NEXT_PUBLIC_SUPABASE_PUBLISHABLE i .env.local.";
+    "Saknar NEXT_PUBLIC_SUPABASE_URL och NEXT_PUBLIC_SUPABASE_PUBLISHABLE (eller aldre fallback-namn) i .env.local.";
 
   if (supabase) {
     const { error } = await supabase.from("healthcheck").select("id").limit(1);
