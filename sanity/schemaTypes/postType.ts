@@ -16,6 +16,18 @@ export const postType = defineType({
       title: "Slug",
       type: "slug",
       options: { source: "title", maxLength: 96 },
+      validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: "publishedAt",
+      title: "Publiceringsdatum",
+      type: "datetime",
+    }),
+    defineField({
+      name: "body",
+      title: "Brödtext",
+      type: "array",
+      of: [{ type: "block" }],
     }),
   ],
 });
