@@ -1,5 +1,6 @@
 import { getSanityClient } from "@/lib/sanity/client";
 import { PortableText } from "@portabletext/react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 interface Props {
@@ -23,12 +24,27 @@ export default async function ArtikelPage({ params }: Props) {
   if (!artikel) return notFound();
 
   return (
-    <main style={{ maxWidth: "700px", margin: "0 auto", padding: "2rem" }}>
-      <h1>{artikel.title}</h1>
-      {artikel.publishedAt && (
-        <p>{new Date(artikel.publishedAt).toLocaleDateString("sv-SE")}</p>
-      )}
-      {artikel.body && <PortableText value={artikel.body} />}
+    <main className="article-page">
+      <nav className="article-nav" aria-label="Navigering">
+        <Link href="/">← Till startsidan</Link>
+      </nav>
+      <article className="article-card">
+        <h1 className="article-title">{artikel.title}</h1>
+        {artikel.publishedAt && (
+          <p className="article-meta">
+            {new Date(artikel.publishedAt).toLocaleDateString("sv-SE", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </p>
+        )}
+        {artikel.body && (
+          <div className="article-body">
+            <PortableText value={artikel.body} />
+          </div>
+        )}
+      </article>
     </main>
   );
 }

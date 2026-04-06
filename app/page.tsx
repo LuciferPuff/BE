@@ -1,20 +1,45 @@
-import { getSupabaseClient } from "@/lib/supabase/client";
+import { HomeHero } from "@/components/home/HomeHero";
+import { HowItWorks } from "@/components/home/HowItWorks";
+import type { GuidePreview } from "@/components/home/LatestGuides";
+import { LatestGuides } from "@/components/home/LatestGuides";
+import { ProductTeaser } from "@/components/home/ProductTeaser";
+import { SiteFooter } from "@/components/home/SiteFooter";
+import { SiteHeader } from "@/components/home/SiteHeader";
+import { ValueProps } from "@/components/home/ValueProps";
+import { getSanityClient } from "@/lib/sanity/client";
+
+async function fetchLatestGuides(): Promise<GuidePreview[]> {
+  const client = getSanityClient();
+  if (!client) return [];
+
+  try {
+    const rows = await client.fetch<
+      { title: string; slug: string; publishedAt: string | null }[]
+    >(
+      `*[_type == "post" && defined(slug.current)] | order(coalesce(publishedAt, _updatedAt) desc) [0...3] {
+        title,
+        "slug": slug.current,
+        publishedAt
+      }`
+    );
+    return rows ?? [];
+  } catch {
+    return [];
+  }
+}
 
 export default async function Home() {
-  const supabase = getSupabaseClient();
-  let statusText =
-    "Saknar NEXT_PUBLIC_SUPABASE_URL och NEXT_PUBLIC_SUPABASE_PUBLISHABLE (eller aldre fallback-namn) i .env.local.";
-
-  if (supabase) {
-    const { error } = await supabase.from("healthcheck").select("id").limit(1);
-    statusText = error ? "Kontakt finns, men kontrollera tabellen healthcheck i Supabase." : "OK";
-  }
+  const guides = await fetchLatestGuides();
 
   return (
-    <main>
-      <h1>Next.js + Supabase</h1>
-      <p>Projektet ar redo for Vercel deploy.</p>
-      <p>Supabase-anslutning: {statusText}</p>
+    <main className="home">
+      <SiteHeader />
+      <HomeHero />
+      <ProductTeaser />
+      <HowItWorks />
+      <ValueProps />
+      <LatestGuides guides={guides} />
+      <SiteFooter />
     </main>
   );
 }

@@ -2,8 +2,12 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "BE",
-  description: "Next.js app with Supabase",
+  title: {
+    default: "Byggello – digital besiktning för husköpare",
+    template: "%s | Byggello",
+  },
+  description:
+    "Onlinebesiktning av bostad, tydliga rapporter och guider för dig som ska köpa hus eller lägenhet.",
 };
 
 export default function RootLayout({
