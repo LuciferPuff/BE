@@ -24,10 +24,27 @@ export const postType = defineType({
       type: "datetime",
     }),
     defineField({
+      name: "seoTitle",
+      title: "SEO-titel",
+      description: "Valfritt. Om tom används artikelns titel i Google.",
+      type: "string",
+      validation: (rule) => rule.max(70),
+    }),
+    defineField({
+      name: "seoDescription",
+      title: "Meta-beskrivning",
+      description:
+        "Valfritt, ca 150 tecken. Om tom byggs en kort text från brödtexten.",
+      type: "text",
+      rows: 3,
+      validation: (rule) => rule.max(160),
+    }),
+    defineField({
       name: "body",
       title: "Brödtext",
-      type: "array",
-      of: [{ type: "block" }],
+      type: "portableArticleBody",
+      description:
+        'Rubriker: klicka i stycket du vill ändra. Till vänster om texten finns en stilväljare (visar t.ex. "Brödtext") – klicka där och välj Rubrik 2/3/4. Fetstil (B) är inte samma sak som rubrik.',
     }),
   ],
 });

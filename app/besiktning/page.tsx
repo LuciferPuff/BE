@@ -1,8 +1,18 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+import { getSiteUrl } from "@/lib/site";
 
-export const metadata = {
-  title: "Starta besiktning | Byggello",
+const base = getSiteUrl();
+
+export const metadata: Metadata = {
+  title: "Starta besiktning",
   description: "Kom igång med digital besiktning av bostad.",
+  alternates: { canonical: `${base}/besiktning` },
+  openGraph: {
+    url: `${base}/besiktning`,
+    title: "Starta besiktning | Byggello",
+    description: "Kom igång med digital besiktning av bostad.",
+  },
 };
 
 export default function BesiktningPage() {

@@ -1,10 +1,24 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getSanityClient } from "@/lib/sanity/client";
+import { getSiteUrl } from "@/lib/site";
 
-export const metadata = {
-  title: "Guider & artiklar | Byggello",
-  description: "Guider och artiklar för dig som ska köpa bostad.",
+const base = getSiteUrl();
+
+export const metadata: Metadata = {
+  title: "Guider & artiklar",
+  description:
+    "Guider och artiklar för dig som ska köpa bostad – besiktning, visning och köpprocessen.",
+  alternates: { canonical: `${base}/artiklar` },
+  openGraph: {
+    url: `${base}/artiklar`,
+    title: "Guider & artiklar | Byggello",
+    description:
+      "Guider och artiklar för dig som ska köpa bostad – besiktning, visning och köpprocessen.",
+  },
 };
+
+export const revalidate = 600;
 
 export default async function ArtiklarIndexPage() {
   const client = getSanityClient();

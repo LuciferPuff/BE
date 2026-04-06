@@ -7,6 +7,17 @@ import { SiteFooter } from "@/components/home/SiteFooter";
 import { SiteHeader } from "@/components/home/SiteHeader";
 import { ValueProps } from "@/components/home/ValueProps";
 import { getSanityClient } from "@/lib/sanity/client";
+import { getSiteUrl } from "@/lib/site";
+import type { Metadata } from "next";
+
+const siteUrl = getSiteUrl();
+
+export const metadata: Metadata = {
+  alternates: { canonical: `${siteUrl}/` },
+  openGraph: { url: siteUrl },
+};
+
+export const revalidate = 600;
 
 async function fetchLatestGuides(): Promise<GuidePreview[]> {
   const client = getSanityClient();
