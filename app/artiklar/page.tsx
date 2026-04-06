@@ -8,13 +8,13 @@ const base = getSiteUrl();
 export const metadata: Metadata = {
   title: "Guider & artiklar",
   description:
-    "Guider och artiklar för dig som ska köpa bostad – besiktning, visning och köpprocessen.",
+    "Guider och artiklar för dig som ska köpa bostad – analys, visning och köpprocessen.",
   alternates: { canonical: `${base}/artiklar` },
   openGraph: {
     url: `${base}/artiklar`,
     title: "Guider & artiklar | Byggello",
     description:
-      "Guider och artiklar för dig som ska köpa bostad – besiktning, visning och köpprocessen.",
+      "Guider och artiklar för dig som ska köpa bostad – analys, visning och köpprocessen.",
   },
 };
 

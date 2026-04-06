@@ -7,11 +7,11 @@ const siteUrl = getSiteUrl();
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Byggello – digital besiktning för husköpare",
+    default: "Byggello – bostadsanalys för husköpare",
     template: "%s | Byggello",
   },
   description:
-    "Onlinebesiktning av bostad, tydliga rapporter och guider för dig som ska köpa hus eller lägenhet.",
+    "Strukturerad bostadsanalys online, tydliga rapporter och guider för dig som ska köpa hus eller lägenhet.",
   openGraph: {
     type: "website",
     locale: "sv_SE",

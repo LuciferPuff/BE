@@ -5,27 +5,29 @@ import { getSiteUrl } from "@/lib/site";
 const base = getSiteUrl();
 
 export const metadata: Metadata = {
-  title: "Starta besiktning",
-  description: "Kom igång med digital besiktning av bostad.",
-  alternates: { canonical: `${base}/besiktning` },
+  title: "Starta analys",
+  description:
+    "Kom igång med strukturerad bostadsanalys – tydliga insikter och rapport online.",
+  alternates: { canonical: `${base}/analys` },
   openGraph: {
-    url: `${base}/besiktning`,
-    title: "Starta besiktning | Byggello",
-    description: "Kom igång med digital besiktning av bostad.",
+    url: `${base}/analys`,
+    title: "Starta analys | Byggello",
+    description:
+      "Kom igång med strukturerad bostadsanalys – tydliga insikter och rapport online.",
   },
 };
 
-export default function BesiktningPage() {
+export default function AnalysPage() {
   return (
     <main className="article-page">
       <nav className="article-nav" aria-label="Navigering">
         <Link href="/">← Till startsidan</Link>
       </nav>
       <article className="article-card">
-        <h1 className="article-title">Starta besiktning</h1>
+        <h1 className="article-title">Starta analys</h1>
         <p className="article-lead">
-          Här kopplar du snart ihop ditt riktiga besiktningsflöde (inloggning,
-          betalning eller liknande).
+          Här kopplar du snart ihop ditt riktiga analysflöde (inloggning, betalning
+          eller liknande).
         </p>
         <div className="article-body">
           <p>

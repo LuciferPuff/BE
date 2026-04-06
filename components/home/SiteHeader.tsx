@@ -11,8 +11,8 @@ export function SiteHeader() {
           <Link href="#produkt">Produkten</Link>
           <Link href="#hur-det-funkar">Så funkar det</Link>
           <Link href="/artiklar">Guider</Link>
-          <Link href="/besiktning" className="home-nav-cta">
-            Starta besiktning
+          <Link href="/analys" className="home-nav-cta">
+            Starta analys
           </Link>
         </nav>
         <details className="home-nav-details">
@@ -21,8 +21,8 @@ export function SiteHeader() {
             <Link href="#produkt">Produkten</Link>
             <Link href="#hur-det-funkar">Så funkar det</Link>
             <Link href="/artiklar">Guider</Link>
-            <Link href="/besiktning" className="home-nav-cta">
-              Starta besiktning
+            <Link href="/analys" className="home-nav-cta">
+              Starta analys
             </Link>
           </div>
         </details>

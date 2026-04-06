@@ -13,11 +13,11 @@ export function ProductTeaser() {
               både en genomgång i verktyget och en rapport att spara eller dela.
             </p>
             <ul className="home-checklist">
-              <li>Onlinebesiktning anpassad för bostadsköp</li>
+              <li>Digital bostadsanalys anpassad för bostadsköp</li>
               <li>Dokumenterat underlag och tydliga nästa steg</li>
               <li>Perfekt komplement till teknisk besiktning och rådgivning</li>
             </ul>
-            <Link href="/besiktning" className="home-btn home-btn-primary">
+            <Link href="/analys" className="home-btn home-btn-primary">
               Kom igång
             </Link>
           </div>

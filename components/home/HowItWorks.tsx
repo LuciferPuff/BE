@@ -6,7 +6,7 @@ const steps = [
   },
   {
     n: "02",
-    title: "Genomför besiktningen",
+    title: "Genomför analysen",
     text: "Dokumentera och svara i ditt eget tempo. Allt samlas på ett ställe.",
   },
   {
