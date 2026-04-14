@@ -2,6 +2,7 @@ import { HomeHero } from "@/components/home/HomeHero";
 import { HowItWorks } from "@/components/home/HowItWorks";
 import type { GuidePreview } from "@/components/home/LatestGuides";
 import { LatestGuides } from "@/components/home/LatestGuides";
+import { PostPurchaseSection } from "@/components/home/PostPurchaseSection";
 import { ProductTeaser } from "@/components/home/ProductTeaser";
 import { SiteFooter } from "@/components/home/SiteFooter";
 import { SiteHeader } from "@/components/home/SiteHeader";
@@ -18,6 +19,22 @@ export const metadata: Metadata = {
 };
 
 export const revalidate = 600;
+
+const MIN_POSTS_FOR_GUIDES_SECTION = 5;
+
+async function fetchPostCount(): Promise<number> {
+  const client = getSanityClient();
+  if (!client) return 0;
+
+  try {
+    const n = await client.fetch<number>(
+      `count(*[_type == "post" && defined(slug.current)])`,
+    );
+    return typeof n === "number" ? n : 0;
+  } catch {
+    return 0;
+  }
+}
 
 async function fetchLatestGuides(): Promise<GuidePreview[]> {
   const client = getSanityClient();
@@ -40,7 +57,9 @@ async function fetchLatestGuides(): Promise<GuidePreview[]> {
 }
 
 export default async function Home() {
-  const guides = await fetchLatestGuides();
+  const postCount = await fetchPostCount();
+  const showGuides = postCount >= MIN_POSTS_FOR_GUIDES_SECTION;
+  const guides = showGuides ? await fetchLatestGuides() : [];
 
   return (
     <main className="home">
@@ -49,7 +68,8 @@ export default async function Home() {
       <ProductTeaser />
       <HowItWorks />
       <ValueProps />
-      <LatestGuides guides={guides} />
+      <PostPurchaseSection />
+      {showGuides && <LatestGuides guides={guides} />}
       <SiteFooter />
     </main>
   );

@@ -1,5 +1,4 @@
 import type { PortableTextBlock } from "@portabletext/types";
-import { blockContentToPlainText } from "@/lib/sanity/blockToPlainText";
 import { getSanityClient } from "@/lib/sanity/client";
 
 export type PostForSeo = {
@@ -9,6 +8,9 @@ export type PostForSeo = {
   _updatedAt: string;
   body: PortableTextBlock[] | null;
   seoTitle: string | null;
+  /** Meta description (stringfält i Studio). */
+  description: string | null;
+  /** Finns kvar i äldre dokument; inte längre i schema. */
   seoDescription: string | null;
 };
 
@@ -19,6 +21,7 @@ const postProjection = `{
   _updatedAt,
   body,
   seoTitle,
+  description,
   seoDescription
 }`;
 
@@ -38,13 +41,12 @@ export async function getPostBySlug(
   }
 }
 
+/** Meta description för &lt;meta&gt;, Open Graph, JSON-LD. */
 export function buildArticleDescription(post: PostForSeo): string {
-  if (post.seoDescription?.trim()) {
-    return post.seoDescription.trim().slice(0, 160);
-  }
-  const fromBody = blockContentToPlainText(post.body, 160);
-  if (fromBody) return fromBody;
-  return `Artikel från Byggello: ${post.title}`;
+  const fromSanity =
+    post.description?.trim() || post.seoDescription?.trim();
+  if (fromSanity) return fromSanity.slice(0, 160);
+  return `Läs mer om ${post.title} – guider och tips för husköpare på Byggello.`;
 }
 
 export type PostSitemapEntry = {

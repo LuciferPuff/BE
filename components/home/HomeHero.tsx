@@ -4,9 +4,11 @@ export function HomeHero() {
   return (
     <section className="home-hero" aria-labelledby="home-hero-heading">
       <div className="home-hero-inner">
-        <p className="home-hero-eyebrow">Bostadsanalys för husköpare</p>
+        <p className="home-hero-eyebrow">
+          Din partner genom hela bostadsresan
+        </p>
         <h1 id="home-hero-heading" className="home-hero-title">
-          Förstå bostaden innan du köper
+          Förstå bostaden innan du köper – och känn dig trygg länge efter.
         </h1>
         <p className="home-hero-lead">
           Genomför en strukturerad analys online, få tydliga insikter och en rapport

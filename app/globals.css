@@ -454,7 +454,7 @@ main.home {
   letter-spacing: -0.03em;
   line-height: 1.08;
   color: var(--color-white);
-  max-width: 14ch;
+  max-width: min(38rem, 100%);
   margin-bottom: 1.25rem;
 }
 
@@ -555,6 +555,20 @@ main.home {
 .home-section-intro-narrow {
   max-width: 32rem;
   margin-bottom: 0;
+}
+
+.home-post-purchase-inner {
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+.home-post-purchase-text {
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  color: var(--color-text);
+  opacity: 0.9;
+  margin: 0;
+  text-align: center;
 }
 
 .home-checklist {

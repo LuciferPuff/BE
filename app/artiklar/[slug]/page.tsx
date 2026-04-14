@@ -22,6 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const base = getSiteUrl();
   const canonical = `${base}/artiklar/${slug}`;
   const title = (post.seoTitle?.trim() || post.title).slice(0, 70);
+  // `description` (+ ev. äldre `seoDescription`) hämtas i getPostBySlug; annars generisk fallback.
   const description = buildArticleDescription(post);
 
   return {

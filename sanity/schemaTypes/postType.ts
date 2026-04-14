@@ -31,12 +31,11 @@ export const postType = defineType({
       validation: (rule) => rule.max(70),
     }),
     defineField({
-      name: "seoDescription",
-      title: "Meta-beskrivning",
+      name: "description",
+      title: "Meta description",
+      type: "string",
       description:
-        "Valfritt, ca 150 tecken. Om tom byggs en kort text från brödtexten.",
-      type: "text",
-      rows: 3,
+        "Kort sammanfattning för sökresultat och när länken delas. Ska vara under 160 tecken.",
       validation: (rule) => rule.max(160),
     }),
     defineField({

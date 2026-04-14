@@ -7,7 +7,7 @@ const siteUrl = getSiteUrl();
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Byggello – bostadsanalys för husköpare",
+    default: "Byggello – Din partner genom hela bostadsresan",
     template: "%s | Byggello",
   },
   description:
