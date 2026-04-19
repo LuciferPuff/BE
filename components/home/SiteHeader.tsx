@@ -10,7 +10,8 @@ export function SiteHeader() {
         <nav className="home-nav-desktop" aria-label="Huvudnavigation">
           <Link href="#produkt">Produkten</Link>
           <Link href="#hur-det-funkar">Så funkar det</Link>
-          <Link href="/artiklar">Guider</Link>
+          <Link href="/artiklar">Artiklar</Link>
+          <Link href="/guider">Guider</Link>
           <Link href="/analys" className="home-nav-cta">
             Starta analys
           </Link>
@@ -20,7 +21,8 @@ export function SiteHeader() {
           <div className="home-nav-drawer">
             <Link href="#produkt">Produkten</Link>
             <Link href="#hur-det-funkar">Så funkar det</Link>
-            <Link href="/artiklar">Guider</Link>
+            <Link href="/artiklar">Artiklar</Link>
+            <Link href="/guider">Guider</Link>
             <Link href="/analys" className="home-nav-cta">
               Starta analys
             </Link>

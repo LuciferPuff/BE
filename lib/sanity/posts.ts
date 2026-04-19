@@ -1,4 +1,5 @@
 import type { PortableTextBlock } from "@portabletext/types";
+import { normalizeArticleSlugParam } from "@/lib/slug";
 import { getSanityClient } from "@/lib/sanity/client";
 
 export type PostForSeo = {
@@ -26,19 +27,32 @@ const postProjection = `{
 }`;
 
 export async function getPostBySlug(
-  slug: string,
+  rawSlug: string,
 ): Promise<PostForSeo | null> {
   const client = getSanityClient();
   if (!client) return null;
 
+  const slug = normalizeArticleSlugParam(rawSlug);
+
   try {
-    return await client.fetch<PostForSeo | null>(
+    const post = await client.fetch<PostForSeo | null>(
       `*[_type == "post" && slug.current == $slug][0]${postProjection}`,
       { slug },
     );
+    if (post) return post;
+
+    // Om segmentet inte var encoded som förväntat, prova rå sträng (t.ex. äldre data)
+    if (rawSlug.trim() !== slug) {
+      return await client.fetch<PostForSeo | null>(
+        `*[_type == "post" && slug.current == $slug][0]${postProjection}`,
+        { slug: rawSlug.trim() },
+      );
+    }
   } catch {
-    return null;
+    /* ignorera */
   }
+
+  return null;
 }
 
 /** Meta description för &lt;meta&gt;, Open Graph, JSON-LD. */
@@ -54,6 +68,21 @@ export type PostSitemapEntry = {
   publishedAt: string | null;
   _updatedAt: string;
 };
+
+/** Alla publicerade slugs (för generateStaticParams / sitemap). */
+export async function getAllPostSlugs(): Promise<string[]> {
+  const client = getSanityClient();
+  if (!client) return [];
+
+  try {
+    const rows = await client.fetch<string[] | null>(
+      `*[_type == "post" && defined(slug.current)].slug.current`,
+    );
+    return rows ?? [];
+  } catch {
+    return [];
+  }
+}
 
 export async function getAllPostsForSitemap(): Promise<PostSitemapEntry[]> {
   const client = getSanityClient();

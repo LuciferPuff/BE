@@ -1,27 +1,30 @@
-import {
-  buildArticleDescription,
-  type PostForSeo,
-} from "@/lib/sanity/posts";
 import { getSiteUrl } from "@/lib/site";
 
 export function ArticleJsonLd({
-  post,
+  headline,
+  description,
+  datePublished,
+  dateModified,
   canonicalUrl,
 }: {
-  post: PostForSeo;
+  headline: string;
+  description: string;
+  datePublished: string | null | undefined;
+  dateModified: string;
   canonicalUrl: string;
 }) {
   const site = getSiteUrl();
-  const description = buildArticleDescription(post);
-  const headline = (post.seoTitle?.trim() || post.title).slice(0, 110);
 
   const data = {
     "@context": "https://schema.org",
     "@type": "Article",
-    headline,
+    headline: headline.slice(0, 110),
     description,
-    datePublished: post.publishedAt ?? undefined,
-    dateModified: post._updatedAt,
+    datePublished:
+      datePublished != null
+        ? new Date(datePublished).toISOString()
+        : undefined,
+    dateModified: new Date(dateModified).toISOString(),
     author: {
       "@type": "Organization",
       name: "Byggello",

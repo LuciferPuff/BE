@@ -1,10 +1,10 @@
 import { ArticlePortableText } from "@/components/article/ArticlePortableText";
 import { ArticleJsonLd } from "@/components/seo/ArticleJsonLd";
 import {
-  buildArticleDescription,
-  getAllPostSlugs,
-  getPostBySlug,
-} from "@/lib/sanity/posts";
+  buildGuideMetaDescription,
+  getAllGuideSlugs,
+  getGuideBySlug,
+} from "@/lib/sanity/guides";
 import { getSiteUrl } from "@/lib/site";
 import { normalizeArticleSlugParam } from "@/lib/slug";
 import type { Metadata } from "next";
@@ -18,7 +18,7 @@ interface Props {
 export const revalidate = 600;
 
 export async function generateStaticParams() {
-  const slugs = await getAllPostSlugs();
+  const slugs = await getAllGuideSlugs();
   return slugs.map((slug) => ({
     slug: normalizeArticleSlugParam(slug),
   }));
@@ -26,16 +26,15 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug: rawSlug } = await params;
-  const post = await getPostBySlug(rawSlug);
-  if (!post) {
-    return { title: "Artikel hittades inte" };
+  const guide = await getGuideBySlug(rawSlug);
+  if (!guide) {
+    return { title: "Guide hittades inte" };
   }
 
   const base = getSiteUrl();
-  const canonical = `${base}/artiklar/${post.slug}`;
-  const title = (post.seoTitle?.trim() || post.title).slice(0, 70);
-  // `description` (+ ev. äldre `seoDescription`) hämtas i getPostBySlug; annars generisk fallback.
-  const description = buildArticleDescription(post);
+  const canonical = `${base}/guider/${guide.slug}`;
+  const title = (guide.seoTitle?.trim() || guide.title).slice(0, 70);
+  const description = buildGuideMetaDescription(guide);
 
   return {
     title,
@@ -46,8 +45,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url: canonical,
       title,
       description,
-      publishedTime: post.publishedAt ?? undefined,
-      modifiedTime: post._updatedAt,
+      publishedTime: guide.publishedAt ?? undefined,
+      modifiedTime: guide._updatedAt,
       locale: "sv_SE",
       siteName: "Byggello",
     },
@@ -59,33 +58,33 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function ArtikelPage({ params }: Props) {
+export default async function GuidePage({ params }: Props) {
   const { slug: rawSlug } = await params;
-  const artikel = await getPostBySlug(rawSlug);
+  const guide = await getGuideBySlug(rawSlug);
 
-  if (!artikel) return notFound();
+  if (!guide) return notFound();
 
   const base = getSiteUrl();
-  const canonicalUrl = `${base}/artiklar/${artikel.slug}`;
+  const canonicalUrl = `${base}/guider/${guide.slug}`;
 
   return (
     <main className="article-page">
       <ArticleJsonLd
-        headline={artikel.seoTitle?.trim() || artikel.title}
-        description={buildArticleDescription(artikel)}
-        datePublished={artikel.publishedAt}
-        dateModified={artikel._updatedAt}
+        headline={guide.seoTitle?.trim() || guide.title}
+        description={buildGuideMetaDescription(guide)}
+        datePublished={guide.publishedAt}
+        dateModified={guide._updatedAt}
         canonicalUrl={canonicalUrl}
       />
       <nav className="article-nav" aria-label="Navigering">
-        <Link href="/artiklar">← Alla artiklar</Link>
+        <Link href="/guider">← Alla guider</Link>
       </nav>
       <article className="article-card">
-        <h1 className="article-title">{artikel.title}</h1>
-        {artikel.publishedAt && (
+        <h1 className="article-title">{guide.title}</h1>
+        {guide.publishedAt && (
           <p className="article-meta">
-            <time dateTime={new Date(artikel.publishedAt).toISOString()}>
-              {new Date(artikel.publishedAt).toLocaleDateString("sv-SE", {
+            <time dateTime={new Date(guide.publishedAt).toISOString()}>
+              {new Date(guide.publishedAt).toLocaleDateString("sv-SE", {
                 year: "numeric",
                 month: "long",
                 day: "numeric",
@@ -93,9 +92,9 @@ export default async function ArtikelPage({ params }: Props) {
             </time>
           </p>
         )}
-        {artikel.body && (
+        {guide.body && (
           <div className="article-body">
-            <ArticlePortableText value={artikel.body} />
+            <ArticlePortableText value={guide.body} />
           </div>
         )}
       </article>

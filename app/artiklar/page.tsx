@@ -6,15 +6,15 @@ import { getSiteUrl } from "@/lib/site";
 const base = getSiteUrl();
 
 export const metadata: Metadata = {
-  title: "Guider & artiklar",
+  title: "Artiklar",
   description:
-    "Guider och artiklar för dig som ska köpa bostad – analys, visning och köpprocessen.",
+    "Artiklar för dig som ska köpa bostad – analys, visning och köpprocessen.",
   alternates: { canonical: `${base}/artiklar` },
   openGraph: {
     url: `${base}/artiklar`,
-    title: "Guider & artiklar | Byggello",
+    title: "Artiklar | Byggello",
     description:
-      "Guider och artiklar för dig som ska köpa bostad – analys, visning och köpprocessen.",
+      "Artiklar för dig som ska köpa bostad – analys, visning och köpprocessen.",
   },
 };
 
@@ -46,7 +46,7 @@ export default async function ArtiklarIndexPage() {
         <Link href="/">← Till startsidan</Link>
       </nav>
       <article className="article-card">
-        <h1 className="article-title">Guider &amp; artiklar</h1>
+        <h1 className="article-title">Artiklar</h1>
         <p className="article-lead">
           Kunskap för husköpare – från första visning till kontrakt.
         </p>

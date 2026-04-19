@@ -8,12 +8,16 @@ export type GuidePreview = {
 
 export function LatestGuides({ guides }: { guides: GuidePreview[] }) {
   return (
-    <section id="guider" className="home-section home-section-alt" aria-labelledby="guides-heading">
+    <section
+      id="artiklar"
+      className="home-section home-section-alt"
+      aria-labelledby="artiklar-heading"
+    >
       <div className="home-container">
         <div className="home-guides-head">
           <div>
-            <h2 id="guides-heading" className="home-section-title">
-              Guider för husköpare
+            <h2 id="artiklar-heading" className="home-section-title">
+              Artiklar
             </h2>
             <p className="home-section-intro home-section-intro-narrow">
               Läs mer om köpprocessen, vad du ska tänka på och hur du förbereder
