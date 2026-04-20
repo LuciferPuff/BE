@@ -4,10 +4,13 @@ import {
   buildArticleDescription,
   getAllPostSlugs,
   getPostBySlug,
+  getPostCoverAlt,
 } from "@/lib/sanity/posts";
+import { urlForSanityImage } from "@/lib/sanity/imageUrl";
 import { getSiteUrl } from "@/lib/site";
 import { normalizeArticleSlugParam } from "@/lib/slug";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -36,6 +39,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = (post.seoTitle?.trim() || post.title).slice(0, 70);
   // `description` (+ ev. äldre `seoDescription`) hämtas i getPostBySlug; annars generisk fallback.
   const description = buildArticleDescription(post);
+  const ogImageUrl =
+    post.coverImage != null ? urlForSanityImage(post.coverImage, 1200) : null;
+  const ogImages =
+    ogImageUrl != null
+      ? [
+          {
+            url: ogImageUrl,
+            width: 1200,
+            height: 630,
+            alt: getPostCoverAlt(post.coverImage, title),
+          },
+        ]
+      : undefined;
 
   return {
     title,
@@ -50,11 +66,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       modifiedTime: post._updatedAt,
       locale: "sv_SE",
       siteName: "Byggello",
+      ...(ogImages != null ? { images: ogImages } : {}),
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
+      ...(ogImageUrl != null ? { images: [ogImageUrl] } : {}),
     },
   };
 }
@@ -67,6 +85,11 @@ export default async function ArtikelPage({ params }: Props) {
 
   const base = getSiteUrl();
   const canonicalUrl = `${base}/artiklar/${artikel.slug}`;
+  const coverSrc =
+    artikel.coverImage != null
+      ? urlForSanityImage(artikel.coverImage, 960)
+      : null;
+  const coverAlt = getPostCoverAlt(artikel.coverImage, artikel.title);
 
   return (
     <main className="article-page">
@@ -92,6 +115,19 @@ export default async function ArtikelPage({ params }: Props) {
               })}
             </time>
           </p>
+        )}
+        {coverSrc != null && (
+          <figure className="article-cover">
+            <Image
+              src={coverSrc}
+              alt={coverAlt}
+              width={960}
+              height={540}
+              sizes="(max-width: 768px) 100vw, 700px"
+              className="article-cover-image"
+              priority
+            />
+          </figure>
         )}
         {artikel.body && (
           <div className="article-body">

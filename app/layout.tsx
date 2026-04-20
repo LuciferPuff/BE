@@ -25,6 +25,10 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  icons: {
+    icon: "/bilder/byggello-logo.png",
+    apple: "/bilder/byggello-logo.png",
+  },
   ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
     ? {
         verification: {

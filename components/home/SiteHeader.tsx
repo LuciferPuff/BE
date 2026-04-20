@@ -1,11 +1,21 @@
+import Image from "next/image";
 import Link from "next/link";
+
+const LOGO_SRC = "/bilder/byggello-logo.png";
 
 export function SiteHeader() {
   return (
     <header className="home-header">
       <div className="home-header-inner">
-        <Link href="/" className="home-logo">
-          Byggello
+        <Link href="/" className="home-logo" aria-label="Byggello – startsida">
+          <Image
+            src={LOGO_SRC}
+            alt="Byggello"
+            width={320}
+            height={90}
+            className="home-logo-image"
+            priority
+          />
         </Link>
         <nav className="home-nav-desktop" aria-label="Huvudnavigation">
           <Link href="#produkt">Produkten</Link>

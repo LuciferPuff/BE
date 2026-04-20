@@ -1,11 +1,20 @@
+import Image from "next/image";
 import Link from "next/link";
+
+const LOGO_SRC = "/bilder/byggello-logo.png";
 
 export function SiteFooter() {
   return (
     <footer className="home-footer">
       <div className="home-container home-footer-inner">
         <div className="home-footer-brand">
-          <span className="home-footer-logo">Byggello</span>
+          <Image
+            src={LOGO_SRC}
+            alt="Byggello"
+            width={280}
+            height={78}
+            className="home-footer-logo-image"
+          />
           <p className="home-footer-tagline">
             Bostadsanalys och rapporter för tryggare bostadsköp.
           </p>

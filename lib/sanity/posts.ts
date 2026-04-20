@@ -1,6 +1,21 @@
 import type { PortableTextBlock } from "@portabletext/types";
+import type { SanityImageSource } from "@sanity/image-url";
 import { normalizeArticleSlugParam } from "@/lib/slug";
 import { getSanityClient } from "@/lib/sanity/client";
+
+export type PostCoverImage = SanityImageSource & {
+  alt?: string;
+};
+
+export function getPostCoverAlt(
+  cover: PostCoverImage | null | undefined,
+  title: string,
+): string {
+  const alt = cover && typeof cover === "object" && "alt" in cover
+    ? String((cover as { alt?: string }).alt ?? "").trim()
+    : "";
+  return alt !== "" ? alt : title;
+}
 
 export type PostForSeo = {
   title: string;
@@ -13,6 +28,7 @@ export type PostForSeo = {
   description: string | null;
   /** Finns kvar i äldre dokument; inte längre i schema. */
   seoDescription: string | null;
+  coverImage: PostCoverImage | null;
 };
 
 const postProjection = `{
@@ -23,7 +39,8 @@ const postProjection = `{
   body,
   seoTitle,
   description,
-  seoDescription
+  seoDescription,
+  coverImage
 }`;
 
 export async function getPostBySlug(

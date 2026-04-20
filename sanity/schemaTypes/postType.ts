@@ -39,6 +39,22 @@ export const postType = defineType({
       validation: (rule) => rule.max(160),
     }),
     defineField({
+      name: "coverImage",
+      title: "Huvudbild",
+      type: "image",
+      description: "Valfri bild som visas överst i artikeln och kan användas vid delning i sociala medier.",
+      options: { hotspot: true },
+      fields: [
+        defineField({
+          name: "alt",
+          type: "string",
+          title: "Alt-text",
+          description: "Beskriv bilden kort – bra för SEO och skärmläsare.",
+          validation: (rule) => rule.max(200),
+        }),
+      ],
+    }),
+    defineField({
       name: "body",
       title: "Brödtext",
       type: "portableArticleBody",
