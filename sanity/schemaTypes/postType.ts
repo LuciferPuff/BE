@@ -59,7 +59,7 @@ export const postType = defineType({
       title: "Brödtext",
       type: "portableArticleBody",
       description:
-        'Rubriker: klicka i stycket du vill ändra. Till vänster om texten finns en stilväljare (visar t.ex. "Brödtext") – klicka där och välj Rubrik 2/3/4. Fetstil (B) är inte samma sak som rubrik.',
+        'Rubriker: klicka i stycket du vill ändra. Till vänster om texten finns en stilväljare (visar t.ex. "Brödtext") – klicka där och välj Rubrik 2/3/4. Fetstil (B) är inte samma sak som rubrik. Infoga bilder via +-menyn / "Bild i texten".',
     }),
   ],
 });

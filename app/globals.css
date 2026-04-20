@@ -210,6 +210,27 @@ main.article-page {
   border-radius: 4px;
 }
 
+.article-body-figure {
+  margin: 1.75rem 0;
+  line-height: 0;
+}
+
+.article-body-inline-image {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--radius);
+}
+
+.article-body-caption {
+  margin-top: 0.65rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--color-primary);
+  opacity: 0.72;
+}
+
 .article-cover {
   margin: 0 0 1.75rem;
   border-radius: var(--radius);
@@ -332,24 +353,24 @@ main.home {
 }
 
 .home-logo-image {
-  height: 2.5rem;
+  height: 3.25rem;
   width: auto;
-  max-width: min(12rem, 52vw);
+  max-width: min(17rem, 58vw);
   object-fit: contain;
   object-position: left center;
 }
 
 @media (min-width: 640px) {
   .home-logo-image {
-    height: 2.85rem;
-    max-width: 14rem;
+    height: 3.75rem;
+    max-width: 19rem;
   }
 }
 
 @media (min-width: 1024px) {
   .home-logo-image {
-    height: 3rem;
-    max-width: 15rem;
+    height: 4.25rem;
+    max-width: 22rem;
   }
 }
 
@@ -886,17 +907,17 @@ main.home {
 }
 
 .home-footer-logo-image {
-  height: 1.85rem;
+  height: 2.45rem;
   width: auto;
-  max-width: 11rem;
+  max-width: 14.5rem;
   object-fit: contain;
   object-position: left center;
 }
 
 @media (min-width: 640px) {
   .home-footer-logo-image {
-    height: 2.1rem;
-    max-width: 12rem;
+    height: 2.85rem;
+    max-width: 16.5rem;
   }
 }
 

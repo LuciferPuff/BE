@@ -11,8 +11,8 @@ export function SiteHeader() {
           <Image
             src={LOGO_SRC}
             alt="Byggello"
-            width={320}
-            height={90}
+            width={420}
+            height={118}
             className="home-logo-image"
             priority
           />

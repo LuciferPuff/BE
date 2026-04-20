@@ -11,8 +11,8 @@ export function SiteFooter() {
           <Image
             src={LOGO_SRC}
             alt="Byggello"
-            width={280}
-            height={78}
+            width={360}
+            height={100}
             className="home-footer-logo-image"
           />
           <p className="home-footer-tagline">

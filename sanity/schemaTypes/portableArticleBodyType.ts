@@ -1,4 +1,4 @@
-import { defineArrayMember, defineType } from "sanity";
+import { defineArrayMember, defineField, defineType } from "sanity";
 
 /**
  * Namngiven portable text-typ så Studio alltid får rätt block-editor
@@ -28,6 +28,27 @@ export const portableArticleBodyType = defineType({
         ],
         annotations: [],
       },
+    }),
+    defineArrayMember({
+      type: "image",
+      title: "Bild i texten",
+      options: { hotspot: true },
+      fields: [
+        defineField({
+          name: "alt",
+          type: "string",
+          title: "Alt-text",
+          description: "Kort beskrivning för skärmläsare och SEO.",
+          validation: (rule) => rule.max(200),
+        }),
+        defineField({
+          name: "caption",
+          type: "string",
+          title: "Bildtext",
+          description: "Valfri text under bilden.",
+          validation: (rule) => rule.max(300),
+        }),
+      ],
     }),
   ],
 });

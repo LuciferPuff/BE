@@ -43,7 +43,7 @@ export const guideType = defineType({
       title: "Innehåll",
       type: "portableArticleBody",
       description:
-        'Samma editor som artiklar – rubriker via stilmenyn till vänster om stycket (Rubrik 2/3/4).',
+        'Samma editor som artiklar – rubriker via stilmenyn till vänster om stycket (Rubrik 2/3/4). Bilder i texten via +-menyn.',
     }),
   ],
 });
