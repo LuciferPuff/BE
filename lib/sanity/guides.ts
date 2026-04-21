@@ -1,4 +1,5 @@
 import type { PortableTextBlock } from "@portabletext/types";
+import type { PostCoverImage } from "@/lib/sanity/posts";
 import { normalizeArticleSlugParam } from "@/lib/slug";
 import { getSanityClient } from "@/lib/sanity/client";
 
@@ -10,6 +11,7 @@ export type GuideForPage = {
   body: PortableTextBlock[] | null;
   seoTitle: string | null;
   description: string | null;
+  coverImage: PostCoverImage | null;
 };
 
 const guideProjection = `{
@@ -19,7 +21,8 @@ const guideProjection = `{
   _updatedAt,
   body,
   seoTitle,
-  description
+  description,
+  coverImage
 }`;
 
 export function buildGuideMetaDescription(guide: GuideForPage): string {

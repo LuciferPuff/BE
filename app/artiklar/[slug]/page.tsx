@@ -1,4 +1,6 @@
 import { ArticlePortableText } from "@/components/article/ArticlePortableText";
+import { ContentBreadcrumb } from "@/components/layout/ContentBreadcrumb";
+import { ContentPageShell } from "@/components/layout/ContentPageShell";
 import { ArticleJsonLd } from "@/components/seo/ArticleJsonLd";
 import {
   buildArticleDescription,
@@ -11,7 +13,6 @@ import { getSiteUrl } from "@/lib/site";
 import { normalizeArticleSlugParam } from "@/lib/slug";
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 interface Props {
@@ -92,7 +93,7 @@ export default async function ArtikelPage({ params }: Props) {
   const coverAlt = getPostCoverAlt(artikel.coverImage, artikel.title);
 
   return (
-    <main className="article-page">
+    <>
       <ArticleJsonLd
         headline={artikel.seoTitle?.trim() || artikel.title}
         description={buildArticleDescription(artikel)}
@@ -100,41 +101,55 @@ export default async function ArtikelPage({ params }: Props) {
         dateModified={artikel._updatedAt}
         canonicalUrl={canonicalUrl}
       />
-      <nav className="article-nav" aria-label="Navigering">
-        <Link href="/artiklar">← Alla artiklar</Link>
-      </nav>
-      <article className="article-card">
-        <h1 className="article-title">{artikel.title}</h1>
-        {artikel.publishedAt && (
-          <p className="article-meta">
-            <time dateTime={new Date(artikel.publishedAt).toISOString()}>
-              {new Date(artikel.publishedAt).toLocaleDateString("sv-SE", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </time>
-          </p>
-        )}
-        {coverSrc != null && (
-          <figure className="article-cover">
-            <Image
-              src={coverSrc}
-              alt={coverAlt}
-              width={960}
-              height={540}
-              sizes="(max-width: 768px) 100vw, 700px"
-              className="article-cover-image"
-              priority
-            />
-          </figure>
-        )}
-        {artikel.body && (
-          <div className="article-body">
-            <ArticlePortableText value={artikel.body} />
-          </div>
-        )}
-      </article>
-    </main>
+      <ContentPageShell
+        kindLabel="Artikel"
+        breadcrumb={
+          <ContentBreadcrumb
+            items={[
+              { label: "Startsida", href: "/" },
+              { label: "Artiklar", href: "/artiklar" },
+              { label: artikel.title },
+            ]}
+          />
+        }
+      >
+        <div className="content-article-column">
+          <article className="article-card content-article-card">
+            <div className="content-article-head">
+              <h1 className="article-title">{artikel.title}</h1>
+              {artikel.publishedAt && (
+                <p className="article-meta">
+                  <time dateTime={new Date(artikel.publishedAt).toISOString()}>
+                    {new Date(artikel.publishedAt).toLocaleDateString("sv-SE", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </time>
+                </p>
+              )}
+            </div>
+            {coverSrc != null && (
+              <figure className="article-cover">
+                <Image
+                  src={coverSrc}
+                  alt={coverAlt}
+                  width={960}
+                  height={540}
+                  sizes="(max-width: 768px) 100vw, 700px"
+                  className="article-cover-image"
+                  priority
+                />
+              </figure>
+            )}
+            {artikel.body && (
+              <div className="article-body">
+                <ArticlePortableText value={artikel.body} />
+              </div>
+            )}
+          </article>
+        </div>
+      </ContentPageShell>
+    </>
   );
 }

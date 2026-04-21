@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { ContentBreadcrumb } from "@/components/layout/ContentBreadcrumb";
+import { ContentPageShell } from "@/components/layout/ContentPageShell";
 import { getAllGuidesForList } from "@/lib/sanity/guides";
 import { getSiteUrl } from "@/lib/site";
 
@@ -24,22 +26,28 @@ export default async function GuiderPage() {
   const guides = await getAllGuidesForList();
 
   return (
-    <main className="article-page">
-      <nav className="article-nav" aria-label="Navigering">
-        <Link href="/">← Till startsidan</Link>
-      </nav>
-      <article className="article-card">
-        <h1 className="article-title">Guider</h1>
-        <p className="article-lead">
-          Fristående guider och mer omfattande material – separat från våra kortare{" "}
-          <Link href="/artiklar">artiklar</Link>.
-        </p>
+    <ContentPageShell
+      breadcrumb={
+        <ContentBreadcrumb
+          items={[{ label: "Startsida", href: "/" }, { label: "Guider" }]}
+        />
+      }
+    >
+      <article className="article-card content-index-card">
+        <div className="content-index-head">
+          <h1 className="article-title">Guider</h1>
+          <p className="article-lead">
+            Fristående guider och mer omfattande material – separat från våra
+            kortare <Link href="/artiklar">artiklar</Link>.
+          </p>
+        </div>
         {guides.length === 0 ? (
           <p className="article-body">
-            Inga guider publicerade ännu. Lägg till dokumenttypen Guide i Sanity Studio.
+            Inga guider publicerade ännu. Lägg till dokumenttypen Guide i Sanity
+            Studio.
           </p>
         ) : (
-          <ul className="artiklar-list">
+          <ul className="artiklar-list content-index-list">
             {guides.map((g) => (
               <li key={g.slug}>
                 <Link href={`/guider/${g.slug}`} className="artiklar-list-link">
@@ -55,6 +63,6 @@ export default async function GuiderPage() {
           </ul>
         )}
       </article>
-    </main>
+    </ContentPageShell>
   );
 }
