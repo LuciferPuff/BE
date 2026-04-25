@@ -29,13 +29,9 @@ export const metadata: Metadata = {
     icon: "/bilder/byggello-logo.png",
     apple: "/bilder/byggello-logo.png",
   },
-  ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
-    ? {
-        verification: {
-          google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
-        },
-      }
-    : {}),
+  verification: {
+    google: "x9eAba2N-8VySN9qLE1GKLHbzbw2lyl_908-kkEb64c",
+  },
 };
 
 export default function RootLayout({
