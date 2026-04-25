@@ -3,10 +3,50 @@ import {
   type PortableTextComponents,
   type PortableTextProps,
 } from "@portabletext/react";
+import type { ReactNode } from "react";
+import Link from "next/link";
 
 import { urlForSanityImage } from "@/lib/sanity/imageUrl";
 
+type LinkMarkValue = {
+  href?: string;
+  openInNewTab?: boolean;
+};
+
+function ArticleBodyLink({
+  value,
+  children,
+}: {
+  value?: LinkMarkValue;
+  children: ReactNode;
+}) {
+  const href = typeof value?.href === "string" ? value.href.trim() : "";
+  if (href === "") return <>{children}</>;
+
+  const isInternal = href.startsWith("/") && !href.startsWith("//");
+  const openInNewTab =
+    value?.openInNewTab !== false && !isInternal && !href.startsWith("#");
+
+  if (isInternal) {
+    return <Link href={href}>{children}</Link>;
+  }
+
+  return (
+    <a
+      href={href}
+      {...(openInNewTab
+        ? { target: "_blank", rel: "noopener noreferrer" }
+        : {})}
+    >
+      {children}
+    </a>
+  );
+}
+
 const components: PortableTextComponents = {
+  marks: {
+    link: ArticleBodyLink,
+  },
   block: {
     normal: ({ children }) => <p>{children}</p>,
     h2: ({ children }) => <h2>{children}</h2>,

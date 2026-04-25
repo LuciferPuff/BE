@@ -26,7 +26,40 @@ export const portableArticleBodyType = defineType({
           { title: "Fet", value: "strong" },
           { title: "Kursiv", value: "em" },
         ],
-        annotations: [],
+        annotations: [
+          {
+            name: "link",
+            type: "object",
+            title: "Länk",
+            fields: [
+              defineField({
+                name: "href",
+                type: "string",
+                title: "URL eller sökväg",
+                description:
+                  "Extern länk med https://, eller intern sökväg som börjar med / (t.ex. /artiklar/slug).",
+                validation: (rule) =>
+                  rule.required().custom((val) => {
+                    const v = typeof val === "string" ? val.trim() : "";
+                    if (!v) return "Ange en adress";
+                    if (/^https?:\/\//i.test(v)) return true;
+                    if (/^mailto:/i.test(v)) return true;
+                    if (/^tel:/i.test(v)) return true;
+                    if (v.startsWith("/") && !v.startsWith("//")) return true;
+                    if (v.startsWith("#")) return true;
+                    return "Använd https://… eller en intern sökväg som börjar med /";
+                  }),
+              }),
+              defineField({
+                name: "openInNewTab",
+                type: "boolean",
+                title: "Öppna i ny flik",
+                description: "Lämpligt för externa länkar. Ignoreras för interna sökvägar.",
+                initialValue: true,
+              }),
+            ],
+          },
+        ],
       },
     }),
     defineArrayMember({
