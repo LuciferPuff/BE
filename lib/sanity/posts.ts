@@ -5,6 +5,7 @@ import { getSanityClient } from "@/lib/sanity/client";
 
 export type PostCoverImage = SanityImageSource & {
   alt?: string;
+  caption?: string;
 };
 
 export function getPostCoverAlt(

@@ -91,6 +91,10 @@ export default async function ArtikelPage({ params }: Props) {
       ? urlForSanityImage(artikel.coverImage, 960)
       : null;
   const coverAlt = getPostCoverAlt(artikel.coverImage, artikel.title);
+  const coverCaption =
+    typeof artikel.coverImage === "object" && artikel.coverImage !== null && "caption" in artikel.coverImage
+      ? String((artikel.coverImage as { caption?: string }).caption ?? "").trim()
+      : "";
 
   return (
     <>
@@ -140,6 +144,9 @@ export default async function ArtikelPage({ params }: Props) {
                   className="article-cover-image"
                   priority
                 />
+                {coverCaption !== "" && (
+                  <figcaption className="article-cover-caption">{coverCaption}</figcaption>
+                )}
               </figure>
             )}
             {artikel.body && (

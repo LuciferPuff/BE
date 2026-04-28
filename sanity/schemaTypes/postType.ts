@@ -52,6 +52,12 @@ export const postType = defineType({
           description: "Beskriv bilden kort – bra för SEO och skärmläsare.",
           validation: (rule) => rule.max(200),
         }),
+        defineField({
+          name: "caption",
+          type: "string",
+          title: "Bildtext",
+          description: "Valfritt. Visas under huvudbilden i artikeln.",
+        }),
       ],
     }),
     defineField({
