@@ -13,6 +13,12 @@ type LinkMarkValue = {
   openInNewTab?: boolean;
 };
 
+type TableValue = {
+  rows?: Array<{
+    cells?: string[];
+  }>;
+};
+
 function ArticleBodyLink({
   value,
   children,
@@ -79,6 +85,30 @@ const components: PortableTextComponents = {
             <figcaption className="article-body-caption">{caption}</figcaption>
           )}
         </figure>
+      );
+    },
+    table: ({ value }) => {
+      const table = value as TableValue;
+      const rows = Array.isArray(table?.rows) ? table.rows : [];
+      if (rows.length === 0) return null;
+
+      return (
+        <div className="article-body-table-wrap">
+          <table className="article-body-table">
+            <tbody>
+              {rows.map((row, rowIndex) => {
+                const cells = Array.isArray(row?.cells) ? row.cells : [];
+                return (
+                  <tr key={`row-${rowIndex}`}>
+                    {cells.map((cell, cellIndex) => (
+                      <td key={`cell-${rowIndex}-${cellIndex}`}>{cell}</td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       );
     },
   },

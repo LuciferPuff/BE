@@ -83,5 +83,9 @@ export const portableArticleBodyType = defineType({
         }),
       ],
     }),
+    defineArrayMember({
+      type: "table",
+      title: "Tabell",
+    }),
   ],
 });

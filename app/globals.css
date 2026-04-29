@@ -231,6 +231,27 @@ main.article-page {
   opacity: 0.72;
 }
 
+.article-body-table-wrap {
+  margin: 1.5rem 0;
+  overflow-x: auto;
+}
+
+.article-body-table {
+  width: 100%;
+  min-width: 28rem;
+  border-collapse: collapse;
+  border: 1px solid rgba(27, 46, 60, 0.16);
+  border-radius: var(--radius);
+  background: var(--color-white);
+}
+
+.article-body-table td {
+  padding: 0.6rem 0.75rem;
+  vertical-align: top;
+  line-height: 1.5;
+  border: 1px solid rgba(27, 46, 60, 0.12);
+}
+
 .article-cover {
   margin: 0 0 1.75rem;
   border-radius: var(--radius);
