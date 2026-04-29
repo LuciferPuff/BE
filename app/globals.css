@@ -474,6 +474,60 @@ main.content-page {
   margin-bottom: 0;
 }
 
+.analysis-card {
+  overflow: hidden;
+}
+
+.analysis-card-head {
+  margin: -2.15rem -2rem 1.75rem;
+  padding: 2rem 2rem 1.25rem;
+  background: linear-gradient(
+    180deg,
+    rgba(201, 226, 242, 0.55) 0%,
+    rgba(201, 226, 242, 0.18) 100%
+  );
+  border-bottom: 1px solid rgba(27, 46, 60, 0.08);
+}
+
+.analysis-lead {
+  margin-bottom: 0;
+}
+
+.analysis-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1.25rem;
+}
+
+.analysis-action-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(27, 46, 60, 0.16);
+  background: var(--color-highlight);
+  color: var(--color-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.analysis-action-link:hover {
+  text-decoration: none;
+  border-color: rgba(68, 137, 190, 0.45);
+  color: var(--color-accent);
+}
+
+@media (min-width: 640px) {
+  .analysis-card-head {
+    margin: -2.75rem -3rem 2rem;
+    padding: 2.25rem 3rem 1.5rem;
+  }
+}
+
 .content-index-list .artiklar-list-link {
   padding: 1.05rem 1.2rem;
   border-radius: var(--radius);
