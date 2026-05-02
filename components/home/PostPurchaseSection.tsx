@@ -1,7 +1,7 @@
 export function PostPurchaseSection() {
   return (
     <section
-      className="home-section home-section-alt"
+      className="home-section home-section-alt home-post-purchase"
       aria-labelledby="post-purchase-heading"
     >
       <div className="home-container home-post-purchase-inner">
@@ -14,7 +14,8 @@ export function PostPurchaseSection() {
         <p className="home-post-purchase-text">
           När du köpt klart skapar Byggello en fastighetsprofil för ditt hus.
           Håll koll på underhåll, spara dokumentation och planera framtida
-          projekt – allt på ett ställe. Kom igång gratis.
+          projekt – allt på ett ställe.{" "}
+          <span className="home-post-purchase-accent">Kom igång gratis.</span>
         </p>
       </div>
     </section>
