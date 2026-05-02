@@ -241,7 +241,7 @@ export function AnalyseForm() {
             required
             rows={14}
             className="analyse-form-textarea"
-            placeholder="Klistra in beskrivningen från Hemnet-annonsen här..."
+            placeholder="Klistra in så mycket information som möjligt från Hemnet-annonsen – beskrivning, fakta, byggnadsinformation, tomtuppgifter, driftskostnader och allt annat som finns. Ju mer information, desto bättre analys."
             value={adText}
             onChange={(ev) => setAdText(ev.target.value)}
             disabled={loading}
