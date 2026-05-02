@@ -569,6 +569,187 @@ main.content-page {
   }
 }
 
+/* Analys /analys (bostadsformulär) */
+.analyse-landing {
+  background: #f7f5f2;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.analyse-landing-inner {
+  flex: 1;
+  width: 100%;
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3.5rem;
+}
+
+@media (min-width: 640px) {
+  .analyse-landing-inner {
+    padding: 2.5rem 1.5rem 4.5rem;
+  }
+}
+
+.analyse-landing-title {
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #1b2e3c;
+  line-height: 1.2;
+  margin-bottom: 0.75rem;
+}
+
+.analyse-landing-intro {
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: #1b2e3c;
+  opacity: 0.88;
+  margin-bottom: 2rem;
+}
+
+.analyse-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.analyse-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.analyse-form-row {
+  display: grid;
+  gap: 1.25rem;
+}
+
+@media (min-width: 520px) {
+  .analyse-form-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.analyse-form-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1b2e3c;
+}
+
+.analyse-form-optional {
+  font-weight: 500;
+  opacity: 0.65;
+}
+
+.analyse-form-help {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: #1b2e3c;
+  opacity: 0.65;
+  margin: 0;
+}
+
+.analyse-form-input,
+.analyse-form-select,
+.analyse-form-textarea {
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius);
+  border: 1px solid rgba(27, 46, 60, 0.18);
+  background: #fff;
+  color: #1b2e3c;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+}
+
+.analyse-form-textarea {
+  min-height: 12rem;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.analyse-form-input:focus,
+.analyse-form-select:focus,
+.analyse-form-textarea:focus {
+  outline: 2px solid rgba(242, 101, 34, 0.4);
+  outline-offset: 1px;
+  border-color: rgba(242, 101, 34, 0.5);
+}
+
+.analyse-form-input:disabled,
+.analyse-form-select:disabled,
+.analyse-form-textarea:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.analyse-form-actions {
+  margin-top: 0.25rem;
+}
+
+.analyse-form-submit {
+  width: 100%;
+  padding: 0.9rem 1.25rem;
+  border: none;
+  border-radius: var(--radius);
+  background: #f26522;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.analyse-form-submit:hover:not(:disabled) {
+  opacity: 0.95;
+  transform: translateY(-1px);
+}
+
+.analyse-form-submit:disabled {
+  opacity: 0.85;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.analyse-form-submit-inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+@keyframes analyse-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.analyse-form-spinner {
+  width: 1.125rem;
+  height: 1.125rem;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: analyse-spin 0.65s linear infinite;
+}
+
+.analyse-form-feedback {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.analyse-form-feedback--success {
+  color: #1b2e3c;
+  font-weight: 500;
+}
+
+.analyse-form-feedback--error {
+  color: #b42318;
+}
+
 .content-index-list .artiklar-list-link {
   padding: 1.05rem 1.2rem;
   border-radius: var(--radius);
