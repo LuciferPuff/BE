@@ -20,8 +20,8 @@ export function SiteFooter() {
           </p>
         </div>
         <nav className="home-footer-nav" aria-label="Sidfot">
-          <Link href="#produkt">Produkten</Link>
-          <Link href="#hur-det-funkar">Så funkar det</Link>
+          <Link href="/#produkt">Produkten</Link>
+          <Link href="/#hur-det-funkar">Så funkar det</Link>
           <Link href="/artiklar">Artiklar</Link>
           <Link href="/guider">Guider</Link>
           <Link href="/analys">Analys</Link>

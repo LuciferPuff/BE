@@ -18,7 +18,7 @@ export function HomeHero() {
           <Link href="/analys" className="home-btn home-btn-primary">
             Starta analys
           </Link>
-          <Link href="#hur-det-funkar" className="home-btn home-btn-ghost">
+          <Link href="/#hur-det-funkar" className="home-btn home-btn-ghost">
             Så funkar det
           </Link>
         </div>
