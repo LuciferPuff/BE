@@ -920,6 +920,119 @@ main.home {
   text-align: center;
 }
 
+/* Prenumeration (startsida) */
+.home-subscribe-inner {
+  max-width: 36rem;
+  margin: 0 auto;
+}
+
+.home-subscribe-title {
+  color: #1b2e3c;
+}
+
+.home-subscribe-lead {
+  text-align: center;
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: #1b2e3c;
+  opacity: 0.88;
+  margin: 0 auto 1.5rem;
+  max-width: 28rem;
+}
+
+.home-subscribe-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.home-subscribe-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1b2e3c;
+  letter-spacing: 0.02em;
+}
+
+.home-subscribe-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+@media (min-width: 520px) {
+  .home-subscribe-row {
+    flex-direction: row;
+    align-items: stretch;
+  }
+}
+
+.home-subscribe-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.875rem 1rem;
+  border-radius: var(--radius);
+  border: 1px solid rgba(27, 46, 60, 0.18);
+  background: #fff;
+  color: #1b2e3c;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+}
+
+.home-subscribe-input::placeholder {
+  color: rgba(27, 46, 60, 0.45);
+}
+
+.home-subscribe-input:focus {
+  outline: 2px solid rgba(242, 101, 34, 0.45);
+  outline-offset: 1px;
+  border-color: rgba(242, 101, 34, 0.55);
+}
+
+.home-subscribe-input:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.home-subscribe-submit {
+  flex-shrink: 0;
+  padding: 0.875rem 1.35rem;
+  border: none;
+  border-radius: var(--radius);
+  background: #f26522;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.home-subscribe-submit:hover:not(:disabled) {
+  opacity: 0.95;
+  transform: translateY(-1px);
+}
+
+.home-subscribe-submit:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.home-subscribe-status {
+  margin-top: 0.75rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.home-subscribe-status--success {
+  color: #1b2e3c;
+  font-weight: 500;
+}
+
+.home-subscribe-status--error {
+  color: #b42318;
+}
+
 .home-checklist {
   list-style: none;
   margin: 0 0 1.75rem;

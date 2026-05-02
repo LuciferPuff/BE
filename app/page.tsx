@@ -3,6 +3,7 @@ import { HowItWorks } from "@/components/home/HowItWorks";
 import type { GuidePreview } from "@/components/home/LatestGuides";
 import { LatestGuides } from "@/components/home/LatestGuides";
 import { PostPurchaseSection } from "@/components/home/PostPurchaseSection";
+import { SubscribeSection } from "@/components/home/SubscribeSection";
 import { ProductTeaser } from "@/components/home/ProductTeaser";
 import { SiteFooter } from "@/components/home/SiteFooter";
 import { SiteHeader } from "@/components/home/SiteHeader";
@@ -69,6 +70,7 @@ export default async function Home() {
       <HowItWorks />
       <ValueProps />
       <PostPurchaseSection />
+      <SubscribeSection />
       {showGuides && <LatestGuides guides={guides} />}
       <SiteFooter />
     </main>
