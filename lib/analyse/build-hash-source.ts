@@ -5,7 +5,7 @@
 export function buildInputHashSource(
   address: string,
   yearBuilt: number,
-  propertyType: string,
+  objectType: string,
 ): string {
-  return `${address.trim().toLowerCase()}|${yearBuilt}|${propertyType.trim()}`;
+  return `${address.trim().toLowerCase()}|${yearBuilt}|${objectType.trim().toLowerCase()}`;
 }
