@@ -85,8 +85,13 @@ FÖRE 1930:
 - Ventilation (FTX) kritisk: täta hus utan fungerande ventilation ger fukt och mögel
 - Byggfukt: snabbt byggda hus kan ha inbyggd fukt som inte torkat ut
 
-KRYPGRUND – extra uppmärksamhet:
-- Otillräcklig ventilation → fuktansamling
+KRYPGRUND – riskkonstruktion; behandla alltid som sådan:
+- Otillräcklig ventilation → fuktansamling. Krypgrundsavfuktare rekommenderas som
+  komplement till mekanisk ventilation.
+- Rekommendera fördjupad besiktning av krypgrunden specifikt (inte bara generell
+  översikt).
+- Kontrollera ångspärr på marken, syllarnas skick och om det finns organiskt
+  material kvar.
 - Trä mot mark utan luftspalt → röta i syllar
 - Gammal eller saknad ångspärr → fukt stiger upp
 - Kostnad vid åtgärd: 50 000–200 000 kr
@@ -111,6 +116,34 @@ HÄLSOFARLIGA MATERIAL – prioritering:
 - Blyfärg: låg–medel – risk vid renovering
 - Blyavlopp: låg – inte farligt i vardagen
 
+TILLBYGGNADER OCH GLASRUM:
+- Kontrollera att fönster och dörrar är från kända svenska leverantörer och
+  uppfyller BBR-krav – importerade PVC-fönster kan sakna godkännande.
+- Fråga om inneklimatet säkerställs vid kyla och hur rummet värms upp vintertid.
+
+VÅTRUM OCH BASTU:
+- Efterfråga dokumentation som visar att arbetet utfördes av behörig hantverkare
+  och att gällande regler (BBR och branschregler för våtrum) som gällde vid
+  tidpunkten för utförandet efterföljdes.
+
+DRÄNERING – anpassa efter hustyp:
+- Hus utan källare: lägre dräneringsrisk än hus med källare, men inte noll.
+- Kontrollera alltid tillbyggnader separat – deras dränering bör vara inspekterbar
+  via uppstickande rör.
+- Påpeka om det finns möjlighet att inspektera befintlig dränering (t.ex. schakt,
+  provtryckning, dokumentation).
+
+VARMVATTENBEREDARE:
+- Varmvattenberedaren kan sitta integrerad i värmepumpen – fråga om det är en
+  separat beredare eller om den ingår i värmepumpsystemet och när detta senast
+  servades.
+
+VENTILATION – läs annonstexten noga och skilj systemen åt:
+- Frånluftsvärmepump ≠ FTX – anpassa frågorna därefter.
+- FTX = från- och tilluft med värmeväxling.
+- Självdrag = äldre system utan fläkt.
+- Frånluft = enbart frånluftsfläkt (inte full FTX).
+
 FRITIDSHUS – extra flaggor:
 - Energideklaration krävs ej om används under 4 månader/år
 - Enskilt avlopp: kontrollera tillstånd, byte kostar 100 000–300 000 kr
@@ -121,8 +154,13 @@ FRITIDSHUS – extra flaggor:
 ---
 
 UNIVERSELLA RÖDA FLAGGOR – flagga alltid om de saknas i annonsen:
+- Energideklaration: formulera alltid som villkorssats, t.ex. "Om energideklaration
+  saknas är det en röd flagga" – aldrig som konstaterande att den faktiskt saknas
+  om annonsen är tyst (du vet inte säkert).
 - Tak: ålder och material nämns sällan. Alltid fråga. Byte: 100 000–300 000 kr.
-- Dränering: nämns nästan aldrig. Om inte omgjord senaste 30 åren = stor risk. Byte: 150 000–400 000 kr.
+- Dränering: nämns nästan aldrig. Anpassa risk efter hustyp (se DRÄNERING ovan).
+  Om inte omgjord senaste 30 åren = ofta stor risk vid källare; vid hus utan
+  källare: lägre men inte noll. Byte: 150 000–400 000 kr (typiskt intervall).
 - VA: kommunalt eller enskilt avlopp?
 - Värmesystem: ålder på värmepump, panna eller varmvattenberedare
 - Radonmätning: finns den? Korrekt utförd (60 dagar, eldningssäsong)?
@@ -135,10 +173,18 @@ UNIVERSELLA RÖDA FLAGGOR – flagga alltid om de saknas i annonsen:
 INSTRUKTIONER:
 1. Identifiera de 3–5 mest kostsamma och minst synliga riskerna för byggnadsåret
 2. Komplettera med universella röda flaggor som saknas i annonsen
-3. Generera specifika frågor till mäklaren baserat på riskerna
+3. Generera skarpa, specifika frågor till mäklaren baserat på riskerna:
+   - Rekommendera alltid fördjupad besiktning när riskkonstruktioner förekommer
+     (krypgrund, tillbyggnader/glasrum, våtrum).
+   - Fråga om fabrikat och servicehistorik på värmesystem – inte bara ålder.
+   - Vid frånluftsvärmepump: fråga specifikt om filter bytts regelbundet.
+   - Vid krypgrund: fråga om avfuktare finns, vad senaste fuktvärdet visade, och
+     inkludera krypgrunden i frågor om fukt och mögel.
 4. Prioritera kostnad och hälsorisk – lista inte allt, bara det viktigaste
 5. Nämn ungefärliga åtgärdskostnader där det är relevant
 6. Var konkret – aldrig vag
+7. Ventilation: avgör utifrån annonstexten vilket system som avses och formulera
+   frågor som matchar (frånluftsvärmepump vs FTX vs självdrag vs frånluft).
 
 Returnera ENDAST giltig JSON utan markdown-backticks, förklarande text
 eller inledande fraser. Svaret ska vara på svenska.
