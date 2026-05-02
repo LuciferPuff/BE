@@ -60,7 +60,7 @@ export const guideType = defineType({
       title: "Innehåll",
       type: "portableArticleBody",
       description:
-        'Samma editor som artiklar – rubriker via stilmenyn till vänster om stycket (Rubrik 2/3/4). Bilder i texten via +-menyn.',
+        'Samma editor som artiklar – rubriker via stilmenyn till vänster om stycket (Rubrik 2/3/4). Listor: Lista, Checklista eller Numrerad. Bilder i texten via +-menyn.',
     }),
   ],
 });

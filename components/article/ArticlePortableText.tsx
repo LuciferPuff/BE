@@ -53,6 +53,22 @@ const components: PortableTextComponents = {
   marks: {
     link: ArticleBodyLink,
   },
+  list: {
+    bullet: ({ children }) => (
+      <ul className="article-body-list article-body-list--bullet">{children}</ul>
+    ),
+    number: ({ children }) => (
+      <ol className="article-body-list article-body-list--number">{children}</ol>
+    ),
+    checklist: ({ children }) => (
+      <ul className="article-body-list article-body-list--checklist">{children}</ul>
+    ),
+  },
+  listItem: {
+    bullet: ({ children }) => <li>{children}</li>,
+    number: ({ children }) => <li>{children}</li>,
+    checklist: ({ children }) => <li>{children}</li>,
+  },
   block: {
     normal: ({ children }) => <p>{children}</p>,
     h2: ({ children }) => <h2>{children}</h2>,

@@ -18,7 +18,8 @@ export const portableArticleBodyType = defineType({
         { title: "Rubrik 4", value: "h4" },
       ],
       lists: [
-        { title: "Punktlista", value: "bullet" },
+        { title: "Lista", value: "bullet" },
+        { title: "Checklista", value: "checklist" },
         { title: "Numrerad", value: "number" },
       ],
       marks: {

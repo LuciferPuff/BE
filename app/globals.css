@@ -177,8 +177,28 @@ main.article-page {
   margin-top: 0.5rem;
 }
 
-.article-body li::marker {
+.article-body ul.article-body-list--bullet li::marker,
+.article-body ol.article-body-list--number li::marker {
   color: var(--color-accent);
+}
+
+.article-body ul.article-body-list--checklist {
+  list-style: none;
+  padding-left: 0;
+}
+
+.article-body ul.article-body-list--checklist > li {
+  position: relative;
+  padding-left: 1.65rem;
+}
+
+.article-body ul.article-body-list--checklist > li::before {
+  content: "✅";
+  position: absolute;
+  left: 0;
+  top: 0.05em;
+  line-height: 1.4;
+  font-size: 0.95em;
 }
 
 .article-body h2,
