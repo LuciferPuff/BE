@@ -6,11 +6,10 @@ export function ProductTeaser() {
       <div className="home-container">
         <div className="home-product-grid">
           <div>
-            <h2 className="home-section-title">Ett verktyg, två resultat</h2>
+            <h2 className="home-section-title">Byggello ser det mäklaren inte berättar</h2>
             <p className="home-section-intro">
-              Du guidas steg för steg genom det som betyder mest vid en
-              bostadsvärdering i vardagen – utan krångel. När du är klar har du
-              både en genomgång i verktyget och en rapport att spara eller dela.
+              Vi analyserar bostaden utifrån byggnadsår, konstruktion och vad som saknas
+              i annonsen – och ger dig konkreta frågor att ställa innan du lägger bud.
             </p>
             <ul className="home-checklist">
               <li>Digital bostadsanalys anpassad för bostadsköp</li>

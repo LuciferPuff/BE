@@ -1,18 +1,20 @@
+import Link from "next/link";
+
 const steps = [
   {
     n: "01",
-    title: "Skapa och kom igång",
-    text: "Välj bostad och följ guiden. Du behöver inga förkunskaper – vi leder dig genom varje del.",
+    title: "Klistra in annonsen",
+    text: "Kopiera informationen från Hemnet-annonsen och klistra in i Byggello. Adress, byggnadsår, annonstext – ju mer du lämnar in, desto bättre analys.",
   },
   {
     n: "02",
-    title: "Genomför analysen",
-    text: "Dokumentera och svara i ditt eget tempo. Allt samlas på ett ställe.",
+    title: "Få din analys",
+    text: "Byggello analyserar bostaden baserat på byggnadsår, konstruktion och vad som saknas i annonsen. Du får röda flaggor, underhållsvarningar och konkreta frågor att ställa mäklaren.",
   },
   {
     n: "03",
-    title: "Få rapport och nästa steg",
-    text: "När du är klar får du en tydlig rapport och rekommenderade fortsättningar.",
+    title: "Gå in i köpet förberedd",
+    text: "Med analysen i handen vet du vad du ska titta extra noga på, vad som kan bli dyrt och vad du ska förhandla om. Gratis för de tre första objekten.",
   },
 ];
 
@@ -28,7 +30,7 @@ export function HowItWorks() {
           Så funkar det
         </h2>
         <p className="home-section-subtitle">
-          Tre enkla steg från första klick till färdigt underlag.
+          Från annons till trygghet – på tre steg.
         </p>
         <ol className="home-steps">
           {steps.map((s) => (
@@ -39,6 +41,15 @@ export function HowItWorks() {
             </li>
           ))}
         </ol>
+        <div className="home-how-alt-cta">
+          <p className="home-how-alt-cta-text">
+            Inte redo att analysera ett objekt ännu? Skapa ett konto och börja bygga
+            din fastighetsprofil – kostnadsfritt.
+          </p>
+          <Link href="/registrera" className="home-btn home-btn-ghost">
+            Skapa konto
+          </Link>
+        </div>
       </div>
     </section>
   );
