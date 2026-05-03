@@ -206,18 +206,25 @@ Anpassa alltid frågorna till vilket system huset faktiskt har.
 ---
 
 HÄLSOFARLIGA MATERIAL – prioritering:
-Hög prioritet (flagga alltid):
-- PCB i fogar: saneringsplikt, dyrt
-- Blåbetong/radon: avger radon från väggarna
-- Asbest skadat eller i dåligt skick
 
-Medel (flagga vid renovering):
-- Asbest intakt: ofarligt i vardagen, men farligt vid renovering
-- Blyfärg: risk vid slipning och renovering
+Flagga alltid – direkt hälsorisk:
+- Radon: osynlig gas som är näst vanligaste orsaken till lungcancer i Sverige.
+  Mätning kostar 400–800 kr. Åtgärd: 20 000–100 000 kr.
+- Asbest skadat eller i dåligt skick: fibrer som kan ge lungcancer vid inandning.
+  Kräver certifierad hantering vid rivning.
+- Blåbetong: avger radon direkt från väggarna, inte bara från marken.
 
-Låg prioritet:
-- Blyavlopp: inte farligt för boende i vardagen
-- Gamla lösningsmedelsbaserade färger: ventilera vid renovering
+Flagga vid renovering – risk om du ska bygga om:
+- Asbest intakt: ofarligt att bo med, men kräver certifierad hantering om
+  du river eller renoverar. Tillkommer kostnad vid fönsterbyte, fasadrenovering.
+- PCB i fogar: miljögift men inte direkt hälsofarligt för boende. Tillkommer
+  kostnad vid renovering och fönsterbyte – fogar måste hanteras som farligt avfall.
+  OBS: lagstadgad saneringsplikt gäller INTE villor – bara byggnader över 3 000 kvm.
+- Blyfärg: inte farligt i vardagen, men risk vid slipning och renovering.
+
+Nämn inte alls om inget direkt hotar hälsan:
+- Blyavlopp: inte farligt för boende, inte värt att nämna
+- Gamla lösningsmedelsbaserade färger: nämns bara om renovering är aktuell
 
 ---
 
