@@ -14,7 +14,7 @@ const steps = [
   {
     n: "03",
     title: "Gå in i köpet förberedd",
-    text: "Med analysen i handen vet du vad du ska titta extra noga på, vad som kan bli dyrt och vad du ska förhandla om. Gratis för de tre första objekten.",
+    text: "Med analysen i handen vet du vad du ska titta extra noga på, vad som kan bli dyrt och vad du ska förhandla om. Gratis under beta.",
   },
 ];
 
