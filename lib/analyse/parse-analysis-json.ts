@@ -1,8 +1,47 @@
+export type AnalysisFinding = {
+  titel: string;
+  vadDetAr: string;
+  varforDetSpelarRoll: string;
+  vadDuGor: string;
+};
+
 export type AnalysisResult = {
-  rodaFlaggor: Array<{ titel: string; beskrivning: string }>;
-  underhallsvarningar: Array<{ titel: string; beskrivning: string }>;
+  rodaFlaggor: AnalysisFinding[];
+  underhallsvarningar: AnalysisFinding[];
   fragorTillMaklaren: string[];
 };
+
+function str(v: unknown): string {
+  return typeof v === "string" ? v.trim() : "";
+}
+
+function normalizeFinding(raw: unknown): AnalysisFinding {
+  if (!raw || typeof raw !== "object") {
+    throw new Error("Ogiltigt objekt i rodaFlaggor eller underhallsvarningar");
+  }
+  const r = raw as Record<string, unknown>;
+  const titel = str(r.titel);
+  const vadDetAr = str(r.vadDetAr);
+  const varforDetSpelarRoll = str(r.varforDetSpelarRoll);
+  const vadDuGor = str(r.vadDuGor);
+  const beskrivning = str(r.beskrivning);
+
+  if (vadDetAr !== "" || varforDetSpelarRoll !== "" || vadDuGor !== "") {
+    return {
+      titel,
+      vadDetAr: vadDetAr !== "" ? vadDetAr : beskrivning,
+      varforDetSpelarRoll,
+      vadDuGor,
+    };
+  }
+
+  return {
+    titel,
+    vadDetAr: beskrivning,
+    varforDetSpelarRoll: "",
+    vadDuGor: "",
+  };
+}
 
 function stripCodeFences(text: string): string {
   const t = text.trim();
@@ -24,9 +63,12 @@ export function parseAnalysisJson(raw: string): AnalysisResult {
   if (!Array.isArray(o.fragorTillMaklaren)) {
     throw new Error("Saknar fragorTillMaklaren");
   }
+
   return {
-    rodaFlaggor: o.rodaFlaggor as AnalysisResult["rodaFlaggor"],
-    underhallsvarningar: o.underhallsvarningar as AnalysisResult["underhallsvarningar"],
-    fragorTillMaklaren: o.fragorTillMaklaren as string[],
+    rodaFlaggor: o.rodaFlaggor.map(normalizeFinding),
+    underhallsvarningar: o.underhallsvarningar.map(normalizeFinding),
+    fragorTillMaklaren: o.fragorTillMaklaren.filter(
+      (q): q is string => typeof q === "string" && q.trim() !== "",
+    ),
   };
 }

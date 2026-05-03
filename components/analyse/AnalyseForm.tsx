@@ -2,13 +2,47 @@
 
 import { useId, useState } from "react";
 
+import { Disclaimer } from "@/components/analys/Disclaimer";
+import type {
+  AnalysisFinding,
+  AnalysisResult,
+} from "@/lib/analyse/parse-analysis-json";
+
 const PROPERTY_TYPES = ["Villa", "Kedjehus", "Radhus", "Fritidshus"] as const;
 
-type AnalysisResult = {
-  rodaFlaggor: Array<{ titel: string; beskrivning: string }>;
-  underhallsvarningar: Array<{ titel: string; beskrivning: string }>;
-  fragorTillMaklaren: string[];
-};
+function AnalysisFindingBody({ item }: { item: AnalysisFinding }) {
+  const hasThreePart =
+    item.vadDetAr !== "" ||
+    item.varforDetSpelarRoll !== "" ||
+    item.vadDuGor !== "";
+
+  if (!hasThreePart) {
+    return null;
+  }
+
+  return (
+    <div className="analyse-result-parts">
+      {item.vadDetAr !== "" && (
+        <div className="analyse-result-part">
+          <span className="analyse-result-part-label">Vad det är</span>
+          <p className="analyse-result-part-text">{item.vadDetAr}</p>
+        </div>
+      )}
+      {item.varforDetSpelarRoll !== "" && (
+        <div className="analyse-result-part">
+          <span className="analyse-result-part-label">Varför det spelar roll</span>
+          <p className="analyse-result-part-text">{item.varforDetSpelarRoll}</p>
+        </div>
+      )}
+      {item.vadDuGor !== "" && (
+        <div className="analyse-result-part">
+          <span className="analyse-result-part-label">Vad du gör</span>
+          <p className="analyse-result-part-text">{item.vadDuGor}</p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 type ApiOk = {
   ok: true;
@@ -291,7 +325,7 @@ export function AnalyseForm() {
                   <strong className="analyse-result-item-title">
                     {item.titel}
                   </strong>
-                  <p className="analyse-result-item-text">{item.beskrivning}</p>
+                  <AnalysisFindingBody item={item} />
                 </li>
               ))}
             </ul>
@@ -305,7 +339,7 @@ export function AnalyseForm() {
                   <strong className="analyse-result-item-title">
                     {item.titel}
                   </strong>
-                  <p className="analyse-result-item-text">{item.beskrivning}</p>
+                  <AnalysisFindingBody item={item} />
                 </li>
               ))}
             </ul>
@@ -319,6 +353,8 @@ export function AnalyseForm() {
               ))}
             </ol>
           </section>
+
+          <Disclaimer />
         </div>
       )}
     </>
