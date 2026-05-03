@@ -11,6 +11,9 @@ import {
 import { consumeAnalyseRateSlot } from "@/lib/analyse/rate-limit-ip";
 import { createAnalysesSupabaseClient } from "@/lib/supabase/analyses-client";
 
+/** Höj med 1 när Claude-prompten ändras så att cachade analyser förnyas. */
+const CURRENT_PROMPT_VERSION = 1;
+
 const PROPERTY_TYPES = new Set(["Villa", "Kedjehus", "Radhus", "Fritidshus"]);
 
 type Body = {
@@ -133,7 +136,7 @@ export async function POST(request: Request) {
   if (propertyId != null) {
     const { data, error } = await supabase
       .from("analyses")
-      .select("result")
+      .select("result, prompt_version")
       .eq("property_id", propertyId)
       .maybeSingle();
     if (error) {
@@ -143,13 +146,18 @@ export async function POST(request: Request) {
         { status: 500 },
       );
     }
-    if (data?.result != null) {
+    const pv = Number(data?.prompt_version);
+    if (
+      data?.result != null &&
+      Number.isFinite(pv) &&
+      pv === CURRENT_PROMPT_VERSION
+    ) {
       cachedRow = { result: data.result as AnalysisResult };
     }
   } else {
     const { data, error } = await supabase
       .from("analyses")
-      .select("result")
+      .select("result, prompt_version")
       .eq("input_hash", inputHash)
       .is("property_id", null)
       .maybeSingle();
@@ -160,7 +168,12 @@ export async function POST(request: Request) {
         { status: 500 },
       );
     }
-    if (data?.result != null) {
+    const pv = Number(data?.prompt_version);
+    if (
+      data?.result != null &&
+      Number.isFinite(pv) &&
+      pv === CURRENT_PROMPT_VERSION
+    ) {
       cachedRow = { result: data.result as AnalysisResult };
     }
   }
@@ -213,7 +226,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { error: insertError } = await supabase.from("analyses").insert({
+  const rowPayload = {
     property_id: propertyId,
     input_hash: inputHash,
     address,
@@ -223,23 +236,45 @@ export async function POST(request: Request) {
     asking_price: Math.round(askingPrice),
     ad_text: adText,
     result: analysis,
-  });
+    prompt_version: CURRENT_PROMPT_VERSION,
+  };
 
-  if (insertError) {
-    if (insertError.code === "23505") {
+  let persistError = (await supabase.from("analyses").insert(rowPayload)).error;
+
+  if (persistError?.code === "23505") {
+    const upd = propertyId
+      ? await supabase
+          .from("analyses")
+          .update(rowPayload)
+          .eq("property_id", propertyId)
+      : await supabase
+          .from("analyses")
+          .update(rowPayload)
+          .eq("input_hash", inputHash)
+          .is("property_id", null);
+    persistError = upd.error;
+  }
+
+  if (persistError) {
+    if (persistError.code === "23505") {
       const { data: again } = propertyId
         ? await supabase
             .from("analyses")
-            .select("result")
+            .select("result, prompt_version")
             .eq("property_id", propertyId)
             .maybeSingle()
         : await supabase
             .from("analyses")
-            .select("result")
+            .select("result, prompt_version")
             .eq("input_hash", inputHash)
             .is("property_id", null)
             .maybeSingle();
-      if (again?.result != null) {
+      const againPv = Number(again?.prompt_version);
+      if (
+        again?.result != null &&
+        Number.isFinite(againPv) &&
+        againPv === CURRENT_PROMPT_VERSION
+      ) {
         return NextResponse.json({
           ok: true,
           cached: true,
@@ -247,7 +282,7 @@ export async function POST(request: Request) {
         });
       }
     }
-    console.error("[analyse] insert:", insertError.message);
+    console.error("[analyse] insert/update:", persistError.message);
     return NextResponse.json(
       { ok: false, message: "Kunde inte spara analysen." },
       { status: 500 },
