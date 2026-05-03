@@ -46,7 +46,7 @@ export function HowItWorks() {
             Inte redo att analysera ett objekt ännu? Skapa ett konto och börja bygga
             din fastighetsprofil – kostnadsfritt.
           </p>
-          <Link href="/registrera" className="home-btn home-btn-ghost">
+          <Link href="/registrera" className="home-btn home-btn-primary">
             Skapa konto
           </Link>
         </div>
