@@ -192,7 +192,7 @@ LIVSLÄNGDER att jämföra mot byggnadsåret:
 - Värmepump (luft/vatten): 15–20 år. Kompressor dyr att byta: 50 000–150 000 kr
 - Tätskikt badrum: 20–25 år. Utan dokumentation = okänd ålder.
 - Elcentral: 30–40 år
-- Avloppsrör (gjutjärn): 50–80 år
+- Gjutjärnsrör håller 50–80 år och kan vittra inifrån. Plaströr håller generellt längre – 50+ år.
 
 ---
 
