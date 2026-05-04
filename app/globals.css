@@ -612,6 +612,7 @@ main.content-page {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  margin-bottom: 1.5rem;
 }
 
 .analyse-form-field {
@@ -686,6 +687,7 @@ main.content-page {
 
 .analyse-form-actions {
   margin-top: 0.25rem;
+  margin-bottom: 1.5rem;
 }
 
 .analyse-form-submit {
