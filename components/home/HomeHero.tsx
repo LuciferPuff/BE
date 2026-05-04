@@ -8,7 +8,9 @@ export function HomeHero() {
           Din partner genom hela bostadsresan
         </h1>
         <p className="home-hero-lead">
-          Förstå bostaden innan du köper – och känn dig trygg länge efter.
+          Förstå bostaden innan du köper – och känn dig trygg länge efter med vår
+          fastighetsprofil – vi hjälper dig ha koll, så du kan vara lugn i ditt
+          bostadsägande.
         </p>
         <div className="home-hero-actions">
           <Link href="/analys" className="home-btn home-btn-primary">
