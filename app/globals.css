@@ -232,7 +232,7 @@ main.article-page {
 
 .article-body-figure {
   margin: 1.75rem 0;
-  line-height: 0;
+  line-height: 1.4;
 }
 
 .article-body-inline-image {

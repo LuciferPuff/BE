@@ -19,6 +19,19 @@ type TableValue = {
   }>;
 };
 
+function sanitizeAlt(altRaw: unknown, captionRaw: unknown): string {
+  const alt = typeof altRaw === "string" ? altRaw.trim() : "";
+  if (alt === "") return "";
+  const caption = typeof captionRaw === "string" ? captionRaw.trim() : "";
+  if (caption === "") return alt;
+
+  // Defensivt: om redaktören råkat klistra in caption i alt-fältet, ta bort den delen.
+  if (alt === caption) return "";
+  if (alt.startsWith(`${caption} `)) return alt.slice(caption.length).trim();
+  if (alt.endsWith(` ${caption}`)) return alt.slice(0, -caption.length).trim();
+  return alt;
+}
+
 function ArticleBodyLink({
   value,
   children,
@@ -79,10 +92,7 @@ const components: PortableTextComponents = {
     image: ({ value }) => {
       const src = urlForSanityImage(value, 1600);
       if (!src) return null;
-      const alt =
-        typeof value.alt === "string" && value.alt.trim() !== ""
-          ? value.alt.trim()
-          : "";
+      const alt = sanitizeAlt(value.alt, value.caption);
       const caption =
         typeof value.caption === "string" && value.caption.trim() !== ""
           ? value.caption.trim()
