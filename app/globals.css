@@ -1116,6 +1116,8 @@ main.home {
   color: rgba(255, 255, 255, 0.82);
   max-width: 36rem;
   margin-bottom: 2rem;
+  /* Undvik fi-ligatur (t.ex. i "profil") så i inte ser ut som l */
+  font-variant-ligatures: no-common-ligatures;
 }
 
 .home-hero-actions {

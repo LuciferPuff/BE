@@ -9,8 +9,8 @@ export function HomeHero() {
         </h1>
         <p className="home-hero-lead">
           Förstå bostaden innan du köper – och känn dig trygg länge efter med vår
-          fastighetsprofil – vi hjälper dig ha koll, så du kan vara lugn i ditt
-          bostadsägande.
+          kommande fastighetsprofil – vi hjälper dig ha koll, så du kan vara lugn i
+          ditt bostadsägande. Vi är under uppbyggnad.
         </p>
         <div className="home-hero-actions">
           <Link href="/analys" className="home-btn home-btn-primary">
