@@ -11,8 +11,11 @@ import {
 import { consumeAnalyseRateSlot } from "@/lib/analyse/rate-limit-ip";
 import { createAnalysesSupabaseClient } from "@/lib/supabase/analyses-client";
 
-/** Höj med 1 när Claude-prompten ändras så att cachade analyser förnyas. */
-const CURRENT_PROMPT_VERSION = 2;
+/**
+ * Höj med 1 varje gång `lib/analyse/claude-prompt.ts` ändras så cache i Supabase
+ * invalideras. Rutin: bump → commit/push → redeploy Vercel.
+ */
+const CURRENT_PROMPT_VERSION = 3;
 
 const PROPERTY_TYPES = new Set(["Villa", "Kedjehus", "Radhus", "Fritidshus"]);
 
@@ -103,11 +106,8 @@ export async function POST(request: Request) {
       : "";
   const propertyId = propertyIdRaw !== "" ? propertyIdRaw : null;
 
-  if (address === "") {
-    return NextResponse.json(
-      { ok: false, message: "Adress saknas." },
-      { status: 400 },
-    );
+  if (!address || address.length < 5) {
+    return NextResponse.json({ error: "Adress saknas." }, { status: 400 });
   }
   if (!PROPERTY_TYPES.has(objectType)) {
     return NextResponse.json(
@@ -115,9 +115,13 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  if (!Number.isFinite(buildYear) || buildYear < 1600 || buildYear > 2100) {
+  if (
+    !Number.isFinite(buildYear) ||
+    buildYear < 1800 ||
+    buildYear > 2025
+  ) {
     return NextResponse.json(
-      { ok: false, message: "Ogiltigt byggnadsår." },
+      { error: "Ange ett rimligt byggnadsår." },
       { status: 400 },
     );
   }
@@ -133,9 +137,12 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  if (adText === "") {
+  if (!adText || adText.length < 100) {
     return NextResponse.json(
-      { ok: false, message: "Annonstext saknas." },
+      {
+        error:
+          "Klistra in mer information från annonsen – minst 100 tecken krävs för en träffsäker analys.",
+      },
       { status: 400 },
     );
   }
