@@ -11,6 +11,11 @@ import type {
 
 const PROPERTY_TYPES = ["Villa", "Kedjehus", "Radhus", "Fritidshus"] as const;
 
+const ERR_ADDRESS_MIN = "Adress saknas.";
+const ERR_BUILD_YEAR_RANGE = "Ange ett rimligt byggnadsår.";
+const ERR_ADTEXT_MIN =
+  "Klistra in mer information från annonsen – minst 100 tecken krävs för en träffsäker analys.";
+
 function AnalysisFindingBody({ item }: { item: AnalysisFinding }) {
   const hasThreePart =
     item.vadDetAr !== "" ||
@@ -52,7 +57,16 @@ type ApiOk = {
   analysis: AnalysisResult;
 };
 
-type ApiErr = { ok: false; message?: string };
+type ApiErr = { ok?: false; message?: string; error?: string };
+
+function apiErrText(data: unknown): string {
+  if (data != null && typeof data === "object") {
+    const o = data as Record<string, unknown>;
+    if (typeof o.error === "string" && o.error !== "") return o.error;
+    if (typeof o.message === "string" && o.message !== "") return o.message;
+  }
+  return "";
+}
 
 export function AnalyseForm() {
   const id = useId();
@@ -70,53 +84,79 @@ export function AnalyseForm() {
   const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [fromCache, setFromCache] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{
+    address?: string;
+    buildYear?: string;
+    adText?: string;
+  }>({});
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrorMessage(null);
+    setFieldErrors({});
     setAnalysis(null);
     setAnalysisId(null);
     setFromCache(false);
 
+    const addressTrim = address.trim();
+    const adTrim = adText.trim();
     const year = Number.parseInt(buildYear, 10);
     const sqm = Number.parseFloat(sizeSqm);
     const price = Number.parseFloat(askingPrice);
 
-    if (address.trim() === "") {
-      setErrorMessage("Ange adress.");
-      return;
+    const nextFieldErr: {
+      address?: string;
+      buildYear?: string;
+      adText?: string;
+    } = {};
+
+    if (!addressTrim || addressTrim.length < 5) {
+      nextFieldErr.address = ERR_ADDRESS_MIN;
     }
+    if (!Number.isFinite(year) || year < 1800 || year > 2025) {
+      nextFieldErr.buildYear = ERR_BUILD_YEAR_RANGE;
+    }
+    if (!adTrim || adTrim.length < 100) {
+      nextFieldErr.adText = ERR_ADTEXT_MIN;
+    }
+
     if (
       !PROPERTY_TYPES.includes(objectType as (typeof PROPERTY_TYPES)[number])
     ) {
       setErrorMessage("Välj objekttyp.");
-      return;
-    }
-    if (!Number.isFinite(year) || year < 1600 || year > 2100) {
-      setErrorMessage("Ange ett giltigt byggnadsår.");
+      if (Object.keys(nextFieldErr).length > 0) {
+        setFieldErrors(nextFieldErr);
+      }
       return;
     }
     if (!Number.isFinite(sqm) || sqm <= 0) {
       setErrorMessage("Ange storlek i kvm.");
+      if (Object.keys(nextFieldErr).length > 0) {
+        setFieldErrors(nextFieldErr);
+      }
       return;
     }
     if (!Number.isFinite(price) || price < 0) {
       setErrorMessage("Ange begärt pris.");
+      if (Object.keys(nextFieldErr).length > 0) {
+        setFieldErrors(nextFieldErr);
+      }
       return;
     }
-    if (adText.trim() === "") {
-      setErrorMessage("Klistra in annonstexten från Hemnet.");
+
+    if (Object.keys(nextFieldErr).length > 0) {
+      setFieldErrors(nextFieldErr);
       return;
     }
 
     const pid = propertyId.trim();
     const payload: Record<string, unknown> = {
-      address: address.trim(),
+      address: addressTrim,
       objectType,
       buildYear: year,
       sizeSqm: sqm,
       askingPrice: Math.round(price),
-      adText: adText.trim(),
+      adText: adTrim,
     };
     if (pid !== "") {
       payload.propertyId = pid;
@@ -132,12 +172,18 @@ export function AnalyseForm() {
       const data = (await res.json()) as ApiOk | ApiErr;
 
       if (!res.ok || data.ok !== true) {
-        const err = data as ApiErr;
-        setErrorMessage(
-          typeof err.message === "string" && err.message !== ""
-            ? err.message
-            : "Något gick fel. Försök igen.",
-        );
+        const text = apiErrText(data);
+        if (text === ERR_ADDRESS_MIN) {
+          setFieldErrors({ address: text });
+        } else if (text === ERR_BUILD_YEAR_RANGE) {
+          setFieldErrors({ buildYear: text });
+        } else if (text === ERR_ADTEXT_MIN) {
+          setFieldErrors({ adText: text });
+        } else {
+          setErrorMessage(
+            text !== "" ? text : "Något gick fel. Försök igen.",
+          );
+        }
         return;
       }
 
@@ -170,9 +216,25 @@ export function AnalyseForm() {
             autoComplete="street-address"
             className="analyse-form-input"
             value={address}
-            onChange={(ev) => setAddress(ev.target.value)}
+            onChange={(ev) => {
+              setAddress(ev.target.value);
+              setFieldErrors((f) => ({ ...f, address: undefined }));
+            }}
             disabled={loading}
+            aria-invalid={fieldErrors.address != null}
+            aria-describedby={
+              fieldErrors.address != null ? `${id}-address-err` : undefined
+            }
           />
+          {fieldErrors.address != null && (
+            <p
+              id={`${id}-address-err`}
+              className="analyse-form-feedback analyse-form-feedback--error"
+              role="alert"
+            >
+              {fieldErrors.address}
+            </p>
+          )}
         </div>
 
         <div className="analyse-form-field">
@@ -226,14 +288,30 @@ export function AnalyseForm() {
               name="buildYear"
               type="number"
               inputMode="numeric"
-              min={1600}
-              max={2100}
+              min={1800}
+              max={2025}
               required
               className="analyse-form-input"
               value={buildYear}
-              onChange={(ev) => setBuildYear(ev.target.value)}
+              onChange={(ev) => {
+                setBuildYear(ev.target.value);
+                setFieldErrors((f) => ({ ...f, buildYear: undefined }));
+              }}
               disabled={loading}
+              aria-invalid={fieldErrors.buildYear != null}
+              aria-describedby={
+                fieldErrors.buildYear != null ? `${id}-year-err` : undefined
+              }
             />
+            {fieldErrors.buildYear != null && (
+              <p
+                id={`${id}-year-err`}
+                className="analyse-form-feedback analyse-form-feedback--error"
+                role="alert"
+              >
+                {fieldErrors.buildYear}
+              </p>
+            )}
           </div>
           <div className="analyse-form-field">
             <label className="analyse-form-label" htmlFor={`${id}-sqm`}>
@@ -286,9 +364,25 @@ export function AnalyseForm() {
             className="analyse-form-textarea"
             placeholder="Klistra in så mycket information som möjligt från Hemnet-annonsen – beskrivning, fakta, byggnadsinformation, tomtuppgifter, driftskostnader och allt annat som finns. Ju mer information, desto bättre analys."
             value={adText}
-            onChange={(ev) => setAdText(ev.target.value)}
+            onChange={(ev) => {
+              setAdText(ev.target.value);
+              setFieldErrors((f) => ({ ...f, adText: undefined }));
+            }}
             disabled={loading}
+            aria-invalid={fieldErrors.adText != null}
+            aria-describedby={
+              fieldErrors.adText != null ? `${id}-listing-err` : undefined
+            }
           />
+          {fieldErrors.adText != null && (
+            <p
+              id={`${id}-listing-err`}
+              className="analyse-form-feedback analyse-form-feedback--error"
+              role="alert"
+            >
+              {fieldErrors.adText}
+            </p>
+          )}
         </div>
 
         <div className="analyse-form-actions">
