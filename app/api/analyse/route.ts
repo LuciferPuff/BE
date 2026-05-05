@@ -12,7 +12,7 @@ import { consumeAnalyseRateSlot } from "@/lib/analyse/rate-limit-ip";
 import { createAnalysesSupabaseClient } from "@/lib/supabase/analyses-client";
 
 /** Höj med 1 när Claude-prompten ändras så att cachade analyser förnyas. */
-const CURRENT_PROMPT_VERSION = 1;
+const CURRENT_PROMPT_VERSION = 2;
 
 const PROPERTY_TYPES = new Set(["Villa", "Kedjehus", "Radhus", "Fritidshus"]);
 
@@ -44,6 +44,29 @@ function clientIp(request: Request): string {
   const real = request.headers.get("x-real-ip");
   if (real?.trim()) return real.trim();
   return "unknown";
+}
+
+function persistFailureMessage(
+  err: { message?: string; code?: string } | null,
+): string {
+  const msg = typeof err?.message === "string" ? err.message : "";
+  const code = typeof err?.code === "string" ? err.code : "";
+
+  if (
+    msg.includes("prompt_version") ||
+    (msg.toLowerCase().includes("column") &&
+      msg.toLowerCase().includes("schema cache"))
+  ) {
+    return "Databasen saknar kolumnen prompt_version (eller cachen är gammal). Kör Supabase-migrationerna, t.ex. supabase db push, och ev. ”Reload schema” under API-inställningar.";
+  }
+  if (
+    code === "42501" ||
+    msg.toLowerCase().includes("row-level security") ||
+    msg.includes("RLS")
+  ) {
+    return "Kunde inte spara analysen (behörighet). Kontrollera att SUPABASE_SERVICE_ROLE_KEY på servern är service role-nyckeln, inte anon-nyckeln.";
+  }
+  return "Kunde inte spara analysen.";
 }
 
 export async function POST(request: Request) {
@@ -280,6 +303,32 @@ export async function POST(request: Request) {
     savedId = insertRes.data.id;
   }
 
+  if (savedId == null && persistError == null) {
+    const refetch = propertyId
+      ? await supabase
+          .from("analyses")
+          .select("id")
+          .eq("property_id", propertyId)
+          .maybeSingle()
+      : await supabase
+          .from("analyses")
+          .select("id")
+          .eq("input_hash", inputHash)
+          .is("property_id", null)
+          .maybeSingle();
+    if (typeof refetch.data?.id === "string") {
+      savedId = refetch.data.id;
+    } else {
+      console.error(
+        "[analyse] insert returned no id and refetch missed:",
+        JSON.stringify({
+          insertError: insertRes.error,
+          insertData: insertRes.data,
+        }),
+      );
+    }
+  }
+
   if (persistError) {
     if (persistError.code === "23505") {
       const { data: again } = propertyId
@@ -309,15 +358,19 @@ export async function POST(request: Request) {
         });
       }
     }
-    console.error("[analyse] insert/update:", persistError.message);
+    console.error(
+      "[analyse] insert/update:",
+      persistError.message,
+      persistError.code,
+    );
     return NextResponse.json(
-      { ok: false, message: "Kunde inte spara analysen." },
+      { ok: false, message: persistFailureMessage(persistError) },
       { status: 500 },
     );
   }
 
   if (savedId == null) {
-    console.error("[analyse] insert/update: missing id");
+    console.error("[analyse] insert/update: missing id after persist");
     return NextResponse.json(
       { ok: false, message: "Kunde inte spara analysen." },
       { status: 500 },

@@ -582,12 +582,12 @@ main.content-page {
   width: 100%;
   max-width: 40rem;
   margin: 0 auto;
-  padding: 2rem 1.25rem 3.5rem;
+  padding: 2rem 1.25rem 4.75rem;
 }
 
 @media (min-width: 640px) {
   .analyse-landing-inner {
-    padding: 2.5rem 1.5rem 4.5rem;
+    padding: 2.5rem 1.5rem 5.75rem;
   }
 }
 
@@ -860,7 +860,43 @@ main.content-page {
   line-height: 1.55;
 }
 
-.analyse-feedback {
+.analyse-result-suggest-hint {
+  font-size: 0.875rem;
+  margin: -0.5rem 0 1.5rem;
+  color: #1b2e3c;
+  opacity: 0.82;
+  line-height: 1.45;
+}
+
+.analyse-result-suggest-link {
+  color: #f26522;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.analyse-result-suggest-link:hover {
+  color: #d95518;
+}
+
+.analyse-suggest-section {
+  scroll-margin-top: 5rem;
+  margin-bottom: 2.75rem;
+}
+
+.analyse-suggest-section .analyse-result-heading {
+  margin-top: 0.5rem;
+}
+
+.analyse-suggest-lede {
+  margin: 0 0 1rem;
+  font-size: 0.9375rem;
+  color: #1b2e3c;
+  opacity: 0.82;
+  line-height: 1.5;
+}
+
+.analyse-suggest-form {
   margin-top: 1.25rem;
   padding-top: 1.25rem;
   border-top: 1px solid #e5e7eb;
@@ -869,13 +905,13 @@ main.content-page {
   gap: 0.75rem;
 }
 
-.analyse-feedback-label {
+.analyse-suggest-label {
   font-size: 0.875rem;
   font-weight: 600;
   color: #1b2e3c;
 }
 
-.analyse-feedback-textarea {
+.analyse-suggest-textarea {
   width: 100%;
   padding: 0.75rem 0.85rem;
   border: 1px solid rgba(27, 46, 60, 0.2);
@@ -888,12 +924,12 @@ main.content-page {
   min-height: 5.5rem;
 }
 
-.analyse-feedback-textarea:focus {
+.analyse-suggest-textarea:focus {
   outline: 2px solid rgba(242, 101, 34, 0.35);
   outline-offset: 1px;
 }
 
-.analyse-feedback-honeypot {
+.analyse-suggest-confirm {
   display: flex;
   gap: 0.5rem;
   align-items: flex-start;
@@ -904,12 +940,12 @@ main.content-page {
   cursor: pointer;
 }
 
-.analyse-feedback-honeypot input {
+.analyse-suggest-confirm input {
   margin-top: 0.2rem;
   flex-shrink: 0;
 }
 
-.analyse-feedback-submit {
+.analyse-suggest-submit {
   align-self: flex-start;
   padding: 0.65rem 1.35rem;
   font-size: 0.9375rem;
@@ -922,16 +958,16 @@ main.content-page {
   transition: background 0.15s ease, opacity 0.15s ease;
 }
 
-.analyse-feedback-submit:hover:not(:disabled) {
+.analyse-suggest-submit:hover:not(:disabled) {
   background: #d95518;
 }
 
-.analyse-feedback-submit:disabled {
+.analyse-suggest-submit:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
 
-.analyse-feedback-thanks {
+.analyse-suggest-thanks {
   margin: 1.25rem 0 0;
   padding-top: 1.25rem;
   border-top: 1px solid #e5e7eb;

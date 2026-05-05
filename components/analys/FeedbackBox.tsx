@@ -59,7 +59,7 @@ export function FeedbackBox({ analysisId }: Props) {
   if (status === "success") {
     return (
       <p
-        className="analyse-feedback-thanks"
+        className="analyse-suggest-thanks"
         role="status"
         aria-live="polite"
       >
@@ -69,14 +69,14 @@ export function FeedbackBox({ analysisId }: Props) {
   }
 
   return (
-    <form className="analyse-feedback" onSubmit={onSubmit} noValidate>
-      <label className="analyse-feedback-label" htmlFor={`${formId}-msg`}>
-        Feedback
+    <form className="analyse-suggest-form" onSubmit={onSubmit} noValidate>
+      <label className="analyse-suggest-label" htmlFor={`${formId}-msg`}>
+        Kommentar
       </label>
       <textarea
         id={`${formId}-msg`}
         name="message"
-        className="analyse-feedback-textarea"
+        className="analyse-suggest-textarea"
         rows={4}
         required
         value={message}
@@ -84,10 +84,10 @@ export function FeedbackBox({ analysisId }: Props) {
         disabled={status === "loading"}
         placeholder="Något som saknades eller var fel i analysen? Berätta för oss."
         aria-describedby={
-          errorText !== "" ? `${formId}-feedback-err` : undefined
+          errorText !== "" ? `${formId}-suggest-err` : undefined
         }
       />
-      <label className="analyse-feedback-honeypot">
+      <label className="analyse-suggest-confirm">
         <input
           type="checkbox"
           checked={confirmedHuman}
@@ -101,14 +101,14 @@ export function FeedbackBox({ analysisId }: Props) {
       </label>
       <button
         type="submit"
-        className="analyse-feedback-submit"
+        className="analyse-suggest-submit"
         disabled={status === "loading" || message.trim() === ""}
       >
         {status === "loading" ? "Skickar…" : "Skicka"}
       </button>
       {errorText !== "" && (
         <p
-          id={`${formId}-feedback-err`}
+          id={`${formId}-suggest-err`}
           className="analyse-form-feedback analyse-form-feedback--error"
           role="alert"
         >

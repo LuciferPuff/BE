@@ -325,6 +325,13 @@ export function AnalyseForm() {
               ? "Resultat från cache (samma bostad analyserades tidigare)."
               : "Ny analys klar."}
           </p>
+          <p className="analyse-result-suggest-hint">
+            Något som saknades eller var fel?{" "}
+            <a href="#analyse-suggest" className="analyse-result-suggest-link">
+              Hoppa till kommentarsfältet
+            </a>
+            .
+          </p>
 
           <section className="analyse-result-block">
             <h2 className="analyse-result-heading">Röda flaggor</h2>
@@ -364,7 +371,23 @@ export function AnalyseForm() {
           </section>
 
           <Disclaimer />
-          <FeedbackBox analysisId={analysisId} />
+          <section
+            id="analyse-suggest"
+            className="analyse-suggest-section"
+            aria-labelledby="analyse-suggest-title"
+          >
+            <h2
+              id="analyse-suggest-title"
+              className="analyse-result-heading"
+            >
+              Förbättra analysen
+            </h2>
+            <p className="analyse-suggest-lede">
+              Din kommentar hjälper oss att justera modellen och täppa till
+              luckor i framtida analyser.
+            </p>
+            <FeedbackBox analysisId={analysisId} />
+          </section>
         </div>
       )}
     </>
