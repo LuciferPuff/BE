@@ -113,7 +113,7 @@ export function AnalyseForm() {
     if (!addressTrim || addressTrim.length < 5) {
       nextFieldErr.address = ERR_ADDRESS_MIN;
     }
-    if (!Number.isFinite(year) || year < 1800 || year > 2025) {
+    if (!Number.isFinite(year) || year < 1800 || year > 2026) {
       nextFieldErr.buildYear = ERR_BUILD_YEAR_RANGE;
     }
     if (!adTrim || adTrim.length < 100) {
@@ -289,7 +289,7 @@ export function AnalyseForm() {
               type="number"
               inputMode="numeric"
               min={1800}
-              max={2025}
+              max={2026}
               required
               className="analyse-form-input"
               value={buildYear}

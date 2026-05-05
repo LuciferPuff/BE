@@ -118,7 +118,7 @@ export async function POST(request: Request) {
   if (
     !Number.isFinite(buildYear) ||
     buildYear < 1800 ||
-    buildYear > 2025
+    buildYear > 2026
   ) {
     return NextResponse.json(
       { error: "Ange ett rimligt byggnadsår." },
