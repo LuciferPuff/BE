@@ -1,4 +1,4 @@
-import { ArticlePortableText } from "@/components/article/ArticlePortableText";
+import { GuidePortableText } from "@/components/guide/GuidePortableText";
 import { ContentBreadcrumb } from "@/components/layout/ContentBreadcrumb";
 import { ContentPageShell } from "@/components/layout/ContentPageShell";
 import { ArticleJsonLd } from "@/components/seo/ArticleJsonLd";
@@ -140,7 +140,7 @@ export default async function GuidePage({ params }: Props) {
             )}
             {guide.body && (
               <div className="article-body">
-                <ArticlePortableText value={guide.body} />
+                <GuidePortableText value={guide.body} />
               </div>
             )}
           </article>
