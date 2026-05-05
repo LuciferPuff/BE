@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 
 import { Disclaimer } from "@/components/analys/Disclaimer";
+import { FeedbackBox } from "@/components/analys/FeedbackBox";
 import type {
   AnalysisFinding,
   AnalysisResult,
@@ -47,6 +48,7 @@ function AnalysisFindingBody({ item }: { item: AnalysisFinding }) {
 type ApiOk = {
   ok: true;
   cached?: boolean;
+  analysisId?: string;
   analysis: AnalysisResult;
 };
 
@@ -65,6 +67,7 @@ export function AnalyseForm() {
   const [adText, setAdText] = useState("");
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [fromCache, setFromCache] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -72,6 +75,7 @@ export function AnalyseForm() {
     e.preventDefault();
     setErrorMessage(null);
     setAnalysis(null);
+    setAnalysisId(null);
     setFromCache(false);
 
     const year = Number.parseInt(buildYear, 10);
@@ -138,6 +142,11 @@ export function AnalyseForm() {
       }
 
       setAnalysis(data.analysis);
+      setAnalysisId(
+        typeof data.analysisId === "string" && data.analysisId !== ""
+          ? data.analysisId
+          : null,
+      );
       setFromCache(data.cached === true);
     } catch {
       setErrorMessage("Kunde inte ansluta. Försök igen senare.");
@@ -355,6 +364,7 @@ export function AnalyseForm() {
           </section>
 
           <Disclaimer />
+          <FeedbackBox analysisId={analysisId} />
         </div>
       )}
     </>

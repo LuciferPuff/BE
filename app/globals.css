@@ -860,6 +860,86 @@ main.content-page {
   line-height: 1.55;
 }
 
+.analyse-feedback {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.analyse-feedback-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1b2e3c;
+}
+
+.analyse-feedback-textarea {
+  width: 100%;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(27, 46, 60, 0.2);
+  border-radius: var(--radius);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: #1b2e3c;
+  background: #fff;
+  resize: vertical;
+  min-height: 5.5rem;
+}
+
+.analyse-feedback-textarea:focus {
+  outline: 2px solid rgba(242, 101, 34, 0.35);
+  outline-offset: 1px;
+}
+
+.analyse-feedback-honeypot {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: #1b2e3c;
+  opacity: 0.92;
+  cursor: pointer;
+}
+
+.analyse-feedback-honeypot input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.analyse-feedback-submit {
+  align-self: flex-start;
+  padding: 0.65rem 1.35rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #fff;
+  background: #f26522;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.analyse-feedback-submit:hover:not(:disabled) {
+  background: #d95518;
+}
+
+.analyse-feedback-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.analyse-feedback-thanks {
+  margin: 1.25rem 0 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e5e7eb;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: #1b2e3c;
+}
+
 .analyse-result-ol {
   margin: 0;
   padding-left: 1.25rem;

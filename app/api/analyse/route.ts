@@ -131,12 +131,12 @@ export async function POST(request: Request) {
     );
   }
 
-  let cachedRow: { result: AnalysisResult } | null = null;
+  let cachedRow: { id: string; result: AnalysisResult } | null = null;
 
   if (propertyId != null) {
     const { data, error } = await supabase
       .from("analyses")
-      .select("result, prompt_version")
+      .select("id, result, prompt_version")
       .eq("property_id", propertyId)
       .maybeSingle();
     if (error) {
@@ -149,15 +149,19 @@ export async function POST(request: Request) {
     const pv = Number(data?.prompt_version);
     if (
       data?.result != null &&
+      typeof data.id === "string" &&
       Number.isFinite(pv) &&
       pv === CURRENT_PROMPT_VERSION
     ) {
-      cachedRow = { result: data.result as AnalysisResult };
+      cachedRow = {
+        id: data.id,
+        result: data.result as AnalysisResult,
+      };
     }
   } else {
     const { data, error } = await supabase
       .from("analyses")
-      .select("result, prompt_version")
+      .select("id, result, prompt_version")
       .eq("input_hash", inputHash)
       .is("property_id", null)
       .maybeSingle();
@@ -171,10 +175,14 @@ export async function POST(request: Request) {
     const pv = Number(data?.prompt_version);
     if (
       data?.result != null &&
+      typeof data.id === "string" &&
       Number.isFinite(pv) &&
       pv === CURRENT_PROMPT_VERSION
     ) {
-      cachedRow = { result: data.result as AnalysisResult };
+      cachedRow = {
+        id: data.id,
+        result: data.result as AnalysisResult,
+      };
     }
   }
 
@@ -182,6 +190,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       cached: true,
+      analysisId: cachedRow.id,
       analysis: cachedRow.result,
     });
   }
@@ -239,7 +248,14 @@ export async function POST(request: Request) {
     prompt_version: CURRENT_PROMPT_VERSION,
   };
 
-  let persistError = (await supabase.from("analyses").insert(rowPayload)).error;
+  let savedId: string | null = null;
+  const insertRes = await supabase
+    .from("analyses")
+    .insert(rowPayload)
+    .select("id")
+    .maybeSingle();
+
+  let persistError = insertRes.error;
 
   if (persistError?.code === "23505") {
     const upd = propertyId
@@ -247,12 +263,21 @@ export async function POST(request: Request) {
           .from("analyses")
           .update(rowPayload)
           .eq("property_id", propertyId)
+          .select("id")
+          .maybeSingle()
       : await supabase
           .from("analyses")
           .update(rowPayload)
           .eq("input_hash", inputHash)
-          .is("property_id", null);
+          .is("property_id", null)
+          .select("id")
+          .maybeSingle();
     persistError = upd.error;
+    if (typeof upd.data?.id === "string") {
+      savedId = upd.data.id;
+    }
+  } else if (typeof insertRes.data?.id === "string") {
+    savedId = insertRes.data.id;
   }
 
   if (persistError) {
@@ -260,24 +285,26 @@ export async function POST(request: Request) {
       const { data: again } = propertyId
         ? await supabase
             .from("analyses")
-            .select("result, prompt_version")
+            .select("id, result, prompt_version")
             .eq("property_id", propertyId)
             .maybeSingle()
         : await supabase
             .from("analyses")
-            .select("result, prompt_version")
+            .select("id, result, prompt_version")
             .eq("input_hash", inputHash)
             .is("property_id", null)
             .maybeSingle();
       const againPv = Number(again?.prompt_version);
       if (
         again?.result != null &&
+        typeof again.id === "string" &&
         Number.isFinite(againPv) &&
         againPv === CURRENT_PROMPT_VERSION
       ) {
         return NextResponse.json({
           ok: true,
           cached: true,
+          analysisId: again.id,
           analysis: again.result as AnalysisResult,
         });
       }
@@ -289,9 +316,18 @@ export async function POST(request: Request) {
     );
   }
 
+  if (savedId == null) {
+    console.error("[analyse] insert/update: missing id");
+    return NextResponse.json(
+      { ok: false, message: "Kunde inte spara analysen." },
+      { status: 500 },
+    );
+  }
+
   return NextResponse.json({
     ok: true,
     cached: false,
+    analysisId: savedId,
     analysis,
   });
 }
