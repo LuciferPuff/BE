@@ -25,6 +25,7 @@ export function SiteFooter() {
           <Link href="/artiklar">Artiklar</Link>
           <Link href="/guider">Guider</Link>
           <Link href="/analys">Analys</Link>
+          <Link href="/integritetspolicy">Integritetspolicy</Link>
         </nav>
         <p className="home-footer-copy">
           © {new Date().getFullYear()} Byggello

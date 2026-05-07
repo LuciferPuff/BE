@@ -33,6 +33,21 @@ export async function POST(request: Request) {
     );
   }
 
+  const consent =
+    body && typeof body === "object" && "consent" in body
+      ? (body as { consent: unknown }).consent
+      : undefined;
+
+  if (consent !== true) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message: "Du måste godkänna integritetspolicyn för att fortsätta.",
+      },
+      { status: 400 },
+    );
+  }
+
   const email = normalizeSubscriberEmail(rawEmail);
 
   const supabase = createSubscribeSupabaseClient();

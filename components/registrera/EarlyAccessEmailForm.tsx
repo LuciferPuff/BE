@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useId, useState } from "react";
 
 const CONFIRM_FALLBACK =
@@ -8,6 +9,7 @@ const CONFIRM_FALLBACK =
 export function EarlyAccessEmailForm() {
   const formId = useId();
   const [email, setEmail] = useState("");
+  const [consent, setConsent] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">(
     "idle",
   );
@@ -15,6 +17,11 @@ export function EarlyAccessEmailForm() {
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!consent) {
+      setStatus("error");
+      setMessage("Du måste godkänna integritetspolicyn för att fortsätta.");
+      return;
+    }
     setStatus("loading");
     setMessage("");
 
@@ -22,7 +29,7 @@ export function EarlyAccessEmailForm() {
       const res = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, consent: true }),
       });
       const data = (await res.json()) as { ok?: boolean; message?: string };
 
@@ -34,6 +41,7 @@ export function EarlyAccessEmailForm() {
             : CONFIRM_FALLBACK,
         );
         setEmail("");
+        setConsent(false);
         return;
       }
 
@@ -73,11 +81,35 @@ export function EarlyAccessEmailForm() {
           }
         />
       </div>
+      <label className="consent-toggle" htmlFor={`${formId}-consent`}>
+        <input
+          id={`${formId}-consent`}
+          type="checkbox"
+          className="consent-toggle__checkbox"
+          checked={consent}
+          onChange={(ev) => setConsent(ev.target.checked)}
+          required
+          aria-required="true"
+          disabled={status === "loading"}
+        />
+        <span className="consent-toggle__text">
+          Jag har läst och godkänner{" "}
+          <Link
+            href="/integritetspolicy"
+            target="_blank"
+            rel="noopener"
+            onClick={(ev) => ev.stopPropagation()}
+          >
+            integritetspolicyn
+          </Link>
+          .
+        </span>
+      </label>
       <div className="analyse-form-actions">
         <button
           type="submit"
           className="analyse-form-submit"
-          disabled={status === "loading"}
+          disabled={status === "loading" || !consent}
         >
           {status === "loading" ? "Skickar…" : "Skicka"}
         </button>
