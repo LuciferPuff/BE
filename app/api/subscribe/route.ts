@@ -58,7 +58,14 @@ export async function POST(request: Request) {
     );
   }
 
-  const { error } = await supabase.from("subscribers").insert({ email });
+  const unsubscribeToken = crypto.randomUUID();
+  const consentAt = new Date().toISOString();
+
+  const { error } = await supabase.from("subscribers").insert({
+    email,
+    consent_at: consentAt,
+    unsubscribe_token: unsubscribeToken,
+  });
 
   if (error) {
     if (error.code === "23505") {
@@ -71,7 +78,7 @@ export async function POST(request: Request) {
     );
   }
 
-  await sendSubscriberWelcomeEmail(email);
+  await sendSubscriberWelcomeEmail(email, unsubscribeToken);
 
   return NextResponse.json({ ok: true, message: OK_MESSAGE });
 }

@@ -15,11 +15,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/artiklar",
     "/guider",
     "/analys",
+    "/integritetspolicy",
   ].map((path) => ({
     url: `${base}${path || "/"}`,
     lastModified: new Date(),
     changeFrequency: path === "" ? "weekly" : "monthly",
-    priority: path === "" ? 1 : 0.8,
+    priority: path === "" ? 1 : path === "/integritetspolicy" ? 0.3 : 0.8,
   }));
 
   const articleRoutes: MetadataRoute.Sitemap = posts.map((p) => {
