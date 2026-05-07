@@ -1,5 +1,48 @@
 import type { NextConfig } from "next";
 
+const baseSecurityHeaders = [
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  {
+    key: "Strict-Transport-Security",
+    value: "max-age=63072000; includeSubDomains",
+  },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=()",
+  },
+];
+
+const siteCsp = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' data: https://cdn.sanity.io",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "upgrade-insecure-requests",
+].join("; ");
+
+const studioCsp = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https://cdn.sanity.io https://*.sanity.io",
+  "connect-src 'self' https://*.sanity.io wss://*.sanity.io https://*.apicdn.sanity.io https://*.supabase.co wss://*.supabase.co",
+  "worker-src 'self' blob:",
+  "frame-src 'self' https://*.sanity.io",
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+].join("; ");
+
 const nextConfig: NextConfig = {
   transpilePackages: ["next-sanity"],
   images: {
@@ -17,6 +60,24 @@ const nextConfig: NextConfig = {
         source: "/besiktning",
         destination: "/analys",
         permanent: true,
+      },
+    ];
+  },
+  async headers() {
+    return [
+      {
+        source: "/studio/:path*",
+        headers: [
+          ...baseSecurityHeaders,
+          { key: "Content-Security-Policy", value: studioCsp },
+        ],
+      },
+      {
+        source: "/((?!studio).*)",
+        headers: [
+          ...baseSecurityHeaders,
+          { key: "Content-Security-Policy", value: siteCsp },
+        ],
       },
     ];
   },
