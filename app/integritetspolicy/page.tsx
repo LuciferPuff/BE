@@ -109,9 +109,13 @@ export default function IntegritetspolicyPage() {
 
             <h2>Cookies</h2>
             <p>
-              Byggello använder inga spårningscookies eller reklamcookies. Vi
-              använder enbart tekniska cookies som är nödvändiga för att sajten
-              ska fungera.
+              Byggello använder inga spårningscookies eller reklamcookies för
+              vår egen analys eller marknadsföring. Vi använder tekniska
+              cookies som är nödvändiga för att sajten ska fungera. När du
+              fokuserar adressfältet på <Link href="/analys">/analys</Link>{" "}
+              laddar vi Google Maps Platform – Google kan då sätta egna cookies
+              i din webbläsare för att hantera autocomplete-sessionen. Mer
+              information finns under Tredjepartsleverantörer nedan.
             </p>
 
             <h2>Tredjepartsleverantörer</h2>
@@ -130,6 +134,21 @@ export default function IntegritetspolicyPage() {
                 <strong>Anthropic</strong> – AI-analys (data skickas för
                 bearbetning men sparas inte av Anthropic enligt deras
                 databehandlingsavtal)
+              </li>
+              <li>
+                <strong>Google Maps Platform</strong> – adressförslag i
+                analysformuläret. Scriptet laddas först när du fokuserar
+                adressfältet, och dina tangenttryckningar skickas då till
+                Google för att generera förslag. Google kan sätta cookies för
+                att hantera sessionen. Se{" "}
+                <a
+                  href="https://policies.google.com/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Googles integritetspolicy
+                </a>
+                .
               </li>
             </ul>
 

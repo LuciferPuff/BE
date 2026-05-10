@@ -16,11 +16,11 @@ const baseSecurityHeaders = [
 
 const siteCsp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  "script-src 'self' 'unsafe-inline' https://maps.googleapis.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: https://cdn.sanity.io",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  "img-src 'self' data: https://cdn.sanity.io https://*.googleapis.com https://*.gstatic.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com",
   "frame-ancestors 'none'",
   "object-src 'none'",
   "base-uri 'self'",

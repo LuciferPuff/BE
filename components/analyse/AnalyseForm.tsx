@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 
+import { AddressAutocomplete } from "@/components/analyse/AddressAutocomplete";
 import { Disclaimer } from "@/components/analys/Disclaimer";
 import { FeedbackBox } from "@/components/analys/FeedbackBox";
 import type {
@@ -71,6 +72,9 @@ function apiErrText(data: unknown): string {
 export function AnalyseForm() {
   const id = useId();
   const [address, setAddress] = useState("");
+  // city kommer från Google Places (postal_town/locality). Sparas i state nu;
+  // skickas till API och visas som eget fält i BYG-44 när det är byggt.
+  const [, setCity] = useState("");
   const [propertyId, setPropertyId] = useState("");
   const [objectType, setObjectType] = useState<string>(
     PROPERTY_TYPES[0] ?? "Villa",
@@ -208,23 +212,17 @@ export function AnalyseForm() {
           <label className="analyse-form-label" htmlFor={`${id}-address`}>
             Adress <span aria-hidden="true">*</span>
           </label>
-          <input
+          <AddressAutocomplete
             id={`${id}-address`}
-            name="address"
-            type="text"
-            required
-            autoComplete="street-address"
-            className="analyse-form-input"
             value={address}
-            onChange={(ev) => {
-              setAddress(ev.target.value);
+            onChange={({ address: a, city: c }) => {
+              setAddress(a);
+              setCity(c);
               setFieldErrors((f) => ({ ...f, address: undefined }));
             }}
+            error={fieldErrors.address}
+            errorId={`${id}-address-err`}
             disabled={loading}
-            aria-invalid={fieldErrors.address != null}
-            aria-describedby={
-              fieldErrors.address != null ? `${id}-address-err` : undefined
-            }
           />
           {fieldErrors.address != null && (
             <p
