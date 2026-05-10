@@ -119,8 +119,14 @@ export function AddressAutocomplete({
       id={id}
       name="address"
       type="text"
-      // Undviker att browserns adressautofyll krockar med Googles pac-container.
-      autoComplete="off"
+      // Semantiskt: address-line1. Lämnar browserns adressautofyll på (Googles
+      // pac-container ligger ovanpå när scriptet är laddat). autoComplete="off"
+      // triggade pwd-manager-extensions (1Password/Bitwarden/LastPass) att
+      // injicera badges per tecken i fältet.
+      autoComplete="address-line1"
+      data-1p-ignore="true"
+      data-lpignore="true"
+      data-form-type="other"
       required
       className="analyse-form-input"
       value={value}
