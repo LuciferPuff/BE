@@ -88,6 +88,12 @@ export default async function GuidePage({ params }: Props) {
   const coverSrc =
     guide.coverImage != null ? urlForSanityImage(guide.coverImage, 960) : null;
   const coverAlt = getPostCoverAlt(guide.coverImage, guide.title);
+  const coverCaption =
+    typeof guide.coverImage === "object" &&
+    guide.coverImage !== null &&
+    "caption" in guide.coverImage
+      ? String((guide.coverImage as { caption?: string }).caption ?? "").trim()
+      : "";
 
   return (
     <>
@@ -136,6 +142,11 @@ export default async function GuidePage({ params }: Props) {
                   sizes="(max-width: 768px) 100vw, 700px"
                   className="article-cover-image"
                 />
+                {coverCaption !== "" && (
+                  <figcaption className="article-cover-caption">
+                    {coverCaption}
+                  </figcaption>
+                )}
               </figure>
             )}
             {guide.body && (
