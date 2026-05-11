@@ -4,7 +4,7 @@ const steps = [
   {
     n: "01",
     title: "Klistra in annonsen",
-    text: "Kopiera informationen från Hemnet-annonsen och klistra in i Byggello. Adress, byggnadsår, annonstext – ju mer du lämnar in, desto bättre analys.",
+    text: "Kopiera informationen från bostadsannonsen på mäklarens sida och klistra in i Byggello. Adress, byggnadsår, annonstext – ju mer du lämnar in, desto bättre analys.",
   },
   {
     n: "02",
