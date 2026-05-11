@@ -251,7 +251,7 @@ export function AnalyseForm() {
             aria-describedby={`${id}-bet-help`}
           />
           <p id={`${id}-bet-help`} className="analyse-form-help">
-            Finns ofta i Hemnet-annonsen, t.ex. Björkbacken 1:23
+            Finns ofta i bostadsannonsen på mäklarens sida t.ex Björkbacken 1:23
           </p>
         </div>
 
@@ -352,7 +352,7 @@ export function AnalyseForm() {
 
         <div className="analyse-form-field">
           <label className="analyse-form-label" htmlFor={`${id}-listing`}>
-            Annonstext från Hemnet <span aria-hidden="true">*</span>
+            Annonstext från bostadsannonsen <span aria-hidden="true">*</span>
           </label>
           <textarea
             id={`${id}-listing`}
@@ -360,7 +360,7 @@ export function AnalyseForm() {
             required
             rows={14}
             className="analyse-form-textarea"
-            placeholder="Klistra in så mycket information som möjligt från Hemnet-annonsen – beskrivning, fakta, byggnadsinformation, tomtuppgifter, driftskostnader och allt annat som finns. Ju mer information, desto bättre analys."
+            placeholder="Klistra in så mycket information som möjligt från Bostads-annonsen - beskrivning, fakta, byggnadsinformation, tomtuppgifter, driftkostnader och allt annat som finns. Ju mer information, desto bättre analys."
             value={adText}
             onChange={(ev) => {
               setAdText(ev.target.value);
