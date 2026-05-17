@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { getSiteUrl } from "@/lib/site";
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-sans",
+  display: "swap",
+});
 
 const siteUrl = getSiteUrl();
 
@@ -40,7 +48,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="sv">
+    <html lang="sv" className={plusJakartaSans.variable}>
       <body>{children}</body>
     </html>
   );

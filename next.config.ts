@@ -12,13 +12,15 @@ const baseSecurityHeaders = [
     key: "Permissions-Policy",
     value: "camera=(), microphone=(), geolocation=()",
   },
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+  { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
 ];
 
 const siteCsp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' https://maps.googleapis.com",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com",
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self'",
   "img-src 'self' data: https://cdn.sanity.io https://*.googleapis.com https://*.gstatic.com",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com",
   "frame-ancestors 'none'",
@@ -31,8 +33,8 @@ const siteCsp = [
 const studioCsp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' data: https://fonts.gstatic.com",
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self' data:",
   "img-src 'self' data: blob: https://cdn.sanity.io https://*.sanity.io",
   "connect-src 'self' https://*.sanity.io wss://*.sanity.io https://*.apicdn.sanity.io https://*.supabase.co wss://*.supabase.co",
   "worker-src 'self' blob:",
