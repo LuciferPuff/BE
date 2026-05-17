@@ -10,6 +10,16 @@ import { getSiteUrlFromRequest } from "@/lib/site";
 const OK_MESSAGE =
   "Om adressen finns hos oss skickar vi en inloggningslänk till din inkorg.";
 
+function messageForAuthError(code: string | undefined, fallback: string): string {
+  if (code === "over_email_send_rate_limit") {
+    return "För många e-postförsök. Vänta en stund och försök igen.";
+  }
+  if (code === "email_address_invalid") {
+    return "Ange en giltig e-postadress.";
+  }
+  return fallback;
+}
+
 export async function POST(request: Request) {
   let body: unknown;
   try {
@@ -45,7 +55,17 @@ export async function POST(request: Request) {
     });
 
     if (error) {
-      console.error("[auth] signInWithOtp:", error.message);
+      console.error("[auth] signInWithOtp:", {
+        message: error.message,
+        code: error.code,
+        redirectTo,
+      });
+      const message = messageForAuthError(
+        error.code,
+        "Kunde inte skicka inloggningslänk just nu. Försök igen om en stund.",
+      );
+      const status = error.code === "over_email_send_rate_limit" ? 429 : 503;
+      return NextResponse.json({ ok: false, message }, { status });
     }
   } catch (err) {
     console.error("[auth] send-magic-link:", err);

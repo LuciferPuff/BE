@@ -35,7 +35,7 @@ export function MagicLinkForm({ authError = false }: Props) {
       });
       const data = (await res.json()) as { ok?: boolean; message?: string };
 
-      if (data.ok === true) {
+      if (res.ok && data.ok === true) {
         setStatus("success");
         setMessage(
           typeof data.message === "string" && data.message.trim() !== ""
