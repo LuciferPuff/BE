@@ -4,6 +4,10 @@ import {
   isValidEmailFormat,
   normalizeSubscriberEmail,
 } from "@/lib/subscribe/validate-email";
+import {
+  AUTH_NEXT_COOKIE,
+  authNextCookieOptions,
+} from "@/lib/auth/auth-next-cookie";
 import { safeNextPath } from "@/lib/auth/safe-next-path";
 import { createAuthClient } from "@/lib/supabase/auth-client";
 import { getSiteUrlFromRequest } from "@/lib/site";
@@ -27,6 +31,9 @@ function messageForAuthError(
     message.toLowerCase().includes("inte auktoriserad")
   ) {
     return "E-post kan inte skickas till den här adressen ännu (Supabase kräver Custom SMTP för alla mottagare).";
+  }
+  if (message.toLowerCase().includes("requested path is invalid")) {
+    return "Inloggningslänken kunde inte skapas. Kontrollera att Redirect URLs i Supabase innehåller exakt din callback-URL (t.ex. …/auth/callback).";
   }
   return fallback;
 }
@@ -62,7 +69,8 @@ export async function POST(request: Request) {
       : undefined;
   const next =
     typeof rawNext === "string" ? safeNextPath(rawNext) : "/analys";
-  const redirectTo = `${site}/auth/callback?next=${encodeURIComponent(next)}`;
+  // Supabase kräver exakt match i Redirect URLs – inga query-parametrar här.
+  const redirectTo = `${site}/auth/callback`;
 
   try {
     const supabase = await createAuthClient();
@@ -93,5 +101,9 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json({ ok: true, message: OK_MESSAGE });
+  const response = NextResponse.json({ ok: true, message: OK_MESSAGE });
+  if (next !== "/analys") {
+    response.cookies.set(AUTH_NEXT_COOKIE, next, authNextCookieOptions);
+  }
+  return response;
 }
