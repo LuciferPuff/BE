@@ -564,6 +564,132 @@ main.content-page {
   }
 }
 
+/* Auth /logga-in (BYG-70) */
+.auth-landing {
+  background: #f7f5f2;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-hero {
+  background: var(--color-primary);
+  color: var(--color-white);
+  padding: clamp(2.5rem, 8vw, 4rem) 0 clamp(2rem, 5vw, 3rem);
+}
+
+.auth-hero-inner {
+  max-width: 40rem;
+}
+
+.auth-hero-title {
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--color-white);
+  margin-bottom: 0.75rem;
+}
+
+.auth-hero-lead {
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.82);
+  max-width: 36rem;
+}
+
+.auth-landing-form {
+  flex: 1;
+  max-width: 40rem;
+  padding: 2rem 1.25rem 4.75rem;
+}
+
+@media (min-width: 640px) {
+  .auth-landing-form {
+    padding: 2.5rem 1.5rem 5.75rem;
+  }
+}
+
+.auth-form-hint {
+  margin: -0.5rem 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--color-text);
+  opacity: 0.8;
+}
+
+.auth-form-footer {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  opacity: 0.75;
+}
+
+.auth-form-footer a {
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.home-nav-auth-link {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.home-nav-auth-link:hover {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.home-nav-auth--signed-in {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  flex-wrap: wrap;
+}
+
+.home-nav-auth-email {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text);
+  opacity: 0.85;
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-nav-auth-logout {
+  display: inline;
+  margin: 0;
+  padding: 0;
+}
+
+.home-nav-auth-logout-btn {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-accent);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.home-nav-auth-logout-btn:hover {
+  opacity: 0.85;
+}
+
+.home-nav-drawer .home-nav-auth-link,
+.home-nav-drawer .home-nav-auth--signed-in {
+  display: block;
+  padding: 0.35rem 0;
+}
+
 /* Analys /analys (bostadsformulär) */
 .analyse-landing {
   background: #f7f5f2;
