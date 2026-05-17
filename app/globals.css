@@ -598,16 +598,15 @@ main.content-page {
   max-width: 36rem;
 }
 
-.auth-landing-form {
+.auth-form-panel {
   flex: 1;
-  max-width: 40rem;
-  padding: clamp(2.75rem, 5vw, 3.5rem) 1.25rem 4.75rem;
+  width: 100%;
+  background: var(--color-white);
+  padding: clamp(3.5rem, 9vw, 5.5rem) 0 clamp(3.5rem, 8vw, 5rem);
 }
 
-@media (min-width: 640px) {
-  .auth-landing-form {
-    padding: clamp(3rem, 5vw, 3.75rem) 1.5rem 5.75rem;
-  }
+.auth-form-panel-inner {
+  max-width: 40rem;
 }
 
 .auth-form-hint {

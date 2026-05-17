@@ -43,9 +43,11 @@ export default async function LoggaInPage({ searchParams }: Props) {
           </p>
         </div>
       </section>
-      <div className="home-container auth-landing-form">
-        <MagicLinkForm authError={authError} />
-      </div>
+      <section className="auth-form-panel" aria-label="Inloggningsformulär">
+        <div className="home-container auth-form-panel-inner">
+          <MagicLinkForm authError={authError} />
+        </div>
+      </section>
       <SiteFooter />
     </main>
   );
