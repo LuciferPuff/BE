@@ -9,6 +9,8 @@ import {
   type AnalysisResult,
 } from "@/lib/analyse/parse-analysis-json";
 import { attachUserIdIfNeeded } from "@/lib/analyses/attach-user-id";
+import { fetchAnalysisUserId } from "@/lib/analyses/fetch-analysis-user-id";
+import { analysesSupportsUserId } from "@/lib/analyses/user-id-column";
 import { consumeAnalyseRateSlot } from "@/lib/analyse/rate-limit-ip";
 import { getSessionUser } from "@/lib/auth/get-session-user";
 import { createAnalysesSupabaseClient } from "@/lib/supabase/analyses-client";
@@ -20,6 +22,8 @@ import { createAnalysesSupabaseClient } from "@/lib/supabase/analyses-client";
 const CURRENT_PROMPT_VERSION = 3;
 
 const PROPERTY_TYPES = new Set(["Villa", "Kedjehus", "Radhus", "Fritidshus"]);
+
+const CACHE_SELECT = "id, result, prompt_version";
 
 type Body = {
   address?: string;
@@ -166,22 +170,20 @@ export async function POST(request: Request) {
     );
   }
 
-  let cachedRow: {
-    id: string;
-    result: AnalysisResult;
-    user_id: string | null;
-  } | null = null;
+  const supportsUserId = await analysesSupportsUserId(supabase);
+
+  let cachedRow: { id: string; result: AnalysisResult } | null = null;
 
   if (propertyId != null) {
     const { data, error } = await supabase
       .from("analyses")
-      .select("id, result, prompt_version, user_id")
+      .select(CACHE_SELECT)
       .eq("property_id", propertyId)
       .maybeSingle();
     if (error) {
       console.error("[analyse] cache property_id:", error.message);
       return NextResponse.json(
-        { ok: false, message: "Kunde inte läsa cache." },
+        { ok: false, message: persistFailureMessage(error) },
         { status: 500 },
       );
     }
@@ -195,20 +197,19 @@ export async function POST(request: Request) {
       cachedRow = {
         id: data.id,
         result: data.result as AnalysisResult,
-        user_id: data.user_id ?? null,
       };
     }
   } else {
     const { data, error } = await supabase
       .from("analyses")
-      .select("id, result, prompt_version, user_id")
+      .select(CACHE_SELECT)
       .eq("input_hash", inputHash)
       .is("property_id", null)
       .maybeSingle();
     if (error) {
       console.error("[analyse] cache input_hash:", error.message);
       return NextResponse.json(
-        { ok: false, message: "Kunde inte läsa cache." },
+        { ok: false, message: persistFailureMessage(error) },
         { status: 500 },
       );
     }
@@ -222,18 +223,20 @@ export async function POST(request: Request) {
       cachedRow = {
         id: data.id,
         result: data.result as AnalysisResult,
-        user_id: data.user_id ?? null,
       };
     }
   }
 
   if (cachedRow != null) {
-    await attachUserIdIfNeeded(
-      supabase,
-      cachedRow.id,
-      userId,
-      cachedRow.user_id,
-    );
+    if (supportsUserId) {
+      const existingUserId = await fetchAnalysisUserId(supabase, cachedRow.id);
+      await attachUserIdIfNeeded(
+        supabase,
+        cachedRow.id,
+        userId,
+        existingUserId,
+      );
+    }
     return NextResponse.json({
       ok: true,
       cached: true,
@@ -282,7 +285,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const rowPayload = {
+  const rowPayload: Record<string, unknown> = {
     property_id: propertyId,
     input_hash: inputHash,
     address,
@@ -293,8 +296,10 @@ export async function POST(request: Request) {
     ad_text: adText,
     result: analysis,
     prompt_version: CURRENT_PROMPT_VERSION,
-    user_id: userId,
   };
+  if (supportsUserId && userId) {
+    rowPayload.user_id = userId;
+  }
 
   let savedId: string | null = null;
   const insertRes = await supabase
@@ -359,12 +364,12 @@ export async function POST(request: Request) {
       const { data: again } = propertyId
         ? await supabase
             .from("analyses")
-            .select("id, result, prompt_version, user_id")
+            .select(CACHE_SELECT)
             .eq("property_id", propertyId)
             .maybeSingle()
         : await supabase
             .from("analyses")
-            .select("id, result, prompt_version, user_id")
+            .select(CACHE_SELECT)
             .eq("input_hash", inputHash)
             .is("property_id", null)
             .maybeSingle();
@@ -375,7 +380,10 @@ export async function POST(request: Request) {
         Number.isFinite(againPv) &&
         againPv === CURRENT_PROMPT_VERSION
       ) {
-        await attachUserIdIfNeeded(supabase, again.id, userId, again.user_id);
+        if (supportsUserId) {
+          const existingUserId = await fetchAnalysisUserId(supabase, again.id);
+          await attachUserIdIfNeeded(supabase, again.id, userId, existingUserId);
+        }
         return NextResponse.json({
           ok: true,
           cached: true,
@@ -403,7 +411,9 @@ export async function POST(request: Request) {
     );
   }
 
-  await attachUserIdIfNeeded(supabase, savedId, userId, null);
+  if (supportsUserId) {
+    await attachUserIdIfNeeded(supabase, savedId, userId, null);
+  }
 
   return NextResponse.json({
     ok: true,
