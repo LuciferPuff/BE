@@ -12,18 +12,21 @@ export function SocialProof({ count }: Props) {
 
   return (
     <section className="home-social-proof" aria-label="Varför Byggello">
-      <div className="home-container">
-        <div className="home-social-proof-inner">
-          {showCount && (
-            <p className="home-social-proof-count" role="status">
+      <div className="home-container home-social-proof-row">
+        {showCount && (
+          <>
+            <span className="home-social-proof-count" role="status">
               {formatCountLabel(count)}
-            </p>
-          )}
-          <p className="home-social-proof-message">
-            Ett missat fuktproblem kan kosta 300&nbsp;000 kr. En analys tar 2
-            minuter.
-          </p>
-        </div>
+            </span>
+            <span className="home-social-proof-divider" aria-hidden="true">
+              ·
+            </span>
+          </>
+        )}
+        <span className="home-social-proof-text">
+          Ett missat fuktproblem kan kosta 300&nbsp;000 kr. En analys tar 2
+          minuter.
+        </span>
       </div>
     </section>
   );
