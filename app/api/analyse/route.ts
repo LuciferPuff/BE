@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { createHash } from "node:crypto";
 
 import { runClaudeAnalyse } from "@/lib/analyse/anthropic";
@@ -12,7 +12,7 @@ import { attachUserIdIfNeeded } from "@/lib/analyses/attach-user-id";
 import { fetchAnalysisUserId } from "@/lib/analyses/fetch-analysis-user-id";
 import { analysesSupportsUserId } from "@/lib/analyses/user-id-column";
 import { consumeAnalyseRateSlot } from "@/lib/analyse/rate-limit-ip";
-import { getSessionUser } from "@/lib/auth/get-session-user";
+import { getSessionUserFromRequest } from "@/lib/auth/get-session-user";
 import { createAnalysesSupabaseClient } from "@/lib/supabase/analyses-client";
 
 /**
@@ -79,7 +79,7 @@ function persistFailureMessage(
   return "Kunde inte spara analysen.";
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   let body: Body;
   try {
     body = (await request.json()) as Body;
@@ -155,7 +155,7 @@ export async function POST(request: Request) {
   }
 
   const inputHash = computeInputHash(address, buildYear, objectType);
-  const sessionUser = await getSessionUser();
+  const sessionUser = await getSessionUserFromRequest(request);
   const userId = sessionUser?.id ?? null;
 
   const supabase = createAnalysesSupabaseClient();
@@ -171,6 +171,16 @@ export async function POST(request: Request) {
   }
 
   const supportsUserId = await analysesSupportsUserId(supabase);
+  if (userId && !supportsUserId) {
+    console.warn(
+      "[analyse] user_id-kolumn saknas – kör migration 20260517140000_analyses_user_id.sql",
+    );
+  }
+  if (!userId) {
+    console.warn(
+      "[analyse] ingen session i API – analys sparas utan koppling till konto (kolla auth-cookies)",
+    );
+  }
 
   let cachedRow: { id: string; result: AnalysisResult } | null = null;
 
@@ -297,7 +307,7 @@ export async function POST(request: Request) {
     result: analysis,
     prompt_version: CURRENT_PROMPT_VERSION,
   };
-  if (supportsUserId && userId) {
+  if (supportsUserId) {
     rowPayload.user_id = userId;
   }
 

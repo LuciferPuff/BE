@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import type { UserAnalysisSummary } from "@/lib/analyses/get-user-analyses";
 
 type Props = {
@@ -12,6 +14,10 @@ export function AnalysisCard({ analysis }: Props) {
   });
 
   return (
+    <Link
+      href={`/mina-analyser/${analysis.id}`}
+      className="my-analyses-card-link"
+    >
     <article className="my-analyses-card">
       <h2 className="my-analyses-card-address">{analysis.address}</h2>
       <dl className="my-analyses-card-meta">
@@ -28,6 +34,8 @@ export function AnalysisCard({ analysis }: Props) {
           <dd>{analysis.build_year}</dd>
         </div>
       </dl>
+      <p className="my-analyses-card-cta">Visa analys →</p>
     </article>
+    </Link>
   );
 }

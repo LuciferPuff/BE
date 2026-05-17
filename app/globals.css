@@ -739,6 +739,87 @@ main.content-page {
   }
 }
 
+.my-analyses-card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--radius);
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.my-analyses-card-link:hover .my-analyses-card,
+.my-analyses-card-link:focus-visible .my-analyses-card {
+  box-shadow: 0 4px 20px rgba(27, 46, 60, 0.12);
+  transform: translateY(-1px);
+}
+
+.my-analyses-card-link:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.my-analyses-card-cta {
+  margin: 1rem 0 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.my-analyses-back {
+  display: inline-block;
+  margin-bottom: 1rem;
+  font-size: 0.9375rem;
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+}
+
+.my-analyses-back:hover {
+  color: var(--color-white);
+  text-decoration: underline;
+}
+
+.my-analyses-detail-meta {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.625rem;
+  margin: 1rem 0 0;
+}
+
+@media (min-width: 36rem) {
+  .my-analyses-detail-meta {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem 1rem;
+  }
+}
+
+.my-analyses-detail-meta dt {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.my-analyses-detail-meta dd {
+  margin: 0.125rem 0 0;
+  font-size: 0.9375rem;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.my-analyses-detail-content {
+  flex: 1;
+  max-width: 40rem;
+  padding: clamp(2rem, 5vw, 3rem) 1.25rem 4.75rem;
+}
+
+@media (min-width: 48rem) {
+  .my-analyses-detail-content {
+    padding: clamp(2.5rem, 5vw, 3.5rem) 1.5rem 5.75rem;
+  }
+}
+
 .my-analyses-list {
   list-style: none;
   display: flex;

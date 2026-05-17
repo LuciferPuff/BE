@@ -3,12 +3,8 @@
 import { useId, useState } from "react";
 
 import { AddressAutocomplete } from "@/components/analyse/AddressAutocomplete";
-import { Disclaimer } from "@/components/analys/Disclaimer";
-import { FeedbackBox } from "@/components/analys/FeedbackBox";
-import type {
-  AnalysisFinding,
-  AnalysisResult,
-} from "@/lib/analyse/parse-analysis-json";
+import { AnalysisResultView } from "@/components/analyse/AnalysisResultView";
+import type { AnalysisResult } from "@/lib/analyse/parse-analysis-json";
 
 const PROPERTY_TYPES = ["Villa", "Kedjehus", "Radhus", "Fritidshus"] as const;
 
@@ -16,40 +12,6 @@ const ERR_ADDRESS_MIN = "Adress saknas.";
 const ERR_BUILD_YEAR_RANGE = "Ange ett rimligt byggnadsår.";
 const ERR_ADTEXT_MIN =
   "Klistra in mer information från annonsen – minst 100 tecken krävs för en träffsäker analys.";
-
-function AnalysisFindingBody({ item }: { item: AnalysisFinding }) {
-  const hasThreePart =
-    item.vadDetAr !== "" ||
-    item.varforDetSpelarRoll !== "" ||
-    item.vadDuGor !== "";
-
-  if (!hasThreePart) {
-    return null;
-  }
-
-  return (
-    <div className="analyse-result-parts">
-      {item.vadDetAr !== "" && (
-        <div className="analyse-result-part">
-          <span className="analyse-result-part-label">Vad det är</span>
-          <p className="analyse-result-part-text">{item.vadDetAr}</p>
-        </div>
-      )}
-      {item.varforDetSpelarRoll !== "" && (
-        <div className="analyse-result-part">
-          <span className="analyse-result-part-label">Varför det spelar roll</span>
-          <p className="analyse-result-part-text">{item.varforDetSpelarRoll}</p>
-        </div>
-      )}
-      {item.vadDuGor !== "" && (
-        <div className="analyse-result-part">
-          <span className="analyse-result-part-label">Vad du gör</span>
-          <p className="analyse-result-part-text">{item.vadDuGor}</p>
-        </div>
-      )}
-    </div>
-  );
-}
 
 type ApiOk = {
   ok: true;
@@ -171,6 +133,7 @@ export function AnalyseForm() {
       const res = await fetch("/api/analyse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify(payload),
       });
       const data = (await res.json()) as ApiOk | ApiErr;
@@ -410,77 +373,16 @@ export function AnalyseForm() {
         )}
       </form>
 
-      {analysis != null && (
-        <div className="analyse-result" role="region" aria-label="Analysresultat">
-          <p className="analyse-result-meta">
-            {fromCache
+      {analysis != null && analysisId != null && (
+        <AnalysisResultView
+          analysis={analysis}
+          analysisId={analysisId}
+          metaLabel={
+            fromCache
               ? "Resultat från cache (samma bostad analyserades tidigare)."
-              : "Ny analys klar."}
-          </p>
-          <p className="analyse-result-suggest-hint">
-            Något som saknades eller var fel?{" "}
-            <a href="#analyse-suggest" className="analyse-result-suggest-link">
-              Hoppa till kommentarsfältet
-            </a>
-            .
-          </p>
-
-          <section className="analyse-result-block">
-            <h2 className="analyse-result-heading">Röda flaggor</h2>
-            <ul className="analyse-result-list">
-              {analysis.rodaFlaggor.map((item, i) => (
-                <li key={`r-${i}`} className="analyse-result-item">
-                  <strong className="analyse-result-item-title">
-                    {item.titel}
-                  </strong>
-                  <AnalysisFindingBody item={item} />
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="analyse-result-block">
-            <h2 className="analyse-result-heading">Underhåll och åtgärder</h2>
-            <ul className="analyse-result-list">
-              {analysis.underhallsvarningar.map((item, i) => (
-                <li key={`u-${i}`} className="analyse-result-item">
-                  <strong className="analyse-result-item-title">
-                    {item.titel}
-                  </strong>
-                  <AnalysisFindingBody item={item} />
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="analyse-result-block">
-            <h2 className="analyse-result-heading">Frågor till mäklaren</h2>
-            <ol className="analyse-result-ol">
-              {analysis.fragorTillMaklaren.map((q, i) => (
-                <li key={`q-${i}`}>{q}</li>
-              ))}
-            </ol>
-          </section>
-
-          <Disclaimer />
-          <section
-            id="analyse-suggest"
-            className="analyse-suggest-section"
-            aria-labelledby="analyse-suggest-title"
-          >
-            <h2
-              id="analyse-suggest-title"
-              className="analyse-result-heading"
-            >
-              Förbättra analysen
-            </h2>
-            <p className="analyse-suggest-lede">
-              Din kommentar hjälper oss att justera modellen och täppa till
-              luckor i framtida analyser.
-            </p>
-            <FeedbackBox analysisId={analysisId} />
-          </section>
-        </div>
+              : "Ny analys klar."
+          }
+        />
       )}
     </>
   );
