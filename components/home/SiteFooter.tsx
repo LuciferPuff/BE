@@ -1,9 +1,19 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { getSessionUser } from "@/lib/auth/get-session-user";
+
 const LOGO_SRC = "/bilder/byggello-logo.png";
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  let showMyAnalyses = false;
+  try {
+    const user = await getSessionUser();
+    showMyAnalyses = user != null;
+  } catch {
+    showMyAnalyses = false;
+  }
+
   return (
     <footer className="home-footer">
       <div className="home-container home-footer-inner">
@@ -25,6 +35,7 @@ export function SiteFooter() {
           <Link href="/artiklar">Artiklar</Link>
           <Link href="/guider">Guider</Link>
           <Link href="/analys">Analys</Link>
+          {showMyAnalyses && <Link href="/mina-analyser">Mina analyser</Link>}
           <Link href="/integritetspolicy">Integritetspolicy</Link>
         </nav>
         <p className="home-footer-copy">

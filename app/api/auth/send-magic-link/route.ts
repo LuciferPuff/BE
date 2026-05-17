@@ -4,6 +4,7 @@ import {
   isValidEmailFormat,
   normalizeSubscriberEmail,
 } from "@/lib/subscribe/validate-email";
+import { safeNextPath } from "@/lib/auth/safe-next-path";
 import { createAuthClient } from "@/lib/supabase/auth-client";
 import { getSiteUrlFromRequest } from "@/lib/site";
 
@@ -55,7 +56,13 @@ export async function POST(request: Request) {
 
   const email = normalizeSubscriberEmail(rawEmail);
   const site = getSiteUrlFromRequest(request);
-  const redirectTo = `${site}/auth/callback`;
+  const rawNext =
+    body && typeof body === "object" && "next" in body
+      ? (body as { next: unknown }).next
+      : undefined;
+  const next =
+    typeof rawNext === "string" ? safeNextPath(rawNext) : "/analys";
+  const redirectTo = `${site}/auth/callback?next=${encodeURIComponent(next)}`;
 
   try {
     const supabase = await createAuthClient();

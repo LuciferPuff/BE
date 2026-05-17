@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { safeNextPath } from "@/lib/auth/safe-next-path";
 import { createAuthClient } from "@/lib/supabase/auth-client";
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const site = requestUrl.origin;
@@ -26,5 +28,6 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/logga-in?error=auth", site));
   }
 
-  return NextResponse.redirect(new URL("/analys", site));
+  const next = safeNextPath(searchParams.get("next"));
+  return NextResponse.redirect(new URL(next, site));
 }

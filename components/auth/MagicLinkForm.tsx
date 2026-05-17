@@ -8,9 +8,10 @@ const CONFIRM_FALLBACK =
 
 type Props = {
   authError?: boolean;
+  nextPath?: string;
 };
 
-export function MagicLinkForm({ authError = false }: Props) {
+export function MagicLinkForm({ authError = false, nextPath }: Props) {
   const formId = useId();
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">(
@@ -31,7 +32,10 @@ export function MagicLinkForm({ authError = false }: Props) {
       const res = await fetch("/api/auth/send-magic-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({
+          email,
+          ...(nextPath ? { next: nextPath } : {}),
+        }),
       });
       const data = (await res.json()) as { ok?: boolean; message?: string };
 

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { createAuthClient } from "@/lib/supabase/auth-client";
+import { getSessionUser } from "@/lib/auth/get-session-user";
 
 const LOGO_SRC = "/bilder/byggello-logo.png";
 
@@ -16,12 +16,10 @@ function truncateEmail(email: string, max = 22): string {
 }
 
 async function AuthNav() {
-  let email: string | null = null;
+  let user: Awaited<ReturnType<typeof getSessionUser>> = null;
 
   try {
-    const supabase = await createAuthClient();
-    const { data } = await supabase.auth.getUser();
-    email = data.user?.email ?? null;
+    user = await getSessionUser();
   } catch {
     return (
       <Link href="/logga-in" className="home-nav-auth-link">
@@ -30,11 +28,14 @@ async function AuthNav() {
     );
   }
 
-  if (email) {
+  if (user?.email) {
     return (
       <span className="home-nav-auth home-nav-auth--signed-in">
-        <span className="home-nav-auth-email" title={email}>
-          {truncateEmail(email)}
+        <Link href="/mina-analyser" className="home-nav-auth-link">
+          Mina analyser
+        </Link>
+        <span className="home-nav-auth-email" title={user.email}>
+          {truncateEmail(user.email)}
         </span>
         <form action="/api/auth/logout" method="post" className="home-nav-auth-logout">
           <button type="submit" className="home-nav-auth-logout-btn">

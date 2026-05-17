@@ -8,7 +8,9 @@ import {
   parseAnalysisJson,
   type AnalysisResult,
 } from "@/lib/analyse/parse-analysis-json";
+import { attachUserIdIfNeeded } from "@/lib/analyses/attach-user-id";
 import { consumeAnalyseRateSlot } from "@/lib/analyse/rate-limit-ip";
+import { getSessionUser } from "@/lib/auth/get-session-user";
 import { createAnalysesSupabaseClient } from "@/lib/supabase/analyses-client";
 
 /**
@@ -57,10 +59,11 @@ function persistFailureMessage(
 
   if (
     msg.includes("prompt_version") ||
+    msg.includes("user_id") ||
     (msg.toLowerCase().includes("column") &&
       msg.toLowerCase().includes("schema cache"))
   ) {
-    return "Databasen saknar kolumnen prompt_version (eller cachen är gammal). Kör Supabase-migrationerna, t.ex. supabase db push, och ev. ”Reload schema” under API-inställningar.";
+    return "Databasen saknar en kolumn (prompt_version eller user_id). Kör Supabase-migrationerna, t.ex. supabase db push, och ev. ”Reload schema” under API-inställningar.";
   }
   if (
     code === "42501" ||
@@ -148,6 +151,8 @@ export async function POST(request: Request) {
   }
 
   const inputHash = computeInputHash(address, buildYear, objectType);
+  const sessionUser = await getSessionUser();
+  const userId = sessionUser?.id ?? null;
 
   const supabase = createAnalysesSupabaseClient();
   if (!supabase) {
@@ -161,12 +166,16 @@ export async function POST(request: Request) {
     );
   }
 
-  let cachedRow: { id: string; result: AnalysisResult } | null = null;
+  let cachedRow: {
+    id: string;
+    result: AnalysisResult;
+    user_id: string | null;
+  } | null = null;
 
   if (propertyId != null) {
     const { data, error } = await supabase
       .from("analyses")
-      .select("id, result, prompt_version")
+      .select("id, result, prompt_version, user_id")
       .eq("property_id", propertyId)
       .maybeSingle();
     if (error) {
@@ -186,12 +195,13 @@ export async function POST(request: Request) {
       cachedRow = {
         id: data.id,
         result: data.result as AnalysisResult,
+        user_id: data.user_id ?? null,
       };
     }
   } else {
     const { data, error } = await supabase
       .from("analyses")
-      .select("id, result, prompt_version")
+      .select("id, result, prompt_version, user_id")
       .eq("input_hash", inputHash)
       .is("property_id", null)
       .maybeSingle();
@@ -212,11 +222,18 @@ export async function POST(request: Request) {
       cachedRow = {
         id: data.id,
         result: data.result as AnalysisResult,
+        user_id: data.user_id ?? null,
       };
     }
   }
 
   if (cachedRow != null) {
+    await attachUserIdIfNeeded(
+      supabase,
+      cachedRow.id,
+      userId,
+      cachedRow.user_id,
+    );
     return NextResponse.json({
       ok: true,
       cached: true,
@@ -276,6 +293,7 @@ export async function POST(request: Request) {
     ad_text: adText,
     result: analysis,
     prompt_version: CURRENT_PROMPT_VERSION,
+    user_id: userId,
   };
 
   let savedId: string | null = null;
@@ -341,12 +359,12 @@ export async function POST(request: Request) {
       const { data: again } = propertyId
         ? await supabase
             .from("analyses")
-            .select("id, result, prompt_version")
+            .select("id, result, prompt_version, user_id")
             .eq("property_id", propertyId)
             .maybeSingle()
         : await supabase
             .from("analyses")
-            .select("id, result, prompt_version")
+            .select("id, result, prompt_version, user_id")
             .eq("input_hash", inputHash)
             .is("property_id", null)
             .maybeSingle();
@@ -357,6 +375,7 @@ export async function POST(request: Request) {
         Number.isFinite(againPv) &&
         againPv === CURRENT_PROMPT_VERSION
       ) {
+        await attachUserIdIfNeeded(supabase, again.id, userId, again.user_id);
         return NextResponse.json({
           ok: true,
           cached: true,
@@ -383,6 +402,8 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+
+  await attachUserIdIfNeeded(supabase, savedId, userId, null);
 
   return NextResponse.json({
     ok: true,

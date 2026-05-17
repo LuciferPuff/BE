@@ -1,6 +1,7 @@
 import { MagicLinkForm } from "@/components/auth/MagicLinkForm";
 import { SiteFooter } from "@/components/home/SiteFooter";
 import { SiteHeader } from "@/components/home/SiteHeader";
+import { safeNextPath } from "@/lib/auth/safe-next-path";
 import { getSiteUrl } from "@/lib/site";
 import type { Metadata } from "next";
 
@@ -21,13 +22,15 @@ export const metadata: Metadata = {
 };
 
 interface Props {
-  searchParams: Promise<{ error?: string | string[] }>;
+  searchParams: Promise<{ error?: string | string[]; next?: string | string[] }>;
 }
 
 export default async function LoggaInPage({ searchParams }: Props) {
-  const { error } = await searchParams;
+  const { error, next } = await searchParams;
   const rawError = Array.isArray(error) ? error[0] : error;
   const authError = rawError === "auth";
+  const rawNext = Array.isArray(next) ? next[0] : next;
+  const nextPath = safeNextPath(rawNext);
 
   return (
     <main className="home auth-landing">
@@ -45,7 +48,7 @@ export default async function LoggaInPage({ searchParams }: Props) {
       </section>
       <section className="auth-form-panel" aria-label="Inloggningsformulär">
         <div className="home-container auth-form-panel-inner">
-          <MagicLinkForm authError={authError} />
+          <MagicLinkForm authError={authError} nextPath={nextPath} />
         </div>
       </section>
       <SiteFooter />
