@@ -43,12 +43,11 @@ export function HowItWorks() {
         </ol>
         <div className="home-how-alt-cta">
           <p className="home-how-alt-cta-text">
-            Inte redo att analysera ett objekt ännu? Registrera dig med din mejladress –
-            vi meddelar dig när det går att skapa konto. Inloggning till fastighetsprofilen
-            är under uppbyggnad. Kostnadsfritt.
+            Inte redo att analysera ett objekt ännu? Logga in eller skapa ett konto för
+            att spara dina analyser och hålla koll på dina objekt – kostnadsfritt.
           </p>
-          <Link href="/registrera" className="home-btn home-btn-primary">
-            Registrera
+          <Link href="/logga-in" className="home-btn home-btn-primary">
+            Logga in
           </Link>
         </div>
       </div>
