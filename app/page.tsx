@@ -1,4 +1,5 @@
 import { HomeHero } from "@/components/home/HomeHero";
+import { SocialProof } from "@/components/home/SocialProof";
 import { HowItWorks } from "@/components/home/HowItWorks";
 import type { GuidePreview } from "@/components/home/LatestGuides";
 import { LatestGuides } from "@/components/home/LatestGuides";
@@ -9,6 +10,7 @@ import { SiteFooter } from "@/components/home/SiteFooter";
 import { SiteHeader } from "@/components/home/SiteHeader";
 import { ValueProps } from "@/components/home/ValueProps";
 import { getSanityClient } from "@/lib/sanity/client";
+import { getAnalysisCount } from "@/lib/stats/get-analysis-count";
 import { getSiteUrl } from "@/lib/site";
 import type { Metadata } from "next";
 
@@ -58,7 +60,10 @@ async function fetchLatestGuides(): Promise<GuidePreview[]> {
 }
 
 export default async function Home() {
-  const postCount = await fetchPostCount();
+  const [postCount, analysisCount] = await Promise.all([
+    fetchPostCount(),
+    getAnalysisCount(),
+  ]);
   const showGuides = postCount >= MIN_POSTS_FOR_GUIDES_SECTION;
   const guides = showGuides ? await fetchLatestGuides() : [];
 
@@ -66,6 +71,7 @@ export default async function Home() {
     <main className="home">
       <SiteHeader />
       <HomeHero />
+      <SocialProof count={analysisCount} />
       <ProductTeaser />
       <HowItWorks />
       <ValueProps />
