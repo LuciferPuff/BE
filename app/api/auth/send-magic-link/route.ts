@@ -5,7 +5,7 @@ import {
   normalizeSubscriberEmail,
 } from "@/lib/subscribe/validate-email";
 import { createAuthClient } from "@/lib/supabase/auth-client";
-import { getSiteUrl } from "@/lib/site";
+import { getSiteUrlFromRequest } from "@/lib/site";
 
 const OK_MESSAGE =
   "Om adressen finns hos oss skickar vi en inloggningslänk till din inkorg.";
@@ -34,7 +34,8 @@ export async function POST(request: Request) {
   }
 
   const email = normalizeSubscriberEmail(rawEmail);
-  const redirectTo = `${getSiteUrl()}/auth/callback`;
+  const site = getSiteUrlFromRequest(request);
+  const redirectTo = `${site}/auth/callback`;
 
   try {
     const supabase = await createAuthClient();
