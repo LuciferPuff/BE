@@ -10,12 +10,22 @@ import { getSiteUrlFromRequest } from "@/lib/site";
 const OK_MESSAGE =
   "Om adressen finns hos oss skickar vi en inloggningslänk till din inkorg.";
 
-function messageForAuthError(code: string | undefined, fallback: string): string {
+function messageForAuthError(
+  code: string | undefined,
+  message: string,
+  fallback: string,
+): string {
   if (code === "over_email_send_rate_limit") {
     return "För många e-postförsök. Vänta en stund och försök igen.";
   }
   if (code === "email_address_invalid") {
     return "Ange en giltig e-postadress.";
+  }
+  if (
+    message.toLowerCase().includes("not authorized") ||
+    message.toLowerCase().includes("inte auktoriserad")
+  ) {
+    return "E-post kan inte skickas till den här adressen ännu (Supabase kräver Custom SMTP för alla mottagare).";
   }
   return fallback;
 }
@@ -62,6 +72,7 @@ export async function POST(request: Request) {
       });
       const message = messageForAuthError(
         error.code,
+        error.message,
         "Kunde inte skicka inloggningslänk just nu. Försök igen om en stund.",
       );
       const status = error.code === "over_email_send_rate_limit" ? 429 : 503;
