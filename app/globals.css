@@ -1979,7 +1979,18 @@ main.home {
   line-height: 1.65;
   color: var(--color-text);
   opacity: 0.9;
-  margin: 0 0 1.25rem;
+  margin: 0;
+}
+
+.home-how-alt-cta-link {
+  color: var(--color-accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.home-how-alt-cta-link:hover {
+  color: var(--color-primary);
 }
 
 /* Värde */

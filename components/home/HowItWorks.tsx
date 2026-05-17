@@ -14,7 +14,7 @@ const steps = [
   {
     n: "03",
     title: "Gå in i köpet förberedd",
-    text: "Med analysen i handen vet du vad du ska titta extra noga på, vad som kan bli dyrt och vad du ska förhandla om. Gratis under beta.",
+    text: "Med analysen i handen vet du vad du ska titta extra noga på, vad som kan bli dyrt och vad du ska förhandla om. Just nu Gratis!",
   },
 ];
 
@@ -43,12 +43,16 @@ export function HowItWorks() {
         </ol>
         <div className="home-how-alt-cta">
           <p className="home-how-alt-cta-text">
-            Inte redo att analysera ett objekt ännu? Logga in eller skapa ett konto för
-            att spara dina analyser och hålla koll på dina objekt – kostnadsfritt.
+            Inte redo att analysera ett objekt ännu?{" "}
+            <Link href="/registrera" className="home-how-alt-cta-link">
+              Registrera dig med din mejladress
+            </Link>{" "}
+            eller skapa ett konto{" "}
+            <Link href="/logga-in" className="home-how-alt-cta-link">
+              här
+            </Link>
+            .
           </p>
-          <Link href="/logga-in" className="home-btn home-btn-primary">
-            Logga in
-          </Link>
         </div>
       </div>
     </section>
