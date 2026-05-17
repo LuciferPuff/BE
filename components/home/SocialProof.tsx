@@ -24,8 +24,7 @@ export function SocialProof({ count }: Props) {
           </>
         )}
         <span className="home-social-proof-text">
-          Ett missat fuktproblem kan kosta 300&nbsp;000 kr. En analys tar 2
-          minuter.
+          Se vad som kan gömma sig i annonsen innan du lägger bud.
         </span>
       </div>
     </section>
