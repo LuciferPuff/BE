@@ -323,7 +323,7 @@ export function AnalyseForm() {
             required
             rows={14}
             className="analyse-form-textarea"
-            placeholder="Klistra in så mycket information som möjligt från Bostads-annonsen - beskrivning, fakta, byggnadsinformation, tomtuppgifter, driftkostnader och allt annat som finns. Ju mer information, desto bättre analys."
+            placeholder="Klistra in så mycket information som möjligt från bostadsannonsen – beskrivning, fakta, byggnadsinformation, tomtuppgifter, driftkostnader och allt annat som finns. Ju mer information, desto bättre analys. OBS! Det fungerar inte med en annonslänk, då vi inte kan eller får läsa information direkt från andra hemsidor."
             value={adText}
             onChange={(ev) => {
               setAdText(ev.target.value);
