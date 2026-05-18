@@ -4,6 +4,10 @@ import { useId, useState } from "react";
 
 import { AddressAutocomplete } from "@/components/analyse/AddressAutocomplete";
 import { AnalysisResultView } from "@/components/analyse/AnalysisResultView";
+import {
+  ERR_ADTEXT_LINK,
+  looksLikeListingUrl,
+} from "@/lib/analyse/looks-like-listing-url";
 import type { AnalysisResult } from "@/lib/analyse/parse-analysis-json";
 
 const PROPERTY_TYPES = ["Villa", "Kedjehus", "Radhus", "Fritidshus"] as const;
@@ -82,7 +86,9 @@ export function AnalyseForm() {
     if (!Number.isFinite(year) || year < 1800 || year > 2026) {
       nextFieldErr.buildYear = ERR_BUILD_YEAR_RANGE;
     }
-    if (!adTrim || adTrim.length < 100) {
+    if (looksLikeListingUrl(adTrim)) {
+      nextFieldErr.adText = ERR_ADTEXT_LINK;
+    } else if (!adTrim || adTrim.length < 100) {
       nextFieldErr.adText = ERR_ADTEXT_MIN;
     }
 
@@ -144,7 +150,7 @@ export function AnalyseForm() {
           setFieldErrors({ address: text });
         } else if (text === ERR_BUILD_YEAR_RANGE) {
           setFieldErrors({ buildYear: text });
-        } else if (text === ERR_ADTEXT_MIN) {
+        } else if (text === ERR_ADTEXT_MIN || text === ERR_ADTEXT_LINK) {
           setFieldErrors({ adText: text });
         } else {
           setErrorMessage(
@@ -315,15 +321,20 @@ export function AnalyseForm() {
 
         <div className="analyse-form-field">
           <label className="analyse-form-label" htmlFor={`${id}-listing`}>
-            Annonstext från bostadsannonsen <span aria-hidden="true">*</span>
+            Annonstext (klistra in – inte länk) <span aria-hidden="true">*</span>
           </label>
+          <p id={`${id}-listing-hint`} className="analyse-form-help">
+            Byggello läser inte annonser från Hemnet eller andra sidor. Öppna
+            annonsen, kopiera all text du ser där och klistra in den i rutan
+            nedan.
+          </p>
           <textarea
             id={`${id}-listing`}
             name="adText"
             required
             rows={14}
             className="analyse-form-textarea"
-            placeholder="Klistra in så mycket information som möjligt från bostadsannonsen – beskrivning, fakta, byggnadsinformation, tomtuppgifter, driftkostnader och allt annat som finns. Ju mer information, desto bättre analys. OBS! Det fungerar inte med en annonslänk, då vi inte kan eller får läsa information direkt från andra hemsidor."
+            placeholder="Beskrivning, fakta, byggår, driftkostnad, tomt … Ju mer text, desto bättre analys. Klistra in texten – inte bara länken till annonsen."
             value={adText}
             onChange={(ev) => {
               setAdText(ev.target.value);
@@ -332,7 +343,9 @@ export function AnalyseForm() {
             disabled={loading}
             aria-invalid={fieldErrors.adText != null}
             aria-describedby={
-              fieldErrors.adText != null ? `${id}-listing-err` : undefined
+              fieldErrors.adText != null
+                ? `${id}-listing-hint ${id}-listing-err`
+                : `${id}-listing-hint`
             }
           />
           {fieldErrors.adText != null && (

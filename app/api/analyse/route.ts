@@ -11,6 +11,10 @@ import {
 import { attachUserIdIfNeeded } from "@/lib/analyses/attach-user-id";
 import { fetchAnalysisUserId } from "@/lib/analyses/fetch-analysis-user-id";
 import { analysesSupportsUserId } from "@/lib/analyses/user-id-column";
+import {
+  ERR_ADTEXT_LINK,
+  looksLikeListingUrl,
+} from "@/lib/analyse/looks-like-listing-url";
 import { consumeAnalyseRateSlot } from "@/lib/analyse/rate-limit-ip";
 import { getSessionUserFromRequest } from "@/lib/auth/get-session-user";
 import { createAnalysesSupabaseClient } from "@/lib/supabase/analyses-client";
@@ -143,6 +147,9 @@ export async function POST(request: NextRequest) {
       { ok: false, message: "Ogiltigt pris." },
       { status: 400 },
     );
+  }
+  if (looksLikeListingUrl(adText)) {
+    return NextResponse.json({ error: ERR_ADTEXT_LINK }, { status: 400 });
   }
   if (!adText || adText.length < 100) {
     return NextResponse.json(
