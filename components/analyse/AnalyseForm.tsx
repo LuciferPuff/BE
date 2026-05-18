@@ -325,8 +325,8 @@ export function AnalyseForm() {
           </label>
           <p id={`${id}-listing-hint`} className="analyse-form-help">
             Byggello läser inte annonser från Hemnet eller andra sidor. Öppna
-            annonsen, kopiera all text du ser där och klistra in den i rutan
-            nedan.
+            annonsen, gärna in på mäklarens annonssida, kopiera all text du ser
+            där och klistra in den i rutan nedan.
           </p>
           <textarea
             id={`${id}-listing`}
