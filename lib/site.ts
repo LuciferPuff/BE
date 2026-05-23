@@ -1,17 +1,14 @@
-const LOCAL_DEV_ORIGIN = "http://localhost:3000";
+const DEFAULT_SITE_URL = "https://byggello.se";
 
 /**
- * Kanonisk bas-URL för länkar, sitemap, Open Graph och auth-redirects.
- * Prioritet: NEXT_PUBLIC_SITE_URL → VERCEL_URL (preview) → localhost.
+ * Kanonisk bas-URL för canonical, sitemap, Open Graph, e-post m.m.
+ * Använder aldrig VERCEL_URL – preview-domäner ska inte bli canonical.
+ * Prioritet: NEXT_PUBLIC_SITE_URL → https://byggello.se
  */
 export function getSiteUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   if (fromEnv) return fromEnv.replace(/\/$/, "");
-
-  const vercel = process.env.VERCEL_URL?.trim();
-  if (vercel) return `https://${vercel.replace(/\/$/, "")}`;
-
-  return LOCAL_DEV_ORIGIN;
+  return DEFAULT_SITE_URL;
 }
 
 function isAllowedAuthHost(host: string): boolean {

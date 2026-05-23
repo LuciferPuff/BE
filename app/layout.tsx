@@ -10,10 +10,8 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   display: "swap",
 });
 
-const siteUrl = getSiteUrl();
-
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: new URL(getSiteUrl()),
   title: {
     default: "Byggello – Din partner genom hela bostadsresan",
     template: "%s | Byggello",
@@ -24,7 +22,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "sv_SE",
     siteName: "Byggello",
-    url: siteUrl,
+    url: getSiteUrl(),
   },
   twitter: {
     card: "summary_large_image",
