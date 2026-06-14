@@ -63,6 +63,11 @@ const nextConfig: NextConfig = {
         destination: "/analys",
         permanent: true,
       },
+      {
+        source: "/artiklar/driftkostnad-hus-vad-kostar-det-att-aga-ett-hus",
+        destination: "/artiklar/driftkostnad-villa-vad-kostar-det-aga-hus",
+        permanent: true,
+      },
     ];
   },
   async headers() {
