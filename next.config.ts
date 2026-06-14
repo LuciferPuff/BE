@@ -68,6 +68,12 @@ const nextConfig: NextConfig = {
         destination: "/artiklar/driftkostnad-villa-vad-kostar-det-aga-hus",
         permanent: true,
       },
+      {
+        source: "/artiklar/overlatelsebesiktning-vad-ar-det-och-vad-kostar-det",
+        destination:
+          "/artiklar/overlatelsebesiktning-vad-ar-det-vad-kostar-det-vem-betalar",
+        permanent: true,
+      },
     ];
   },
   async headers() {
