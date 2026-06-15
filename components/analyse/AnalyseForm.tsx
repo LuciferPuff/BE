@@ -48,6 +48,13 @@ function apiErrText(data: unknown): string {
   return "";
 }
 
+// Tillåt inklistring direkt från annonsen, t.ex. "3 495 000 kr" eller "3.495.000:-".
+// Behåll bara siffror – priset hanteras som heltal kronor.
+function parsePriceInput(raw: string): number {
+  const digits = raw.replace(/[^\d]/g, "");
+  return digits === "" ? Number.NaN : Number.parseInt(digits, 10);
+}
+
 export function AnalyseForm() {
   const id = useId();
   const [address, setAddress] = useState("");
@@ -100,7 +107,7 @@ export function AnalyseForm() {
     const adTrim = adText.trim();
     const year = Number.parseInt(buildYear, 10);
     const sqm = Number.parseFloat(sizeSqm);
-    const price = Number.parseFloat(askingPrice);
+    const price = parsePriceInput(askingPrice);
 
     const nextFieldErr: {
       address?: string;
@@ -310,7 +317,7 @@ export function AnalyseForm() {
           </div>
           <div className="analyse-form-field">
             <label className="analyse-form-label" htmlFor={`${id}-sqm`}>
-              Storlek i kvm <span aria-hidden="true">*</span>
+              Storlek i kvm (Boarea) <span aria-hidden="true">*</span>
             </label>
             <input
               id={`${id}-sqm`}
@@ -335,16 +342,20 @@ export function AnalyseForm() {
           <input
             id={`${id}-price`}
             name="askingPrice"
-            type="number"
+            type="text"
             inputMode="numeric"
-            min={0}
-            step={1}
+            autoComplete="off"
             required
             className="analyse-form-input"
             value={askingPrice}
             onChange={(ev) => setAskingPrice(ev.target.value)}
             disabled={loading}
+            aria-describedby={`${id}-price-help`}
           />
+          <p id={`${id}-price-help`} className="analyse-form-help">
+            Du kan klistra in direkt från annonsen – vi rensar bort mellanslag
+            och ”kr” automatiskt.
+          </p>
         </div>
 
         <div className="analyse-form-field">
