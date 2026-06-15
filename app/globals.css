@@ -917,6 +917,10 @@ main.content-page {
   }
 }
 
+.analyse-landing .home-footer {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+}
+
 .analyse-landing-title {
   font-size: clamp(1.75rem, 4vw, 2.25rem);
   font-weight: 700;
