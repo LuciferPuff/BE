@@ -19,6 +19,8 @@ import { consumeAnalyseRateSlot } from "@/lib/analyse/rate-limit-ip";
 import { getSessionUserFromRequest } from "@/lib/auth/get-session-user";
 import { createAnalysesSupabaseClient } from "@/lib/supabase/analyses-client";
 
+export const maxDuration = 300;
+
 /**
  * Höj med 1 varje gång `lib/analyse/claude-prompt.ts` ändras så cache i Supabase
  * invalideras. Rutin: bump → commit/push → redeploy Vercel.
