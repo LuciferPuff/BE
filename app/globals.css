@@ -1063,6 +1063,68 @@ main.content-page {
   animation: analyse-spin 0.65s linear infinite;
 }
 
+.analyse-progress {
+  margin-top: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid rgba(242, 101, 34, 0.25);
+  border-radius: var(--radius);
+  background: rgba(242, 101, 34, 0.05);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+}
+
+.analyse-progress-spinner {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.15rem;
+  border: 2px solid rgba(242, 101, 34, 0.25);
+  border-top-color: #f26522;
+  border-radius: 50%;
+  animation: analyse-spin 0.7s linear infinite;
+}
+
+.analyse-progress-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.analyse-progress-message {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1b2e3c;
+  animation: analyse-progress-fade 0.4s ease;
+}
+
+.analyse-progress-hint {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #1b2e3c;
+  opacity: 0.7;
+}
+
+@keyframes analyse-progress-fade {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .analyse-progress-spinner {
+    animation-duration: 1.4s;
+  }
+  .analyse-progress-message {
+    animation: none;
+  }
+}
+
 .analyse-form-feedback {
   margin: 0;
   font-size: 0.9375rem;

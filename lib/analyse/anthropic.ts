@@ -4,7 +4,6 @@ export async function runClaudeAnalyse(prompt: string): Promise<string> {
     throw new Error("Saknar ANTHROPIC_API_KEY");
   }
 
-  const startedAt = Date.now();
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -18,7 +17,6 @@ export async function runClaudeAnalyse(prompt: string): Promise<string> {
       messages: [{ role: "user", content: prompt }],
     }),
   });
-  const elapsedMs = Date.now() - startedAt;
 
   const rawText = await res.text();
   if (!res.ok) {
@@ -29,18 +27,7 @@ export async function runClaudeAnalyse(prompt: string): Promise<string> {
 
   const data = JSON.parse(rawText) as {
     content?: Array<{ type: string; text?: string }>;
-    usage?: { input_tokens?: number; output_tokens?: number };
   };
-
-  // TEMP-MÄTNING (BYG): ta bort efter att kall svarstid + tokens är uppmätta.
-  console.log(
-    "[analyse][measure]",
-    JSON.stringify({
-      elapsedMs,
-      inputTokens: data.usage?.input_tokens ?? null,
-      outputTokens: data.usage?.output_tokens ?? null,
-    }),
-  );
   const block = data.content?.[0];
   const text =
     block?.type === "text" && typeof block.text === "string" ? block.text : "";

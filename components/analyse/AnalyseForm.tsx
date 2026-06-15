@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { AddressAutocomplete } from "@/components/analyse/AddressAutocomplete";
 import { AnalysisResultView } from "@/components/analyse/AnalysisResultView";
@@ -11,6 +11,19 @@ import {
 import type { AnalysisResult } from "@/lib/analyse/parse-analysis-json";
 
 const PROPERTY_TYPES = ["Villa", "Kedjehus", "Radhus", "Fritidshus"] as const;
+
+// En ny analys tar oftast knappt en minut. Statusraderna är medvetet generiska
+// (servern kan inte rapportera Claudes faktiska steg), men rullar i rimlig takt
+// och fastnar på sista raden tills det riktiga resultatet kommit.
+const ANALYSE_STATUS_STEPS = [
+  "Läser igenom annonstexten…",
+  "Matchar mot kända risker för byggåret…",
+  "Bedömer tak, fasad, grund och fukt…",
+  "Uppskattar dolda kostnader…",
+  "Tar fram frågor att ställa till mäklaren…",
+  "Sammanställer din analys…",
+] as const;
+const ANALYSE_STATUS_STEP_MS = 9000;
 
 const ERR_ADDRESS_MIN = "Adress saknas.";
 const ERR_BUILD_YEAR_RANGE = "Ange ett rimligt byggnadsår.";
@@ -50,6 +63,7 @@ export function AnalyseForm() {
   const [askingPrice, setAskingPrice] = useState("");
   const [adText, setAdText] = useState("");
   const [loading, setLoading] = useState(false);
+  const [statusStep, setStatusStep] = useState(0);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [fromCache, setFromCache] = useState(false);
@@ -59,6 +73,20 @@ export function AnalyseForm() {
     buildYear?: string;
     adText?: string;
   }>({});
+
+  useEffect(() => {
+    if (!loading) {
+      setStatusStep(0);
+      return;
+    }
+    setStatusStep(0);
+    const id = window.setInterval(() => {
+      setStatusStep((step) =>
+        Math.min(step + 1, ANALYSE_STATUS_STEPS.length - 1),
+      );
+    }, ANALYSE_STATUS_STEP_MS);
+    return () => window.clearInterval(id);
+  }, [loading]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -385,6 +413,21 @@ export function AnalyseForm() {
           </p>
         )}
       </form>
+
+      {loading && (
+        <div className="analyse-progress" role="status" aria-live="polite">
+          <span className="analyse-progress-spinner" aria-hidden="true" />
+          <div className="analyse-progress-body">
+            <p key={statusStep} className="analyse-progress-message">
+              {ANALYSE_STATUS_STEPS[statusStep] ?? "Sammanställer din analys…"}
+            </p>
+            <p className="analyse-progress-hint">
+              Det här tar oftast knappt en minut – vi gör en grundlig analys av
+              din bostad.
+            </p>
+          </div>
+        </div>
+      )}
 
       {analysis != null && analysisId != null && (
         <AnalysisResultView
