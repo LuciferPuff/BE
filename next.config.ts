@@ -16,9 +16,20 @@ const baseSecurityHeaders = [
   { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
 ];
 
+// React i dev-läge kräver eval() för bl.a. felsökning/HMR. Tillåt 'unsafe-eval'
+// ENBART i utveckling – produktionens CSP förblir strikt.
+const isDev = process.env.NODE_ENV !== "production";
+const siteScriptSrc = [
+  "script-src",
+  "'self'",
+  "'unsafe-inline'",
+  ...(isDev ? ["'unsafe-eval'"] : []),
+  "https://maps.googleapis.com",
+].join(" ");
+
 const siteCsp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://maps.googleapis.com",
+  siteScriptSrc,
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self'",
   "img-src 'self' data: https://cdn.sanity.io https://*.googleapis.com https://*.gstatic.com",
