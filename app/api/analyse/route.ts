@@ -31,6 +31,12 @@ const PROPERTY_TYPES = new Set(["Villa", "Kedjehus", "Radhus", "Fritidshus"]);
 
 const CACHE_SELECT = "id, result, prompt_version";
 
+type Utm = {
+  utm_source?: unknown;
+  utm_medium?: unknown;
+  utm_campaign?: unknown;
+};
+
 type Body = {
   address?: string;
   propertyId?: string | null;
@@ -39,7 +45,21 @@ type Body = {
   sizeSqm?: number;
   askingPrice?: number;
   adText?: string;
+  utm?: Utm;
 };
+
+const UTM_MAX_LEN = 200;
+
+/**
+ * BYG-74: UTM kommer från URL:en och är otillförlitlig användarindata. Trimma,
+ * trunkera till en rimlig längd och låt tomt bli null. Sparas via parametriserad
+ * Supabase-insert; visas aldrig oescapad i någon vy.
+ */
+function cleanUtm(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim().slice(0, UTM_MAX_LEN);
+  return trimmed === "" ? null : trimmed;
+}
 
 function computeInputHash(
   address: string,
@@ -304,6 +324,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // BYG-74: UTM loggas enbart – ingår aldrig i input_hash, cache eller
+  // prompt_version. Samma rowPayload används för både insert och update vid
+  // cache-miss, så UTM täcks av båda vägarna.
   const rowPayload: Record<string, unknown> = {
     property_id: propertyId,
     input_hash: inputHash,
@@ -315,6 +338,9 @@ export async function POST(request: NextRequest) {
     ad_text: adText,
     result: analysis,
     prompt_version: CURRENT_PROMPT_VERSION,
+    utm_source: cleanUtm(body.utm?.utm_source) ?? "direkt",
+    utm_medium: cleanUtm(body.utm?.utm_medium),
+    utm_campaign: cleanUtm(body.utm?.utm_campaign),
   };
   if (supportsUserId) {
     rowPayload.user_id = userId;

@@ -39,6 +39,12 @@ type ApiOk = {
 
 type ApiErr = { ok?: false; message?: string; error?: string };
 
+export type AnalyseUtm = {
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+};
+
 function apiErrText(data: unknown): string {
   if (data != null && typeof data === "object") {
     const o = data as Record<string, unknown>;
@@ -55,7 +61,7 @@ function parsePriceInput(raw: string): number {
   return digits === "" ? Number.NaN : Number.parseInt(digits, 10);
 }
 
-export function AnalyseForm() {
+export function AnalyseForm({ utm }: { utm?: AnalyseUtm }) {
   const id = useId();
   const [address, setAddress] = useState("");
   // city kommer från Google Places (postal_town/locality). Sparas i state nu;
@@ -167,6 +173,9 @@ export function AnalyseForm() {
     };
     if (pid !== "") {
       payload.propertyId = pid;
+    }
+    if (utm != null) {
+      payload.utm = utm;
     }
 
     setLoading(true);
