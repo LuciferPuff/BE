@@ -2315,3 +2315,79 @@ main.home {
 .consent-toggle__text a:hover {
   text-decoration-thickness: 2px;
 }
+
+/* BYG-97: "Mejla mig analysen" + frivillig prenumeration i resultatvyn. */
+.analyse-email-section {
+  margin: 0 0 2.75rem;
+}
+
+.analyse-email-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(242, 101, 34, 0.3);
+  border-radius: var(--radius);
+  background: rgba(242, 101, 34, 0.05);
+}
+
+.analyse-email-box .analyse-result-heading {
+  margin: 0;
+}
+
+.analyse-email-box .analyse-form-submit {
+  align-self: flex-start;
+}
+
+.analyse-email-consent {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: #1b2e3c;
+  cursor: pointer;
+}
+
+.analyse-email-consent input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.analyse-email-gdpr {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: #1b2e3c;
+  opacity: 0.7;
+}
+
+.analyse-email-gdpr-link {
+  color: #1b2e3c;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.analyse-email-gdpr-link:hover {
+  color: #f26522;
+}
+
+.analyse-email-box--done {
+  gap: 0.4rem;
+}
+
+.analyse-email-confirm {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: #1b2e3c;
+}
+
+.analyse-email-confirm-sub {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: #1b2e3c;
+  opacity: 0.82;
+}

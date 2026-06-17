@@ -1,4 +1,5 @@
 import { Disclaimer } from "@/components/analys/Disclaimer";
+import { EmailAnalysisBox } from "@/components/analys/EmailAnalysisBox";
 import { FeedbackBox } from "@/components/analys/FeedbackBox";
 import type {
   AnalysisFinding,
@@ -44,6 +45,7 @@ type Props = {
   analysisId: string;
   metaLabel?: string;
   showSuggestHint?: boolean;
+  showEmailCapture?: boolean;
 };
 
 export function AnalysisResultView({
@@ -51,6 +53,7 @@ export function AnalysisResultView({
   analysisId,
   metaLabel = "Sparad analys.",
   showSuggestHint = true,
+  showEmailCapture = false,
 }: Props) {
   return (
     <div className="analyse-result" role="region" aria-label="Analysresultat">
@@ -99,6 +102,13 @@ export function AnalysisResultView({
       </section>
 
       <Disclaimer />
+
+      {showEmailCapture && (
+        <section className="analyse-email-section">
+          <EmailAnalysisBox analysisId={analysisId} />
+        </section>
+      )}
+
       <section
         id="analyse-suggest"
         className="analyse-suggest-section"

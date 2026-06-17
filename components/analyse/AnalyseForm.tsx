@@ -453,6 +453,7 @@ export function AnalyseForm({ utm }: { utm?: AnalyseUtm }) {
         <AnalysisResultView
           analysis={analysis}
           analysisId={analysisId}
+          showEmailCapture
           metaLabel={
             fromCache
               ? "Resultat från cache (samma bostad analyserades tidigare)."
