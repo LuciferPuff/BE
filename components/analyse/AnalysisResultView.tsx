@@ -58,6 +58,13 @@ export function AnalysisResultView({
   return (
     <div className="analyse-result" role="region" aria-label="Analysresultat">
       <p className="analyse-result-meta">{metaLabel}</p>
+
+      {showEmailCapture && (
+        <section className="analyse-email-section analyse-email-section--top">
+          <EmailAnalysisBox analysisId={analysisId} />
+        </section>
+      )}
+
       {showSuggestHint && (
         <p className="analyse-result-suggest-hint">
           Något som saknades eller var fel?{" "}
@@ -102,12 +109,6 @@ export function AnalysisResultView({
       </section>
 
       <Disclaimer />
-
-      {showEmailCapture && (
-        <section className="analyse-email-section">
-          <EmailAnalysisBox analysisId={analysisId} />
-        </section>
-      )}
 
       <section
         id="analyse-suggest"

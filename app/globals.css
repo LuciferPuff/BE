@@ -2321,6 +2321,10 @@ main.home {
   margin: 0 0 2.75rem;
 }
 
+.analyse-email-section--top {
+  margin-top: 1.25rem;
+}
+
 .analyse-email-box {
   display: flex;
   flex-direction: column;

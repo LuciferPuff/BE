@@ -5,7 +5,6 @@ import { useId, useState } from "react";
 
 // TODO(BYG-97): GDPR-raden (`gdpr`) och tips-underraden (`confirmSubscribed`) är
 // platshållare tills den exakta copyn från Linear-kommentaren klistrats in.
-// Knapp, kryssruta och huvudbekräftelse är texterna som angavs i uppgiften.
 const COPY = {
   heading: "Få analysen mejlad till dig",
   emailLabel: "Din e-postadress",
