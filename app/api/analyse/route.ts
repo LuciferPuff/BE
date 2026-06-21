@@ -17,6 +17,8 @@ import {
 } from "@/lib/analyse/looks-like-listing-url";
 import { consumeAnalyseRateSlot } from "@/lib/analyse/rate-limit-ip";
 import { getSessionUserFromRequest } from "@/lib/auth/get-session-user";
+import { sendLeadEvent } from "@/lib/meta/capi";
+import { getSiteUrlFromRequest } from "@/lib/site";
 import { createAnalysesSupabaseClient } from "@/lib/supabase/analyses-client";
 
 export const maxDuration = 300;
@@ -103,6 +105,34 @@ function persistFailureMessage(
     return "Kunde inte spara analysen (behörighet). Kontrollera att SUPABASE_SERVICE_ROLE_KEY på servern är service role-nyckeln, inte anon-nyckeln.";
   }
   return "Kunde inte spara analysen.";
+}
+
+async function returnAnalysisSuccess(
+  request: NextRequest,
+  payload: {
+    analysisId: string;
+    analysis: AnalysisResult;
+    cached: boolean;
+  },
+): Promise<NextResponse> {
+  const eventId = crypto.randomUUID();
+  try {
+    await sendLeadEvent({
+      eventId,
+      clientIp: clientIp(request),
+      userAgent: request.headers.get("user-agent") ?? "",
+      eventSourceUrl: `${getSiteUrlFromRequest(request)}/analys`,
+    });
+  } catch (err) {
+    console.error("[analyse] meta CAPI:", err);
+  }
+  return NextResponse.json({
+    ok: true,
+    cached: payload.cached,
+    analysisId: payload.analysisId,
+    analysis: payload.analysis,
+    eventId,
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -276,11 +306,10 @@ export async function POST(request: NextRequest) {
         existingUserId,
       );
     }
-    return NextResponse.json({
-      ok: true,
-      cached: true,
+    return returnAnalysisSuccess(request, {
       analysisId: cachedRow.id,
       analysis: cachedRow.result,
+      cached: true,
     });
   }
 
@@ -429,11 +458,10 @@ export async function POST(request: NextRequest) {
           const existingUserId = await fetchAnalysisUserId(supabase, again.id);
           await attachUserIdIfNeeded(supabase, again.id, userId, existingUserId);
         }
-        return NextResponse.json({
-          ok: true,
-          cached: true,
+        return returnAnalysisSuccess(request, {
           analysisId: again.id,
           analysis: again.result as AnalysisResult,
+          cached: true,
         });
       }
     }
@@ -460,10 +488,9 @@ export async function POST(request: NextRequest) {
     await attachUserIdIfNeeded(supabase, savedId, userId, null);
   }
 
-  return NextResponse.json({
-    ok: true,
-    cached: false,
+  return returnAnalysisSuccess(request, {
     analysisId: savedId,
     analysis,
+    cached: false,
   });
 }

@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from "react";
 
 import { AddressAutocomplete } from "@/components/analyse/AddressAutocomplete";
 import { AnalysisResultView } from "@/components/analyse/AnalysisResultView";
+import { MetaLeadTracker } from "@/components/MetaLeadTracker";
 import {
   ERR_ADTEXT_LINK,
   looksLikeListingUrl,
@@ -34,6 +35,7 @@ type ApiOk = {
   ok: true;
   cached?: boolean;
   analysisId?: string;
+  eventId?: string;
   analysis: AnalysisResult;
 };
 
@@ -80,6 +82,7 @@ export function AnalyseForm({ utm }: { utm?: AnalyseUtm }) {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [fromCache, setFromCache] = useState(false);
+  const [leadEventId, setLeadEventId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{
     address?: string;
@@ -108,6 +111,7 @@ export function AnalyseForm({ utm }: { utm?: AnalyseUtm }) {
     setAnalysis(null);
     setAnalysisId(null);
     setFromCache(false);
+    setLeadEventId(null);
 
     const addressTrim = address.trim();
     const adTrim = adText.trim();
@@ -211,6 +215,11 @@ export function AnalyseForm({ utm }: { utm?: AnalyseUtm }) {
           : null,
       );
       setFromCache(data.cached === true);
+      setLeadEventId(
+        typeof data.eventId === "string" && data.eventId !== ""
+          ? data.eventId
+          : null,
+      );
     } catch {
       setErrorMessage("Kunde inte ansluta. Försök igen senare.");
     } finally {
@@ -450,16 +459,19 @@ export function AnalyseForm({ utm }: { utm?: AnalyseUtm }) {
       )}
 
       {analysis != null && analysisId != null && (
-        <AnalysisResultView
-          analysis={analysis}
-          analysisId={analysisId}
-          showEmailCapture
-          metaLabel={
-            fromCache
-              ? "Resultat från cache (samma bostad analyserades tidigare)."
-              : "Ny analys klar."
-          }
-        />
+        <>
+          <MetaLeadTracker eventId={leadEventId} />
+          <AnalysisResultView
+            analysis={analysis}
+            analysisId={analysisId}
+            showEmailCapture
+            metaLabel={
+              fromCache
+                ? "Resultat från cache (samma bostad analyserades tidigare)."
+                : "Ny analys klar."
+            }
+          />
+        </>
       )}
     </>
   );
