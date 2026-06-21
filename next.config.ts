@@ -25,6 +25,7 @@ const siteScriptSrc = [
   "'unsafe-inline'",
   ...(isDev ? ["'unsafe-eval'"] : []),
   "https://maps.googleapis.com",
+  "https://connect.facebook.net",
 ].join(" ");
 
 const siteCsp = [
@@ -32,8 +33,8 @@ const siteCsp = [
   siteScriptSrc,
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self'",
-  "img-src 'self' data: https://cdn.sanity.io https://*.googleapis.com https://*.gstatic.com",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com",
+  "img-src 'self' data: https://cdn.sanity.io https://*.googleapis.com https://*.gstatic.com https://www.facebook.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com https://www.facebook.com https://connect.facebook.net",
   "frame-ancestors 'none'",
   "object-src 'none'",
   "base-uri 'self'",
