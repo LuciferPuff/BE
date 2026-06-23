@@ -25,6 +25,9 @@ pnpm-debug.log*
 /supabase/.temp/
 /supabase/.branches/
 
+# local-only files (spårning, utkast m.m.)
+/local/
+
 # misc
 .DS_Store
 *.pem
