@@ -92,10 +92,11 @@ function persistFailureMessage(
   if (
     msg.includes("prompt_version") ||
     msg.includes("user_id") ||
+    msg.includes("client_ip") ||
     (msg.toLowerCase().includes("column") &&
       msg.toLowerCase().includes("schema cache"))
   ) {
-    return "Databasen saknar en kolumn (prompt_version eller user_id). Kör Supabase-migrationerna, t.ex. supabase db push, och ev. ”Reload schema” under API-inställningar.";
+    return "Databasen saknar en kolumn (prompt_version, user_id eller client_ip). Kör Supabase-migrationerna, t.ex. supabase db push, och ev. ”Reload schema” under API-inställningar.";
   }
   if (
     code === "42501" ||
@@ -109,17 +110,28 @@ function persistFailureMessage(
 
 async function returnAnalysisSuccess(
   request: NextRequest,
+  supabase: NonNullable<ReturnType<typeof createAnalysesSupabaseClient>>,
   payload: {
     analysisId: string;
     analysis: AnalysisResult;
     cached: boolean;
   },
 ): Promise<NextResponse> {
+  const ip = clientIp(request);
+  const { error: logError } = await supabase.from("analysis_requests").insert({
+    analysis_id: payload.analysisId,
+    client_ip: ip !== "unknown" ? ip : null,
+    cached: payload.cached,
+  });
+  if (logError) {
+    console.error("[analyse] request log:", logError.message);
+  }
+
   const eventId = crypto.randomUUID();
   try {
     await sendLeadEvent({
       eventId,
-      clientIp: clientIp(request),
+      clientIp: ip,
       userAgent: request.headers.get("user-agent") ?? "",
       eventSourceUrl: `${getSiteUrlFromRequest(request)}/analys`,
     });
@@ -306,7 +318,7 @@ export async function POST(request: NextRequest) {
         existingUserId,
       );
     }
-    return returnAnalysisSuccess(request, {
+    return returnAnalysisSuccess(request, supabase, {
       analysisId: cachedRow.id,
       analysis: cachedRow.result,
       cached: true,
@@ -370,6 +382,7 @@ export async function POST(request: NextRequest) {
     utm_source: cleanUtm(body.utm?.utm_source) ?? "direkt",
     utm_medium: cleanUtm(body.utm?.utm_medium),
     utm_campaign: cleanUtm(body.utm?.utm_campaign),
+    client_ip: ip !== "unknown" ? ip : null,
   };
   if (supportsUserId) {
     rowPayload.user_id = userId;
@@ -458,7 +471,7 @@ export async function POST(request: NextRequest) {
           const existingUserId = await fetchAnalysisUserId(supabase, again.id);
           await attachUserIdIfNeeded(supabase, again.id, userId, existingUserId);
         }
-        return returnAnalysisSuccess(request, {
+        return returnAnalysisSuccess(request, supabase, {
           analysisId: again.id,
           analysis: again.result as AnalysisResult,
           cached: true,
@@ -488,7 +501,7 @@ export async function POST(request: NextRequest) {
     await attachUserIdIfNeeded(supabase, savedId, userId, null);
   }
 
-  return returnAnalysisSuccess(request, {
+  return returnAnalysisSuccess(request, supabase, {
     analysisId: savedId,
     analysis,
     cached: false,
