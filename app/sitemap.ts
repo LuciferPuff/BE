@@ -1,12 +1,13 @@
 import type { MetadataRoute } from "next";
 import { getAllGuidesForSitemap } from "@/lib/sanity/guides";
 import { getAllPostsForSitemap } from "@/lib/sanity/posts";
-import { getSiteUrl } from "@/lib/site";
+
+/** Kanonisk produktion-URL – aldrig VERCEL_URL / request-host (preview avvisas av Google). */
+const BASE_URL = "https://byggello.se";
 
 export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = getSiteUrl();
   const posts = await getAllPostsForSitemap();
   const guides = await getAllGuidesForSitemap();
 
@@ -17,7 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/analys",
     "/integritetspolicy",
   ].map((path) => ({
-    url: `${base}${path || "/"}`,
+    url: `${BASE_URL}${path || "/"}`,
     lastModified: new Date(),
     changeFrequency: path === "" ? "weekly" : "monthly",
     priority: path === "" ? 1 : path === "/integritetspolicy" ? 0.3 : 0.8,
@@ -29,7 +30,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         ? new Date(p.publishedAt)
         : new Date(p._updatedAt);
     return {
-      url: `${base}/artiklar/${p.slug}`,
+      url: `${BASE_URL}/artiklar/${p.slug}`,
       lastModified: last,
       changeFrequency: "monthly" as const,
       priority: 0.7,
@@ -42,7 +43,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         ? new Date(g.publishedAt)
         : new Date(g._updatedAt);
     return {
-      url: `${base}/guider/${g.slug}`,
+      url: `${BASE_URL}/guider/${g.slug}`,
       lastModified: last,
       changeFrequency: "monthly" as const,
       priority: 0.7,
