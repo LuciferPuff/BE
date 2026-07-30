@@ -35,6 +35,25 @@ export function CreatePropertyForm() {
         />
       </div>
 
+      <div className="analyse-form-field">
+        <label className="analyse-form-label" htmlFor="property-designation">
+          Fastighetsbeteckning <span aria-hidden="true">*</span>
+        </label>
+        <input
+          id="property-designation"
+          name="designation"
+          type="text"
+          required
+          className="analyse-form-input"
+          placeholder="T.ex. Björkbacken 1:23"
+          disabled={pending}
+          aria-describedby="property-designation-help"
+        />
+        <p id="property-designation-help" className="analyse-form-help">
+          Finns ofta i bostadsannonsen på mäklarens sida t.ex Björkbacken 1:23
+        </p>
+      </div>
+
       <div className="analyse-form-row">
         <div className="analyse-form-field">
           <label className="analyse-form-label" htmlFor="property-postal">

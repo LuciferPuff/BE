@@ -19,6 +19,10 @@ export function PropertyCard({ property }: Props) {
       <h2 className="my-analyses-card-address">{property.address}</h2>
       <dl className="my-analyses-card-meta">
         <div>
+          <dt>Fastighetsbeteckning</dt>
+          <dd>{property.designation}</dd>
+        </div>
+        <div>
           <dt>Kommun</dt>
           <dd>{location ?? "—"}</dd>
         </div>

@@ -9,6 +9,7 @@ export type LinkedAnalysisSummary = {
 export type UserPropertySummary = {
   id: string;
   address: string;
+  designation: string;
   kommun: string | null;
   city: string | null;
   property_type: string | null;
@@ -19,6 +20,7 @@ export type UserPropertySummary = {
 type PropertyFields = {
   id: string;
   address: string;
+  designation: string;
   kommun: string | null;
   city: string | null;
   property_type: string | null;
@@ -48,7 +50,7 @@ export async function getUserProperties(
   const { data: memberRows, error: membersError } = await supabase
     .from("property_members")
     .select(
-      "role, properties ( id, address, kommun, city, property_type )",
+      "role, properties ( id, address, designation, kommun, city, property_type )",
     )
     .eq("user_id", userId);
 
@@ -64,6 +66,7 @@ export async function getUserProperties(
     properties.push({
       id: p.id,
       address: p.address,
+      designation: p.designation,
       kommun: p.kommun,
       city: p.city,
       property_type: p.property_type,
