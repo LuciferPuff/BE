@@ -68,7 +68,7 @@ export async function POST(request: Request) {
       ? (body as { next: unknown }).next
       : undefined;
   const next =
-    typeof rawNext === "string" ? safeNextPath(rawNext) : "/analys";
+    typeof rawNext === "string" ? safeNextPath(rawNext) : "/profil";
   // Supabase kräver exakt match i Redirect URLs – inga query-parametrar här.
   const redirectTo = `${site}/auth/callback`;
 
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
   }
 
   const response = NextResponse.json({ ok: true, message: OK_MESSAGE });
-  if (next !== "/analys") {
+  if (next !== "/profil") {
     response.cookies.set(AUTH_NEXT_COOKIE, next, authNextCookieOptions);
   }
   return response;

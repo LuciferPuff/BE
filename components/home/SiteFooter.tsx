@@ -6,12 +6,12 @@ import { getSessionUser } from "@/lib/auth/get-session-user";
 const LOGO_SRC = "/bilder/byggello-logo.png";
 
 export async function SiteFooter() {
-  let showMyAnalyses = false;
+  let showAccountLinks = false;
   try {
     const user = await getSessionUser();
-    showMyAnalyses = user != null;
+    showAccountLinks = user != null;
   } catch {
-    showMyAnalyses = false;
+    showAccountLinks = false;
   }
 
   return (
@@ -35,7 +35,8 @@ export async function SiteFooter() {
           <Link href="/artiklar">Artiklar</Link>
           <Link href="/guider">Guider</Link>
           <Link href="/analys">Analys</Link>
-          {showMyAnalyses && <Link href="/mina-analyser">Mina analyser</Link>}
+          {showAccountLinks && <Link href="/profil">Min profil</Link>}
+          {showAccountLinks && <Link href="/mina-analyser">Mina analyser</Link>}
           <Link href="/integritetspolicy">Integritetspolicy</Link>
         </nav>
         <p className="home-footer-copy">

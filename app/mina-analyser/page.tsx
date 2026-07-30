@@ -31,6 +31,11 @@ export default async function MinaAnalyserPage() {
       <SiteHeader />
       <section className="my-analyses-hero" aria-labelledby="my-analyses-heading">
         <div className="home-container my-analyses-hero-inner">
+          <p className="profile-account-nav">
+            <Link href="/profil" className="my-analyses-back">
+              Min profil
+            </Link>
+          </p>
           <h1 id="my-analyses-heading" className="my-analyses-title">
             Mina analyser
           </h1>

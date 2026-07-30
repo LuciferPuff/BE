@@ -31,6 +31,9 @@ async function AuthNav() {
   if (user?.email) {
     return (
       <span className="home-nav-auth home-nav-auth--signed-in">
+        <Link href="/profil" className="home-nav-auth-link">
+          Min profil
+        </Link>
         <Link href="/mina-analyser" className="home-nav-auth-link">
           Mina analyser
         </Link>

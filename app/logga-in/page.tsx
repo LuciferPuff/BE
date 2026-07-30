@@ -1,9 +1,11 @@
 import { MagicLinkForm } from "@/components/auth/MagicLinkForm";
 import { SiteFooter } from "@/components/home/SiteFooter";
 import { SiteHeader } from "@/components/home/SiteHeader";
+import { getSessionUser } from "@/lib/auth/get-session-user";
 import { safeNextPath } from "@/lib/auth/safe-next-path";
 import { getSiteUrl } from "@/lib/site";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 const base = getSiteUrl();
 
@@ -31,6 +33,11 @@ export default async function LoggaInPage({ searchParams }: Props) {
   const authError = rawError === "auth";
   const rawNext = Array.isArray(next) ? next[0] : next;
   const nextPath = safeNextPath(rawNext);
+
+  const user = await getSessionUser();
+  if (user && !authError) {
+    redirect(nextPath);
+  }
 
   return (
     <main className="home auth-landing">
