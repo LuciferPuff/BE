@@ -21,12 +21,6 @@ function optionalText(formData: FormData, key: string): string | null {
   return trimmed === "" ? null : trimmed;
 }
 
-function isUniqueViolation(error: { code?: string; message?: string }): boolean {
-  if (error.code === "23505") return true;
-  const msg = error.message?.toLowerCase() ?? "";
-  return msg.includes("duplicate") || msg.includes("unique");
-}
-
 export async function createPropertyAction(
   _prev: CreatePropertyState,
   formData: FormData,
@@ -42,10 +36,6 @@ export async function createPropertyAction(
   }
 
   const designation = optionalText(formData, "designation");
-  if (!designation) {
-    return { error: "Ange en fastighetsbeteckning." };
-  }
-
   const postal_code = optionalText(formData, "postal_code");
   const city = optionalText(formData, "city");
   const kommun = optionalText(formData, "kommun");
@@ -76,11 +66,6 @@ export async function createPropertyAction(
 
   if (insertError || !property?.id) {
     console.error("[profil] create property:", insertError?.message);
-    if (insertError && isUniqueViolation(insertError)) {
-      return {
-        error: "Den här fastigheten finns redan registrerad",
-      };
-    }
     return { error: "Kunde inte skapa fastigheten. Försök igen." };
   }
 

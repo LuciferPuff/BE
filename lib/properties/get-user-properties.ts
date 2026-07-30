@@ -9,7 +9,7 @@ export type LinkedAnalysisSummary = {
 export type UserPropertySummary = {
   id: string;
   address: string;
-  designation: string;
+  designation: string | null;
   kommun: string | null;
   city: string | null;
   property_type: string | null;
@@ -20,7 +20,7 @@ export type UserPropertySummary = {
 type PropertyFields = {
   id: string;
   address: string;
-  designation: string;
+  designation: string | null;
   kommun: string | null;
   city: string | null;
   property_type: string | null;

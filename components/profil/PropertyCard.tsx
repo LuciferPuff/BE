@@ -20,7 +20,7 @@ export function PropertyCard({ property }: Props) {
       <dl className="my-analyses-card-meta">
         <div>
           <dt>Fastighetsbeteckning</dt>
-          <dd>{property.designation}</dd>
+          <dd>{property.designation?.trim() || "—"}</dd>
         </div>
         <div>
           <dt>Kommun</dt>

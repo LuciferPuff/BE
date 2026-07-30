@@ -8,10 +8,11 @@ Migreringar (kör i ordning):
 2. `migrations/20260717120100_property_profile_rls.sql`
 3. `migrations/20260717120200_property_profile_storage.sql`
 4. `migrations/20260730120000_properties_designation.sql`
+5. `migrations/20260730130000_properties_designation_optional.sql`
 
 ## `properties.designation`
 
-Fastighetsbeteckning (t.ex. `Björkbacken 1:23`). **Obligatorisk** och **unik** globalt. Det är den identifierande nyckeln för en fastighet i profilen (skild från `analyses.property_id` som är listnings-/cache-id).
+Valfri fastighetsbeteckning (t.ex. `Björkbacken 1:23`). **Inte unik** i denna etapp — dubbletter tillåts. Unikhet/matchning kommer först vid claim/överföring. Skild från `analyses.property_id` (listnings-/cache-id).
 
 ## Rollmodell
 
