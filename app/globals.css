@@ -976,8 +976,20 @@ main.content-page {
 
 .profile-edit-link {
   display: inline-flex;
+  align-items: center;
   font-size: 0.9375rem;
+  font-weight: 600;
   padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: var(--color-primary);
+  background: var(--color-highlight);
+  border: 1px solid rgba(27, 46, 60, 0.12);
+}
+
+.profile-edit-link:hover {
+  color: var(--color-accent);
+  border-color: rgba(242, 101, 34, 0.35);
 }
 
 /* Analys /analys (bostadsformulär) */
