@@ -968,6 +968,18 @@ main.content-page {
   color: rgba(27, 46, 60, 0.65);
 }
 
+.profile-card-actions {
+  margin: 1.25rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(27, 46, 60, 0.08);
+}
+
+.profile-edit-link {
+  display: inline-flex;
+  font-size: 0.9375rem;
+  padding: 0.5rem 1rem;
+}
+
 /* Analys /analys (bostadsformulär) */
 .analyse-landing {
   background: #f7f5f2;

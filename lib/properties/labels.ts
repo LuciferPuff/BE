@@ -6,6 +6,7 @@ export const PROPERTY_TYPES = [
   "radhus",
   "bostadsratt",
   "fritidshus",
+  "flerbostadshus",
 ] as const;
 export type PropertyType = (typeof PROPERTY_TYPES)[number];
 
@@ -20,6 +21,7 @@ const TYPE_LABELS: Record<PropertyType, string> = {
   radhus: "Radhus",
   bostadsratt: "Bostadsrätt",
   fritidshus: "Fritidshus",
+  flerbostadshus: "Flerbostadshus",
 };
 
 export function propertyRoleLabel(role: string): string {

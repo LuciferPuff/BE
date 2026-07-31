@@ -62,6 +62,17 @@ export function PropertyCard({ property }: Props) {
       ) : (
         <p className="profile-linked-empty">Inga kopplade analyser ännu.</p>
       )}
+
+      {property.role === "agare" ? (
+        <p className="profile-card-actions">
+          <Link
+            href={`/profil/${property.id}/redigera`}
+            className="home-btn home-btn-ghost profile-edit-link"
+          >
+            Redigera
+          </Link>
+        </p>
+      ) : null}
     </article>
   );
 }

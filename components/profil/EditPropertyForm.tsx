@@ -3,21 +3,28 @@
 import { useActionState } from "react";
 
 import {
-  createPropertyAction,
+  updatePropertyAction,
   type PropertyFormState,
 } from "@/app/profil/actions";
+import type { PropertyEditData } from "@/lib/properties/get-property-for-edit";
 import { PROPERTY_TYPES, propertyTypeLabel } from "@/lib/properties/labels";
 
 const initialState: PropertyFormState = {};
 
-export function CreatePropertyForm() {
+type Props = {
+  property: PropertyEditData;
+};
+
+export function EditPropertyForm({ property }: Props) {
   const [state, formAction, pending] = useActionState(
-    createPropertyAction,
+    updatePropertyAction,
     initialState,
   );
 
   return (
     <form className="analyse-form" action={formAction} noValidate>
+      <input type="hidden" name="property_id" value={property.id} />
+
       <div className="analyse-form-field">
         <label className="analyse-form-label" htmlFor="property-address">
           Adress <span aria-hidden="true">*</span>
@@ -29,7 +36,7 @@ export function CreatePropertyForm() {
           required
           autoComplete="street-address"
           className="analyse-form-input"
-          placeholder="T.ex. Testgatan 1"
+          defaultValue={property.address}
           disabled={pending}
           aria-invalid={state.error ? true : undefined}
         />
@@ -46,6 +53,7 @@ export function CreatePropertyForm() {
           type="text"
           className="analyse-form-input"
           placeholder="T.ex. Björkbacken 1:23"
+          defaultValue={property.designation ?? ""}
           disabled={pending}
           aria-describedby="property-designation-help"
         />
@@ -66,6 +74,7 @@ export function CreatePropertyForm() {
             autoComplete="postal-code"
             className="analyse-form-input"
             placeholder="123 45"
+            defaultValue={property.postal_code ?? ""}
             disabled={pending}
           />
         </div>
@@ -80,6 +89,7 @@ export function CreatePropertyForm() {
             autoComplete="address-level2"
             className="analyse-form-input"
             placeholder="Stockholm"
+            defaultValue={property.city ?? ""}
             disabled={pending}
           />
         </div>
@@ -95,6 +105,7 @@ export function CreatePropertyForm() {
           type="text"
           className="analyse-form-input"
           placeholder="T.ex. Stockholm"
+          defaultValue={property.kommun ?? ""}
           disabled={pending}
         />
       </div>
@@ -107,7 +118,7 @@ export function CreatePropertyForm() {
           id="property-type"
           name="property_type"
           className="analyse-form-input"
-          defaultValue=""
+          defaultValue={property.property_type ?? ""}
           disabled={pending}
         >
           <option value="">Välj typ (valfritt)</option>
@@ -125,7 +136,7 @@ export function CreatePropertyForm() {
           className="analyse-form-submit"
           disabled={pending}
         >
-          {pending ? "Sparar…" : "Skapa fastighet"}
+          {pending ? "Sparar…" : "Spara ändringar"}
         </button>
       </div>
 

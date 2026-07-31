@@ -10,7 +10,7 @@ import {
 } from "@/lib/properties/labels";
 import { createAuthClient } from "@/lib/supabase/auth-client";
 
-export type CreatePropertyState = {
+export type PropertyFormState = {
   error?: string;
 };
 
@@ -21,32 +21,65 @@ function optionalText(formData: FormData, key: string): string | null {
   return trimmed === "" ? null : trimmed;
 }
 
-export async function createPropertyAction(
-  _prev: CreatePropertyState,
-  formData: FormData,
-): Promise<CreatePropertyState> {
-  const user = await getSessionUser();
-  if (!user) {
-    redirect("/logga-in?next=/profil/ny");
-  }
-
+function parsePropertyFields(formData: FormData): {
+  error?: string;
+  address?: string;
+  designation: string | null;
+  postal_code: string | null;
+  city: string | null;
+  kommun: string | null;
+  property_type: PropertyType | null;
+} {
   const address = optionalText(formData, "address");
   if (!address) {
-    return { error: "Ange en adress." };
+    return {
+      error: "Ange en adress.",
+      designation: null,
+      postal_code: null,
+      city: null,
+      kommun: null,
+      property_type: null,
+    };
   }
-
-  const designation = optionalText(formData, "designation");
-  const postal_code = optionalText(formData, "postal_code");
-  const city = optionalText(formData, "city");
-  const kommun = optionalText(formData, "kommun");
 
   const rawType = optionalText(formData, "property_type");
   let property_type: PropertyType | null = null;
   if (rawType) {
     if (!isPropertyType(rawType)) {
-      return { error: "Ogiltig fastighetstyp." };
+      return {
+        error: "Ogiltig fastighetstyp.",
+        designation: null,
+        postal_code: null,
+        city: null,
+        kommun: null,
+        property_type: null,
+      };
     }
     property_type = rawType;
+  }
+
+  return {
+    address,
+    designation: optionalText(formData, "designation"),
+    postal_code: optionalText(formData, "postal_code"),
+    city: optionalText(formData, "city"),
+    kommun: optionalText(formData, "kommun"),
+    property_type,
+  };
+}
+
+export async function createPropertyAction(
+  _prev: PropertyFormState,
+  formData: FormData,
+): Promise<PropertyFormState> {
+  const user = await getSessionUser();
+  if (!user) {
+    redirect("/logga-in?next=/profil/ny");
+  }
+
+  const parsed = parsePropertyFields(formData);
+  if (parsed.error || !parsed.address) {
+    return { error: parsed.error ?? "Ange en adress." };
   }
 
   const supabase = await createAuthClient();
@@ -57,16 +90,20 @@ export async function createPropertyAction(
 
   const { error: insertError } = await supabase.from("properties").insert({
     id: propertyId,
-    address,
-    designation,
-    postal_code,
-    city,
-    kommun,
-    property_type,
+    address: parsed.address,
+    designation: parsed.designation,
+    postal_code: parsed.postal_code,
+    city: parsed.city,
+    kommun: parsed.kommun,
+    property_type: parsed.property_type,
   });
 
   if (insertError) {
-    console.error("[profil] create property:", insertError.message, insertError.code);
+    console.error(
+      "[profil] create property:",
+      insertError.message,
+      insertError.code,
+    );
     return { error: "Kunde inte skapa fastigheten. Försök igen." };
   }
 
@@ -77,7 +114,11 @@ export async function createPropertyAction(
   });
 
   if (memberError) {
-    console.error("[profil] create member:", memberError.message, memberError.code);
+    console.error(
+      "[profil] create member:",
+      memberError.message,
+      memberError.code,
+    );
     const { error: rollbackError } = await supabase
       .from("properties")
       .delete()
@@ -97,3 +138,60 @@ export async function createPropertyAction(
   revalidatePath("/profil");
   redirect("/profil");
 }
+
+export async function updatePropertyAction(
+  _prev: PropertyFormState,
+  formData: FormData,
+): Promise<PropertyFormState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}/redigera`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId) {
+    return { error: "Saknar fastighet." };
+  }
+
+  const parsed = parsePropertyFields(formData);
+  if (parsed.error || !parsed.address) {
+    return { error: parsed.error ?? "Ange en adress." };
+  }
+
+  const supabase = await createAuthClient();
+
+  const { data, error } = await supabase
+    .from("properties")
+    .update({
+      address: parsed.address,
+      designation: parsed.designation,
+      postal_code: parsed.postal_code,
+      city: parsed.city,
+      kommun: parsed.kommun,
+      property_type: parsed.property_type,
+    })
+    .eq("id", propertyId)
+    .select("id");
+
+  if (error) {
+    console.error("[profil] update property:", error.message, error.code);
+    return { error: "Kunde inte spara ändringarna. Försök igen." };
+  }
+
+  // 0 rader = RLS nekade (t.ex. inte ägare) eller fel id
+  if (!data || data.length === 0) {
+    return {
+      error: "Du har inte behörighet att ändra den här fastigheten.",
+    };
+  }
+
+  revalidatePath("/profil");
+  revalidatePath(`/profil/${propertyId}/redigera`);
+  redirect("/profil");
+}
+
+/** @deprecated Use PropertyFormState */
+export type CreatePropertyState = PropertyFormState;
