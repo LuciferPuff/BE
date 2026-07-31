@@ -51,25 +51,24 @@ export async function createPropertyAction(
 
   const supabase = await createAuthClient();
 
-  const { data: property, error: insertError } = await supabase
-    .from("properties")
-    .insert({
-      address,
-      designation,
-      postal_code,
-      city,
-      kommun,
-      property_type,
-    })
-    .select("id")
-    .single();
+  // Generera id i appen: INSERT … RETURNING/.select() kräver SELECT-RLS,
+  // men skaparen är ännu inte medlem (agare-rad kommer i steg 2).
+  const propertyId = crypto.randomUUID();
 
-  if (insertError || !property?.id) {
-    console.error("[profil] create property:", insertError?.message);
+  const { error: insertError } = await supabase.from("properties").insert({
+    id: propertyId,
+    address,
+    designation,
+    postal_code,
+    city,
+    kommun,
+    property_type,
+  });
+
+  if (insertError) {
+    console.error("[profil] create property:", insertError.message, insertError.code);
     return { error: "Kunde inte skapa fastigheten. Försök igen." };
   }
-
-  const propertyId = property.id as string;
 
   const { error: memberError } = await supabase.from("property_members").insert({
     property_id: propertyId,
@@ -78,7 +77,7 @@ export async function createPropertyAction(
   });
 
   if (memberError) {
-    console.error("[profil] create member:", memberError.message);
+    console.error("[profil] create member:", memberError.message, memberError.code);
     const { error: rollbackError } = await supabase
       .from("properties")
       .delete()
