@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { ARTICLE_PATH_REDIRECTS } from "./lib/content/article-redirects";
 
 const baseSecurityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
@@ -86,6 +87,7 @@ const nextConfig: NextConfig = {
           "/artiklar/overlatelsebesiktning-vad-ar-det-vad-kostar-det-vem-betalar",
         permanent: true,
       },
+      ...ARTICLE_PATH_REDIRECTS,
     ];
   },
   async headers() {

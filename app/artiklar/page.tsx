@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ContentBreadcrumb } from "@/components/layout/ContentBreadcrumb";
 import { ContentPageShell } from "@/components/layout/ContentPageShell";
+import { isRedirectedArticleSlug } from "@/lib/content/article-redirects";
 import { getSanityClient } from "@/lib/sanity/client";
 import { getSiteUrl } from "@/lib/site";
 
@@ -37,6 +38,7 @@ export default async function ArtiklarIndexPage() {
             publishedAt
           }`
         )) ?? [];
+      posts = posts.filter((p) => !isRedirectedArticleSlug(p.slug));
     } catch {
       posts = [];
     }

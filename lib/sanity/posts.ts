@@ -1,5 +1,6 @@
 import type { PortableTextBlock } from "@portabletext/types";
 import type { SanityImageSource } from "@sanity/image-url";
+import { isRedirectedArticleSlug } from "@/lib/content/article-redirects";
 import { normalizeArticleSlugParam } from "@/lib/slug";
 import { getSanityClient } from "@/lib/sanity/client";
 
@@ -96,7 +97,7 @@ export async function getAllPostSlugs(): Promise<string[]> {
     const rows = await client.fetch<string[] | null>(
       `*[_type == "post" && defined(slug.current)].slug.current`,
     );
-    return rows ?? [];
+    return (rows ?? []).filter((slug) => !isRedirectedArticleSlug(slug));
   } catch {
     return [];
   }
@@ -115,7 +116,7 @@ export async function getAllPostsForSitemap(): Promise<PostSitemapEntry[]> {
           _updatedAt
         }`,
       )) ?? [];
-    return rows;
+    return rows.filter((p) => !isRedirectedArticleSlug(p.slug));
   } catch {
     return [];
   }
