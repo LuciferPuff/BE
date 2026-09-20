@@ -30,4 +30,9 @@ export const ARTICLE_PATH_REDIRECTS: ReadonlyArray<{
     destination: "/guider/dolda-fel-vid-huskop",
     statusCode: 301,
   },
+  {
+    source: "/vad-ar-dolda-fel",
+    destination: "/guider/dolda-fel-vid-huskop",
+    statusCode: 301,
+  },
 ];
