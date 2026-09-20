@@ -4,6 +4,7 @@
  */
 export const REDIRECTED_ARTICLE_SLUGS = [
   "fukt-i-krypgrund-orsaker-risker-kostnad",
+  "vad-ar-dolda-fel",
 ] as const;
 
 export type RedirectedArticleSlug =
@@ -22,6 +23,11 @@ export const ARTICLE_PATH_REDIRECTS: ReadonlyArray<{
   {
     source: "/artiklar/fukt-i-krypgrund-orsaker-risker-kostnad",
     destination: "/guider/kopa-hus-med-krypgrund",
+    statusCode: 301,
+  },
+  {
+    source: "/artiklar/vad-ar-dolda-fel",
+    destination: "/guider/dolda-fel-vid-huskop",
     statusCode: 301,
   },
 ];
