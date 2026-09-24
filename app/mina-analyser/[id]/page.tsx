@@ -3,10 +3,12 @@ import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 
 import { AnalysisResultView } from "@/components/analyse/AnalysisResultView";
+import { LinkToPropertyForm } from "@/components/mina-analyser/LinkToPropertyForm";
 import { SiteFooter } from "@/components/home/SiteFooter";
 import { SiteHeader } from "@/components/home/SiteHeader";
 import { getUserAnalysis } from "@/lib/analyses/get-user-analysis";
 import { getSessionUser } from "@/lib/auth/get-session-user";
+import { getUserProperties } from "@/lib/properties/get-user-properties";
 import { getSiteUrl } from "@/lib/site";
 
 type Props = {
@@ -42,6 +44,10 @@ export default async function MinaAnalyserDetailPage({ params }: Props) {
     day: "numeric",
   });
 
+  const properties = analysis.linked_property_id
+    ? []
+    : (await getUserProperties(user.id)).filter((p) => p.role === "agare");
+
   return (
     <main className="home my-analyses-page">
       <SiteHeader />
@@ -70,6 +76,23 @@ export default async function MinaAnalyserDetailPage({ params }: Props) {
         </div>
       </section>
       <div className="home-container my-analyses-detail-content">
+        {analysis.linked_property_id ? (
+          <p className="link-analysis-linked">
+            Kopplad till en fastighet i din profil.{" "}
+            <Link href="/profil">Visa profil →</Link>
+          </p>
+        ) : (
+          <LinkToPropertyForm
+            analysisId={analysis.id}
+            defaultAddress={analysis.address}
+            properties={properties.map((p) => ({
+              id: p.id,
+              address: p.address,
+              designation: p.designation,
+            }))}
+          />
+        )}
+
         <AnalysisResultView
           analysis={analysis.result}
           analysisId={analysis.id}

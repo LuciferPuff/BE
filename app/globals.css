@@ -992,6 +992,62 @@ main.content-page {
   border-color: rgba(242, 101, 34, 0.35);
 }
 
+.link-analysis-panel {
+  margin-bottom: 1.75rem;
+}
+
+.link-analysis-heading {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.link-analysis-lead {
+  margin: 0 0 1.25rem;
+  font-size: 0.9875rem;
+  line-height: 1.55;
+  color: rgba(27, 46, 60, 0.8);
+}
+
+.link-analysis-modes {
+  border: 0;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+}
+
+.link-analysis-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.link-analysis-linked {
+  margin: 0 0 1.5rem;
+  padding: 1rem 1.25rem;
+  background: var(--color-highlight);
+  border-radius: var(--radius);
+  font-size: 0.9875rem;
+  color: var(--color-primary);
+}
+
+.link-analysis-linked a {
+  font-weight: 600;
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.link-analysis-linked a:hover {
+  text-decoration: underline;
+}
+
 /* Analys /analys (bostadsformulär) */
 .analyse-landing {
   background: #f7f5f2;
