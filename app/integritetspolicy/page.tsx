@@ -53,7 +53,7 @@ export default function IntegritetspolicyPage() {
 
             <h2>Vem är ansvarig för dina uppgifter</h2>
             <p>
-              Byggello (Bostadslotsen Sverige AB) är personuppgiftsansvarig för
+              Byggello är personuppgiftsansvarig för
               de uppgifter som samlas in via byggello.se. Kontakt:{" "}
               <a href="mailto:hej@byggello.se">hej@byggello.se</a>
             </p>
