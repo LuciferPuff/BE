@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { getSessionUser } from "@/lib/auth/get-session-user";
+import { parseSwedishMunicipality } from "@/lib/geo/swedish-municipalities";
 import {
   isPropertyType,
   type PropertyType,
@@ -42,6 +43,29 @@ function parsePropertyFields(formData: FormData): {
     };
   }
 
+  const rawKommun = optionalText(formData, "kommun");
+  if (!rawKommun) {
+    return {
+      error: "Välj kommun.",
+      designation: null,
+      postal_code: null,
+      city: null,
+      kommun: null,
+      property_type: null,
+    };
+  }
+  const kommun = parseSwedishMunicipality(rawKommun);
+  if (!kommun) {
+    return {
+      error: "Välj en kommun från listan.",
+      designation: null,
+      postal_code: null,
+      city: null,
+      kommun: null,
+      property_type: null,
+    };
+  }
+
   const rawType = optionalText(formData, "property_type");
   let property_type: PropertyType | null = null;
   if (rawType) {
@@ -63,7 +87,7 @@ function parsePropertyFields(formData: FormData): {
     designation: optionalText(formData, "designation"),
     postal_code: optionalText(formData, "postal_code"),
     city: optionalText(formData, "city"),
-    kommun: optionalText(formData, "kommun"),
+    kommun,
     property_type,
   };
 }

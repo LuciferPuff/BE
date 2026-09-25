@@ -6,6 +6,7 @@ import {
   updatePropertyAction,
   type PropertyFormState,
 } from "@/app/profil/actions";
+import { MunicipalitySelect } from "@/components/profil/MunicipalitySelect";
 import type { PropertyEditData } from "@/lib/properties/get-property-for-edit";
 import { PROPERTY_TYPES, propertyTypeLabel } from "@/lib/properties/labels";
 
@@ -97,16 +98,12 @@ export function EditPropertyForm({ property }: Props) {
 
       <div className="analyse-form-field">
         <label className="analyse-form-label" htmlFor="property-kommun">
-          Kommun
+          Kommun <span aria-hidden="true">*</span>
         </label>
-        <input
-          id="property-kommun"
-          name="kommun"
-          type="text"
-          className="analyse-form-input"
-          placeholder="T.ex. Stockholm"
-          defaultValue={property.kommun ?? ""}
+        <MunicipalitySelect
+          defaultValue={property.kommun}
           disabled={pending}
+          required
         />
       </div>
 

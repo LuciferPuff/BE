@@ -6,6 +6,7 @@ import {
   createPropertyAction,
   type PropertyFormState,
 } from "@/app/profil/actions";
+import { MunicipalitySelect } from "@/components/profil/MunicipalitySelect";
 import { PROPERTY_TYPES, propertyTypeLabel } from "@/lib/properties/labels";
 
 const initialState: PropertyFormState = {};
@@ -87,16 +88,9 @@ export function CreatePropertyForm() {
 
       <div className="analyse-form-field">
         <label className="analyse-form-label" htmlFor="property-kommun">
-          Kommun
+          Kommun <span aria-hidden="true">*</span>
         </label>
-        <input
-          id="property-kommun"
-          name="kommun"
-          type="text"
-          className="analyse-form-input"
-          placeholder="T.ex. Stockholm"
-          disabled={pending}
-        />
+        <MunicipalitySelect disabled={pending} required />
       </div>
 
       <div className="analyse-form-field">
