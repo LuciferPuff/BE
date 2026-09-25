@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { UnlinkAnalysisButton } from "@/components/mina-analyser/UnlinkAnalysisButton";
 import type { UserPropertySummary } from "@/lib/properties/get-user-properties";
 import {
   propertyRoleLabel,
@@ -13,6 +14,7 @@ type Props = {
 export function PropertyCard({ property }: Props) {
   const location =
     property.kommun?.trim() || property.city?.trim() || null;
+  const canUnlink = property.role === "agare";
 
   return (
     <article className="my-analyses-card profile-property-card">
@@ -46,7 +48,7 @@ export function PropertyCard({ property }: Props) {
                 { year: "numeric", month: "long", day: "numeric" },
               );
               return (
-                <li key={analysis.id}>
+                <li key={analysis.id} className="profile-linked-item">
                   <Link
                     href={`/mina-analyser/${analysis.id}`}
                     className="profile-linked-link"
@@ -54,6 +56,13 @@ export function PropertyCard({ property }: Props) {
                     <span>{analysis.address}</span>
                     <span className="profile-linked-date">{date}</span>
                   </Link>
+                  {canUnlink ? (
+                    <UnlinkAnalysisButton
+                      analysisId={analysis.id}
+                      returnTo="profil"
+                      variant="inline"
+                    />
+                  ) : null}
                 </li>
               );
             })}

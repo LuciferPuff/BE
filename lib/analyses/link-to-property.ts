@@ -58,3 +58,53 @@ export async function linkAnalysisToPropertyWithServiceRole(
 
   return { ok: true };
 }
+
+/**
+ * Nollställer linked_property_id via service role.
+ * Kräver att analysen tillhör userId.
+ */
+export async function unlinkAnalysisFromPropertyWithServiceRole(
+  analysisId: string,
+  userId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = createAnalysesSupabaseClient();
+  if (!supabase) {
+    return { ok: false, error: "Kunde inte koppla bort analysen just nu." };
+  }
+
+  const { data: row, error: readError } = await supabase
+    .from("analyses")
+    .select("id, user_id, linked_property_id")
+    .eq("id", analysisId)
+    .maybeSingle();
+
+  if (readError) {
+    console.error("[unlink-analysis] read:", readError.message);
+    return { ok: false, error: "Kunde inte hämta analysen." };
+  }
+  if (!row) {
+    return { ok: false, error: "Analysen hittades inte." };
+  }
+  if (row.user_id !== userId) {
+    return { ok: false, error: "Du har inte behörighet till den här analysen." };
+  }
+  if (row.linked_property_id == null) {
+    return { ok: true };
+  }
+
+  const { error: updateError } = await supabase
+    .from("analyses")
+    .update({ linked_property_id: null })
+    .eq("id", analysisId)
+    .eq("user_id", userId);
+
+  if (updateError) {
+    console.error("[unlink-analysis] update:", updateError.message);
+    return {
+      ok: false,
+      error: "Kunde inte koppla bort analysen. Försök igen.",
+    };
+  }
+
+  return { ok: true };
+}

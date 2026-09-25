@@ -1036,6 +1036,13 @@ main.content-page {
   border-radius: var(--radius);
   font-size: 0.9875rem;
   color: var(--color-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.link-analysis-linked-text {
+  margin: 0;
 }
 
 .link-analysis-linked a {
@@ -1046,6 +1053,80 @@ main.content-page {
 
 .link-analysis-linked a:hover {
   text-decoration: underline;
+}
+
+.unlink-analysis-form {
+  margin: 0;
+}
+
+.unlink-analysis-btn {
+  appearance: none;
+  border: 1px solid rgba(27, 46, 60, 0.2);
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.unlink-analysis-btn:hover:not(:disabled) {
+  border-color: rgba(242, 101, 34, 0.45);
+  color: var(--color-accent);
+}
+
+.unlink-analysis-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.profile-linked-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(27, 46, 60, 0.06);
+}
+
+.profile-linked-item:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.unlink-analysis-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.unlink-analysis-inline-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: rgba(27, 46, 60, 0.65);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.unlink-analysis-inline-btn:hover:not(:disabled) {
+  color: var(--color-accent);
+}
+
+.unlink-analysis-inline-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.unlink-analysis-inline-error {
+  font-size: 0.8125rem;
+  color: #b42318;
 }
 
 /* Analys /analys (bostadsformulär) */

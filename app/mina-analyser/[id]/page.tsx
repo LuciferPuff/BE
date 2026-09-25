@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 
 import { AnalysisResultView } from "@/components/analyse/AnalysisResultView";
 import { LinkToPropertyForm } from "@/components/mina-analyser/LinkToPropertyForm";
+import { UnlinkAnalysisButton } from "@/components/mina-analyser/UnlinkAnalysisButton";
 import { SiteFooter } from "@/components/home/SiteFooter";
 import { SiteHeader } from "@/components/home/SiteHeader";
 import { getUserAnalysis } from "@/lib/analyses/get-user-analysis";
@@ -77,10 +78,7 @@ export default async function MinaAnalyserDetailPage({ params }: Props) {
       </section>
       <div className="home-container my-analyses-detail-content">
         {analysis.linked_property_id ? (
-          <p className="link-analysis-linked">
-            Kopplad till en fastighet i din profil.{" "}
-            <Link href="/profil">Visa profil →</Link>
-          </p>
+          <UnlinkAnalysisButton analysisId={analysis.id} returnTo="analysis" />
         ) : (
           <LinkToPropertyForm
             analysisId={analysis.id}

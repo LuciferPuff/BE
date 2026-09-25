@@ -3,13 +3,20 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { linkAnalysisToPropertyWithServiceRole } from "@/lib/analyses/link-to-property";
+import {
+  linkAnalysisToPropertyWithServiceRole,
+  unlinkAnalysisFromPropertyWithServiceRole,
+} from "@/lib/analyses/link-to-property";
 import { mapAnalysisObjectTypeToPropertyType } from "@/lib/analyses/map-object-type";
 import { getSessionUser } from "@/lib/auth/get-session-user";
 import { createAnalysesSupabaseClient } from "@/lib/supabase/analyses-client";
 import { createAuthClient } from "@/lib/supabase/auth-client";
 
 export type LinkAnalysisState = {
+  error?: string;
+};
+
+export type UnlinkAnalysisState = {
   error?: string;
 };
 
@@ -180,4 +187,45 @@ export async function linkAnalysisAction(
   revalidatePath("/mina-analyser");
   revalidatePath(`/mina-analyser/${analysisId}`);
   redirect("/profil");
+}
+
+/**
+ * Tar bort kopplingen analys → fastighet (sätter linked_property_id = null).
+ * Analysen finns kvar under Mina analyser.
+ */
+export async function unlinkAnalysisAction(
+  _prev: UnlinkAnalysisState,
+  formData: FormData,
+): Promise<UnlinkAnalysisState> {
+  const user = await getSessionUser();
+  const analysisId = optionalText(formData, "analysis_id");
+  const returnTo = optionalText(formData, "return_to") ?? "analysis";
+
+  if (!user) {
+    redirect(
+      analysisId
+        ? `/logga-in?next=/mina-analyser/${analysisId}`
+        : "/logga-in?next=/mina-analyser",
+    );
+  }
+  if (!analysisId) {
+    return { error: "Saknar analys." };
+  }
+
+  const result = await unlinkAnalysisFromPropertyWithServiceRole(
+    analysisId,
+    user.id,
+  );
+  if (!result.ok) {
+    return { error: result.error };
+  }
+
+  revalidatePath("/profil");
+  revalidatePath("/mina-analyser");
+  revalidatePath(`/mina-analyser/${analysisId}`);
+
+  if (returnTo === "profil") {
+    redirect("/profil");
+  }
+  redirect(`/mina-analyser/${analysisId}`);
 }
