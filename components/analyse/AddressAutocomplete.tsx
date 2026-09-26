@@ -14,7 +14,7 @@
  *    Migrationsplan när vi byter till PlaceAutocompleteElement:
  *    https://developers.google.com/maps/documentation/javascript/place-autocomplete-element-migration
  *  - Försöker hela tiden hålla `value` synkad mot inputen så fallback fungerar
- *    även om scriptet inte laddar (CSP-blockering, nätverk, etc.).
+ *    även om scriptet inte laddar (CSP-blockering, nätverk, AuthFailure, etc.).
  */
 
 import { importLibrary, setOptions } from "@googlemaps/js-api-loader";
@@ -79,6 +79,19 @@ export function AddressAutocomplete({
     if (status !== "idle" || !inputRef.current) return;
     setStatus("loading");
     try {
+      // Google anropar detta vid InvalidKey / RefererNotAllowed / billing m.m.
+      window.gm_authFailure = () => {
+        console.warn(
+          "[AddressAutocomplete] Google Maps AuthFailure – kontrollera API-nyckel, referrers, Places API och billing.",
+        );
+        placesPromise = null;
+        if (autocompleteRef.current && typeof google !== "undefined") {
+          google.maps.event.clearInstanceListeners(autocompleteRef.current);
+        }
+        autocompleteRef.current = null;
+        setStatus("failed");
+      };
+
       const places = await ensurePlacesLibrary();
       if (!inputRef.current) return;
       const ac = new places.Autocomplete(inputRef.current, {
@@ -100,6 +113,7 @@ export function AddressAutocomplete({
         "[AddressAutocomplete] Google Places kunde inte laddas:",
         err,
       );
+      placesPromise = null;
       setStatus("failed");
     }
   }
@@ -110,6 +124,9 @@ export function AddressAutocomplete({
         google.maps.event.clearInstanceListeners(autocompleteRef.current);
       }
       autocompleteRef.current = null;
+      if (typeof window !== "undefined" && window.gm_authFailure) {
+        delete window.gm_authFailure;
+      }
     };
   }, []);
 
@@ -139,6 +156,15 @@ export function AddressAutocomplete({
       disabled={disabled}
       aria-invalid={error != null}
       aria-describedby={error != null ? errorId : undefined}
+      placeholder={
+        status === "failed" ? "Skriv adressen manuellt" : undefined
+      }
     />
   );
+}
+
+declare global {
+  interface Window {
+    gm_authFailure?: () => void;
+  }
 }
