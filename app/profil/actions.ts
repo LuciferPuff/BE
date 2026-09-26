@@ -830,6 +830,60 @@ export async function getDocumentDownloadUrlAction(
   return { ok: true, url: data.signedUrl };
 }
 
+/** Flyttar dokument till annan mapp (ägare) – uppdaterar type. */
+export async function moveDocumentAction(
+  _prev: DocumentActionState,
+  formData: FormData,
+): Promise<DocumentActionState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  const documentId = optionalText(formData, "document_id");
+  const typeRaw = optionalText(formData, "type");
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId || !documentId) {
+    return { error: "Saknar dokument." };
+  }
+  if (!typeRaw || !isDocumentType(typeRaw)) {
+    return { error: "Välj mapp." };
+  }
+
+  const supabase = await createAuthClient();
+  const { data: doc, error: readError } = await supabase
+    .from("property_documents")
+    .select("id, type")
+    .eq("id", documentId)
+    .eq("property_id", propertyId)
+    .maybeSingle();
+
+  if (readError || !doc) {
+    return { error: "Dokumentet hittades inte." };
+  }
+  if (doc.type === typeRaw) {
+    return { ok: true };
+  }
+
+  const { error } = await supabase
+    .from("property_documents")
+    .update({ type: typeRaw })
+    .eq("id", documentId)
+    .eq("property_id", propertyId);
+
+  if (error) {
+    console.error("[profil] documents move:", error.message, error.code);
+    return { error: "Kunde inte flytta dokumentet." };
+  }
+
+  revalidatePath(`/profil/${propertyId}`);
+  return { ok: true };
+}
+
 /** Tar bort dokument (ägare) – storage + rad. */
 export async function deleteDocumentAction(
   _prev: DocumentActionState,

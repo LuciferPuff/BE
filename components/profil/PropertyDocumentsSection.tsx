@@ -7,6 +7,7 @@ import {
   confirmDocumentUploadAction,
   deleteDocumentAction,
   getDocumentDownloadUrlAction,
+  moveDocumentAction,
   prepareDocumentUploadAction,
   type DocumentActionState,
 } from "@/app/profil/actions";
@@ -32,6 +33,9 @@ const ACCEPT =
   ".pdf,.png,.jpg,.jpeg,.webp,.heic,.doc,.docx,.xls,.xlsx,application/pdf,image/*";
 
 const MAX_BYTES = 50 * 1024 * 1024;
+
+/** Custom drag payload för att flytta befintliga dokument mellan mappar. */
+const DOC_DRAG_MIME = "application/x-byggello-document";
 
 function docsInFolder(
   documents: DashboardDocument[],
@@ -61,6 +65,14 @@ function folderCounts(
   return counts;
 }
 
+function dragHasFiles(dt: DataTransfer): boolean {
+  return Array.from(dt.types).includes("Files");
+}
+
+function dragHasDocument(dt: DataTransfer): boolean {
+  return Array.from(dt.types).includes(DOC_DRAG_MIME);
+}
+
 export function PropertyDocumentsSection({
   propertyId,
   documents,
@@ -80,8 +92,8 @@ export function PropertyDocumentsSection({
         Dokument
       </h2>
       <p className="profile-dashboard-text">
-        Öppna en mapp för att se filer och ladda upp – eller släpp en fil direkt
-        på mappen.
+        Öppna en mapp för att se filer och ladda upp. Flytta filer med
+        &quot;Flytta till…&quot; eller dra dem till en annan mapp.
       </p>
 
       {activeFolder ? (
@@ -92,6 +104,7 @@ export function PropertyDocumentsSection({
           canEdit={canEdit}
           canDelete={canDelete}
           onBack={() => setActiveFolder(null)}
+          onOpenFolder={setActiveFolder}
         />
       ) : (
         <ul className="profile-doc-folders">
@@ -102,6 +115,7 @@ export function PropertyDocumentsSection({
               type={type}
               count={counts[type]}
               canEdit={canEdit}
+              canMove={canDelete}
               onOpen={() => setActiveFolder(type)}
             />
           ))}
@@ -116,19 +130,23 @@ function FolderCard({
   type,
   count,
   canEdit,
+  canMove,
   onOpen,
 }: {
   propertyId: string;
   type: DocumentType;
   count: number;
   canEdit: boolean;
+  canMove: boolean;
   onOpen: () => void;
 }) {
   const router = useRouter();
-  const [dragOver, setDragOver] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [dragKind, setDragKind] = useState<"file" | "doc" | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dragDepth = useRef(0);
+
+  const acceptDrop = canEdit || canMove;
 
   async function uploadFile(file: File) {
     setError(null);
@@ -136,13 +154,9 @@ function FolderCard({
       setError("Filen får vara högst 50 MB.");
       return;
     }
-    setUploading(true);
+    setBusy(true);
     try {
-      const result = await runDocumentUpload({
-        propertyId,
-        file,
-        type,
-      });
+      const result = await runDocumentUpload({ propertyId, file, type });
       if (result.error) {
         setError(result.error);
         return;
@@ -151,41 +165,71 @@ function FolderCard({
     } catch {
       setError("Något gick fel vid uppladdning.");
     } finally {
-      setUploading(false);
+      setBusy(false);
     }
   }
+
+  async function moveDocument(documentId: string) {
+    setError(null);
+    setBusy(true);
+    try {
+      const fd = new FormData();
+      fd.set("property_id", propertyId);
+      fd.set("document_id", documentId);
+      fd.set("type", type);
+      const result = await moveDocumentAction({}, fd);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      router.refresh();
+    } catch {
+      setError("Kunde inte flytta dokumentet.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  let statusText = `${count} ${count === 1 ? "fil" : "filer"}`;
+  if (busy) statusText = "Sparar…";
+  else if (dragKind === "doc") statusText = "Släpp för att flytta hit";
+  else if (dragKind === "file") statusText = "Släpp för att ladda upp";
 
   return (
     <li>
       <button
         type="button"
-        className={`profile-doc-folder-card${dragOver ? " is-dragover" : ""}${uploading ? " is-uploading" : ""}`}
+        className={`profile-doc-folder-card${dragKind ? " is-dragover" : ""}${busy ? " is-uploading" : ""}`}
         onClick={onOpen}
         onDragEnter={
-          canEdit
+          acceptDrop
             ? (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 dragDepth.current += 1;
-                setDragOver(true);
+                if (canMove && dragHasDocument(e.dataTransfer)) {
+                  setDragKind("doc");
+                } else if (canEdit && dragHasFiles(e.dataTransfer)) {
+                  setDragKind("file");
+                }
               }
             : undefined
         }
         onDragLeave={
-          canEdit
+          acceptDrop
             ? (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 dragDepth.current -= 1;
                 if (dragDepth.current <= 0) {
                   dragDepth.current = 0;
-                  setDragOver(false);
+                  setDragKind(null);
                 }
               }
             : undefined
         }
         onDragOver={
-          canEdit
+          acceptDrop
             ? (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -193,30 +237,29 @@ function FolderCard({
             : undefined
         }
         onDrop={
-          canEdit
+          acceptDrop
             ? (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 dragDepth.current = 0;
-                setDragOver(false);
+                setDragKind(null);
+                const docId = e.dataTransfer.getData(DOC_DRAG_MIME);
+                if (docId && canMove) {
+                  void moveDocument(docId);
+                  return;
+                }
                 const file = e.dataTransfer.files?.[0];
-                if (file) void uploadFile(file);
+                if (file && canEdit) void uploadFile(file);
               }
             : undefined
         }
-        disabled={uploading}
+        disabled={busy}
       >
         <span className="profile-doc-folder-card-main">
           <span className="profile-doc-folder-name">
             {DOCUMENT_TYPE_LABELS[type]}
           </span>
-          <span className="profile-doc-folder-count">
-            {uploading
-              ? "Laddar upp…"
-              : dragOver
-                ? "Släpp för att ladda upp"
-                : `${count} ${count === 1 ? "fil" : "filer"}`}
-          </span>
+          <span className="profile-doc-folder-count">{statusText}</span>
         </span>
         <span className="profile-doc-folder-card-hint" aria-hidden>
           →
@@ -238,6 +281,7 @@ function FolderView({
   canEdit,
   canDelete,
   onBack,
+  onOpenFolder,
 }: {
   propertyId: string;
   folder: DocumentType;
@@ -245,6 +289,7 @@ function FolderView({
   canEdit: boolean;
   canDelete: boolean;
   onBack: () => void;
+  onOpenFolder: (type: DocumentType) => void;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -254,6 +299,8 @@ function FolderView({
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const dragDepth = useRef(0);
+
+  const otherFolders = DOCUMENT_FOLDER_ORDER.filter((t) => t !== folder);
 
   async function uploadFile(file: File, noteText: string) {
     setError(null);
@@ -311,6 +358,7 @@ function FolderView({
               propertyId={propertyId}
               doc={doc}
               canDelete={canDelete}
+              onMoved={(next) => onOpenFolder(next)}
             />
           ))}
         </ul>
@@ -318,10 +366,31 @@ function FolderView({
         <p className="profile-dashboard-text">Inga filer i den här mappen ännu.</p>
       )}
 
+      {canDelete && documents.length > 0 ? (
+        <div className="profile-doc-move-targets">
+          <p className="profile-doc-move-targets-label">
+            Dra en fil hit för att flytta:
+          </p>
+          <ul className="profile-doc-move-target-list">
+            {otherFolders.map((type) => (
+              <MoveTarget
+                key={type}
+                propertyId={propertyId}
+                type={type}
+                onMoved={() => onOpenFolder(type)}
+              />
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       {canEdit ? (
         <div
           className={`profile-doc-dropzone${dragOver ? " is-dragover" : ""}`}
           onDragEnter={(e) => {
+            if (!dragHasFiles(e.dataTransfer) || dragHasDocument(e.dataTransfer)) {
+              return;
+            }
             e.preventDefault();
             e.stopPropagation();
             dragDepth.current += 1;
@@ -337,10 +406,14 @@ function FolderView({
             }
           }}
           onDragOver={(e) => {
+            if (!dragHasFiles(e.dataTransfer) || dragHasDocument(e.dataTransfer)) {
+              return;
+            }
             e.preventDefault();
             e.stopPropagation();
           }}
           onDrop={(e) => {
+            if (dragHasDocument(e.dataTransfer)) return;
             e.preventDefault();
             e.stopPropagation();
             dragDepth.current = 0;
@@ -407,6 +480,90 @@ function FolderView({
   );
 }
 
+function MoveTarget({
+  propertyId,
+  type,
+  onMoved,
+}: {
+  propertyId: string;
+  type: DocumentType;
+  onMoved: () => void;
+}) {
+  const router = useRouter();
+  const [dragOver, setDragOver] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const dragDepth = useRef(0);
+
+  async function moveDocument(documentId: string) {
+    setError(null);
+    setBusy(true);
+    try {
+      const fd = new FormData();
+      fd.set("property_id", propertyId);
+      fd.set("document_id", documentId);
+      fd.set("type", type);
+      const result = await moveDocumentAction({}, fd);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      router.refresh();
+      onMoved();
+    } catch {
+      setError("Kunde inte flytta dokumentet.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <li>
+      <div
+        role="button"
+        tabIndex={0}
+        className={`profile-doc-move-target${dragOver ? " is-dragover" : ""}`}
+        onDragEnter={(e) => {
+          if (!dragHasDocument(e.dataTransfer)) return;
+          e.preventDefault();
+          e.stopPropagation();
+          dragDepth.current += 1;
+          setDragOver(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dragDepth.current -= 1;
+          if (dragDepth.current <= 0) {
+            dragDepth.current = 0;
+            setDragOver(false);
+          }
+        }}
+        onDragOver={(e) => {
+          if (!dragHasDocument(e.dataTransfer)) return;
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dragDepth.current = 0;
+          setDragOver(false);
+          const docId = e.dataTransfer.getData(DOC_DRAG_MIME);
+          if (docId) void moveDocument(docId);
+        }}
+      >
+        {busy ? "Flyttar…" : DOCUMENT_TYPE_LABELS[type]}
+      </div>
+      {error ? (
+        <p className="profile-ownership-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </li>
+  );
+}
+
 async function runDocumentUpload({
   propertyId,
   file,
@@ -455,18 +612,27 @@ function DocumentRow({
   propertyId,
   doc,
   canDelete,
+  onMoved,
 }: {
   propertyId: string;
   doc: DashboardDocument;
   canDelete: boolean;
+  onMoved?: (next: DocumentType) => void;
 }) {
   const router = useRouter();
   const [dlError, setDlError] = useState<string | null>(null);
   const [dlPending, setDlPending] = useState(false);
+  const [moveError, setMoveError] = useState<string | null>(null);
+  const [movePending, setMovePending] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const [delState, delAction, delPending] = useActionState(
     deleteDocumentAction,
     actionInitial,
   );
+
+  const currentType: DocumentType = isDocumentType(doc.type)
+    ? doc.type
+    : "ovrigt";
 
   async function openDocument() {
     setDlError(null);
@@ -486,8 +652,49 @@ function DocumentRow({
     }
   }
 
+  async function moveTo(nextType: DocumentType) {
+    setMoveError(null);
+    setMovePending(true);
+    try {
+      const fd = new FormData();
+      fd.set("property_id", propertyId);
+      fd.set("document_id", doc.id);
+      fd.set("type", nextType);
+      const result = await moveDocumentAction({}, fd);
+      if (result.error) {
+        setMoveError(result.error);
+        return;
+      }
+      router.refresh();
+      onMoved?.(nextType);
+    } catch {
+      setMoveError("Kunde inte flytta dokumentet.");
+    } finally {
+      setMovePending(false);
+    }
+  }
+
   return (
-    <li className="profile-doc-item">
+    <li
+      className={`profile-doc-item${dragging ? " is-dragging" : ""}`}
+      draggable={canDelete}
+      onDragStart={
+        canDelete
+          ? (e) => {
+              e.dataTransfer.setData(DOC_DRAG_MIME, doc.id);
+              e.dataTransfer.effectAllowed = "move";
+              setDragging(true);
+            }
+          : undefined
+      }
+      onDragEnd={
+        canDelete
+          ? () => {
+              setDragging(false);
+            }
+          : undefined
+      }
+    >
       <div className="profile-doc-item-main">
         <p className="profile-doc-title">
           {displayNameFromFilePath(doc.file_path)}
@@ -495,6 +702,7 @@ function DocumentRow({
         <p className="profile-doc-meta">
           {new Date(doc.uploaded_at).toLocaleDateString("sv-SE")}
           {doc.note ? ` · ${doc.note}` : null}
+          {canDelete ? " · Dra för att flytta" : null}
         </p>
       </div>
       <div className="profile-doc-item-actions">
@@ -507,6 +715,32 @@ function DocumentRow({
           {dlPending ? "Öppnar…" : "Öppna"}
         </button>
         {canDelete ? (
+          <label className="profile-doc-move">
+            <span className="visually-hidden">Flytta till mapp</span>
+            <select
+              className="analyse-form-input profile-doc-move-select"
+              disabled={movePending || delPending}
+              value=""
+              onChange={(e) => {
+                const next = e.target.value;
+                if (!isDocumentType(next)) return;
+                void moveTo(next);
+              }}
+            >
+              <option value="" disabled>
+                {movePending ? "Flyttar…" : "Flytta till…"}
+              </option>
+              {DOCUMENT_FOLDER_ORDER.filter((t) => t !== currentType).map(
+                (t) => (
+                  <option key={t} value={t}>
+                    {DOCUMENT_TYPE_LABELS[t]}
+                  </option>
+                ),
+              )}
+            </select>
+          </label>
+        ) : null}
+        {canDelete ? (
           <form
             action={(fd) => {
               delAction(fd);
@@ -518,16 +752,16 @@ function DocumentRow({
             <button
               type="submit"
               className="profile-todo-note-remove"
-              disabled={delPending}
+              disabled={delPending || movePending}
             >
               Ta bort
             </button>
           </form>
         ) : null}
       </div>
-      {dlError || delState.error ? (
+      {dlError || moveError || delState.error ? (
         <p className="profile-ownership-error" role="alert">
-          {dlError || delState.error}
+          {dlError || moveError || delState.error}
         </p>
       ) : null}
     </li>

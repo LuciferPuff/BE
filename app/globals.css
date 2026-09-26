@@ -1623,6 +1623,62 @@ main.content-page {
   align-items: center;
 }
 
+.profile-doc-move {
+  margin: 0;
+}
+
+.profile-doc-move-select {
+  width: auto;
+  min-width: 8.5rem;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.8125rem;
+}
+
+.profile-doc-item.is-dragging {
+  opacity: 0.55;
+}
+
+.profile-doc-move-targets {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(27, 46, 60, 0.08);
+}
+
+.profile-doc-move-targets-label {
+  margin: 0 0 0.5rem;
+  font-size: 0.8125rem;
+  color: rgba(27, 46, 60, 0.6);
+}
+
+.profile-doc-move-target-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.profile-doc-move-target {
+  border: 1px dashed rgba(27, 46, 60, 0.25);
+  border-radius: var(--radius);
+  padding: 0.45rem 0.7rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: rgba(232, 240, 247, 0.35);
+  cursor: default;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.profile-doc-move-target.is-dragover {
+  border-color: var(--color-primary);
+  border-style: solid;
+  background: rgba(232, 240, 247, 0.85);
+}
+
 .profile-doc-dropzone {
   margin-top: 1.25rem;
   padding: 1rem;
