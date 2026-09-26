@@ -707,6 +707,11 @@ main.content-page {
   padding: clamp(2.5rem, 8vw, 4rem) 0 clamp(2.75rem, 6vw, 3.5rem);
 }
 
+/* Dashboard: tunn blå list med bakåt-länk (mindre vertikal padding). */
+.my-analyses-hero--nav-only {
+  padding: 1.25rem 0 1.35rem;
+}
+
 .my-analyses-hero-inner {
   max-width: 40rem;
 }
@@ -1022,15 +1027,16 @@ main.content-page {
   gap: 1.5rem;
 }
 
-/* Mer luft mellan blå hero och husrubriken (bottenpadding är redan generös). */
-.profile-dashboard-content {
-  padding-top: clamp(3.75rem, 9vw, 5.75rem);
+/* Mer luft mellan blå hero och husrubriken.
+   Compound selector så padding-top inte nollställs av .my-analyses-content shorthand. */
+.my-analyses-content.profile-dashboard-content {
   max-width: 64rem;
+  padding-top: clamp(5rem, 12vw, 7.5rem);
 }
 
 @media (min-width: 640px) {
-  .profile-dashboard-content {
-    padding-top: clamp(4.25rem, 9vw, 6.25rem);
+  .my-analyses-content.profile-dashboard-content {
+    padding-top: clamp(5.5rem, 12vw, 8rem);
   }
 }
 

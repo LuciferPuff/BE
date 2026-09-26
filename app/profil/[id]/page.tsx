@@ -49,7 +49,7 @@ export default async function PropertyDashboardPage({
   return (
     <main className="home my-analyses-page">
       <SiteHeader />
-      <section className="my-analyses-hero" aria-labelledby="dashboard-nav">
+      <section className="my-analyses-hero my-analyses-hero--nav-only" aria-labelledby="dashboard-nav">
         <div className="home-container my-analyses-hero-inner">
           <p className="profile-account-nav" id="dashboard-nav">
             <Link href="/profil" className="my-analyses-back">
