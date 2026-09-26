@@ -33,6 +33,13 @@ export function PropertyPartsSection({
   const active = parts.find((p) => p.key === activeKey) ?? null;
   const titleId = useId();
 
+  // Soft-nav från Att göra "?del=" uppdaterar prop utan remount.
+  useEffect(() => {
+    if (!initialPartKey) return;
+    if (!parts.some((p) => p.key === initialPartKey)) return;
+    setActiveKey(initialPartKey);
+  }, [initialPartKey, parts]);
+
   useEffect(() => {
     if (!activeKey) return;
     function onKey(event: KeyboardEvent) {

@@ -1243,9 +1243,8 @@ main.content-page {
   color: #2f7d4a;
 }
 
-.profile-todo-check:disabled {
-  opacity: 0.6;
-  cursor: wait;
+.profile-todo-item[data-pending="true"] .profile-todo-check {
+  opacity: 0.75;
 }
 
 .profile-todo-check--static {
@@ -1288,19 +1287,22 @@ main.content-page {
   color: rgba(27, 46, 60, 0.65);
 }
 
-.profile-todo-note-toggle {
-  appearance: none;
-  border: none;
-  background: none;
-  padding: 0;
+.profile-todo-note-details {
   margin-top: 0.4rem;
-  font: inherit;
+}
+
+.profile-todo-note-toggle {
+  list-style: none;
+  cursor: pointer;
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--color-primary);
-  cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+.profile-todo-note-toggle::-webkit-details-marker {
+  display: none;
 }
 
 .profile-todo-note-form {
