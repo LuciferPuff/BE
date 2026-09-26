@@ -22,7 +22,6 @@ export type PropertyCompleteness = {
   percent: number;
   verifiedParts: number;
   totalParts: number;
-  missingHint: string;
 };
 
 export type PropertyNextStep = {
@@ -31,7 +30,6 @@ export type PropertyNextStep = {
   ctaLabel: string;
   ctaHref?: string;
   showBoughtButton?: boolean;
-  /** Varning om saknad data (byggår/husdel) — ingen auto-öppnad panel. */
   tone?: "default" | "warning";
 };
 
@@ -48,6 +46,7 @@ export type PropertyDashboard = {
   purchase_date: string | null;
   ownership_status: OwnershipStatus;
   role: string;
+  memberCount: number;
   created_at: string;
   analyses: DashboardLinkedAnalysis[];
   parts: PropertyPartView[];
@@ -55,6 +54,8 @@ export type PropertyDashboard = {
   nextPart: PropertyPartView | null;
   todos: PropertyTodoItem[];
   nextStep: PropertyNextStep;
+  /** Features användaren redan anmält intresse för. */
+  interestedFeatures: string[];
 };
 
 function parseOwnershipStatus(value: unknown): OwnershipStatus {
@@ -83,6 +84,11 @@ export async function getPropertyDashboard(
     }
     return null;
   }
+
+  const { count: memberCount } = await supabase
+    .from("property_members")
+    .select("id", { count: "exact", head: true })
+    .eq("property_id", propertyId);
 
   const { data: property, error } = await supabase
     .from("properties")
@@ -123,6 +129,15 @@ export async function getPropertyDashboard(
 
   if (todoError) {
     console.error("[profil] dashboard todos:", todoError.message);
+  }
+
+  const { data: interestRows, error: interestError } = await supabase
+    .from("feature_interest")
+    .select("feature")
+    .eq("user_id", userId);
+
+  if (interestError) {
+    console.error("[profil] feature_interest:", interestError.message);
   }
 
   const construction_year =
@@ -199,6 +214,7 @@ export async function getPropertyDashboard(
     purchase_date: (property.purchase_date as string | null) ?? null,
     ownership_status,
     role: membership.role as string,
+    memberCount: memberCount ?? 1,
     created_at: property.created_at as string,
     analyses: analysesList,
     parts,
@@ -206,5 +222,6 @@ export async function getPropertyDashboard(
     nextPart,
     todos,
     nextStep,
+    interestedFeatures: (interestRows ?? []).map((r) => r.feature as string),
   };
 }

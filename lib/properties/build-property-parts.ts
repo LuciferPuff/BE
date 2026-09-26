@@ -3,6 +3,10 @@ import {
   type YearPrecision,
 } from "@/lib/properties/get-component-status";
 import {
+  PART_NEXT_STEP_PRIORITY,
+  PART_STATUS_PRIORITY,
+} from "@/lib/properties/component-lifespans";
+import {
   PROPERTY_PARTS,
   type PropertyPartKey,
 } from "@/lib/properties/parts-catalog";
@@ -87,11 +91,7 @@ export function computePartView(
   });
 
   const emphasis: "solid" | "muted" =
-    status.status === "ok" ||
-    status.status === "soon" ||
-    status.status === "action"
-      ? "solid"
-      : "muted";
+    status.source === "verified" ? "solid" : "muted";
 
   return {
     key: def.key,
@@ -127,7 +127,7 @@ export function buildPropertyPartViews(
   );
 }
 
-/** Andel verifierade delar + viktiga basfält (0–100). */
+/** Andel verifierade delar (0–100). Meta-fält räknas inte in. */
 export function computeProfileCompleteness(input: {
   hasKommun: boolean;
   hasPropertyType: boolean;
@@ -138,51 +138,50 @@ export function computeProfileCompleteness(input: {
   percent: number;
   verifiedParts: number;
   totalParts: number;
-  missingHint: string;
 } {
-  const metaChecks = [
-    input.hasKommun,
-    input.hasPropertyType,
-    input.hasConstructionYear,
-    input.hasLivingArea,
-  ];
-  const metaScore = metaChecks.filter(Boolean).length;
   const verifiedParts = input.parts.filter(
     (p) => p.source === "verified",
   ).length;
   const totalParts = input.parts.length;
-  const earned = metaScore + verifiedParts;
-  const total = metaChecks.length + totalParts;
-  const percent = Math.round((earned / total) * 100);
+  const percent =
+    totalParts === 0 ? 0 : Math.round((verifiedParts / totalParts) * 100);
 
-  let missingHint = "Profilen ser bra ut så här långt.";
-  if (!input.hasConstructionYear) {
-    missingHint = "Lägg till byggår så kan vi anta ålder på husets delar.";
-  } else {
-    const unverified = input.parts.find((p) => p.source !== "verified");
-    if (unverified) {
-      missingHint = `När byttes ${unverified.label.toLowerCase()}? Svara så skärper vi riskbilden.`;
-    } else if (!input.hasLivingArea) {
-      missingHint = "Lägg till boarea för en fullständigare profil.";
-    }
-  }
-
-  return { percent, verifiedParts, totalParts, missingHint };
+  return { percent, verifiedParts, totalParts };
 }
 
 /**
- * Nästa del att komplettera: verifierade larm först, sedan troligen dags, sedan okänt.
- * Antagen "Troligen OK" prioriteras inte.
+ * Nästa del: första overifierade i PART_NEXT_STEP_PRIORITY.
+ * Om alla verifierade: värst underhåll (action/soon) i samma ordning.
  */
 export function pickNextPartAction(
   parts: PropertyPartView[],
 ): PropertyPartView | null {
-  return (
-    parts.find((p) => p.tone === "action") ??
-    parts.find((p) => p.tone === "soon") ??
-    parts.find((p) => p.tone === "likely") ??
-    parts.find((p) => p.tone === "unknown") ??
-    parts.find((p) => p.source !== "verified") ??
-    null
-  );
+  const byKey = new Map(parts.map((p) => [p.key, p]));
+
+  for (const key of PART_NEXT_STEP_PRIORITY) {
+    const part = byKey.get(key);
+    if (part && part.source !== "verified") return part;
+  }
+
+  let best: PropertyPartView | null = null;
+  let bestRank = Infinity;
+  let bestOrder = Infinity;
+
+  for (const key of PART_NEXT_STEP_PRIORITY) {
+    const part = byKey.get(key);
+    if (!part || part.source !== "verified") continue;
+    if (part.tone !== "action" && part.tone !== "soon") continue;
+    const rank = PART_STATUS_PRIORITY[part.tone] ?? 99;
+    const order = PART_NEXT_STEP_PRIORITY.indexOf(key);
+    if (
+      rank < bestRank ||
+      (rank === bestRank && order < bestOrder)
+    ) {
+      best = part;
+      bestRank = rank;
+      bestOrder = order;
+    }
+  }
+
+  return best;
 }

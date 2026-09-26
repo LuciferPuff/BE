@@ -75,6 +75,54 @@ export const PART_GUIDE_HREF: Record<PropertyPartKey, string> = {
   va: "/guider/vatten-avlopp",
 };
 
+/** Bestämd form för löptext (“När byttes taket?”). */
+export const PART_LABEL_DEFINITE: Record<PropertyPartKey, string> = {
+  tak: "taket",
+  fasad: "fasaden",
+  fonster: "fönstren",
+  dranering: "dräneringen",
+  grund: "grunden",
+  badrum: "tätskiktet",
+  uppvarmning: "uppvärmningen",
+  ventilation: "ventilationen",
+  el: "elen",
+  va: "vatten och avlopp",
+};
+
+/**
+ * Prioritet för Nästa steg (konsekvensordning).
+ * Första overifierade i listan blir nästa steg.
+ */
+export const PART_NEXT_STEP_PRIORITY: readonly PropertyPartKey[] = [
+  "tak",
+  "badrum",
+  "dranering",
+  "va",
+  "el",
+  "uppvarmning",
+  "fonster",
+  "fasad",
+  "ventilation",
+  "grund",
+] as const;
+
+/** Lägre = värre (används vid underhåll bland verifierade). */
+export const PART_STATUS_PRIORITY: Record<
+  "action" | "soon" | "likely" | "unknown" | "assumed_ok" | "ok",
+  number
+> = {
+  action: 0,
+  soon: 1,
+  likely: 2,
+  unknown: 3,
+  assumed_ok: 4,
+  ok: 5,
+};
+
+export function partLabelDefinite(key: PropertyPartKey): string {
+  return PART_LABEL_DEFINITE[key];
+}
+
 export function isRoofMaterial(value: string): value is RoofMaterial {
   return (ROOF_MATERIALS as readonly string[]).includes(value);
 }

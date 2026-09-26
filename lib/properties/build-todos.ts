@@ -1,24 +1,36 @@
-import type { OwnershipStatus } from "@/lib/properties/labels";
-import type { PropertyPartView } from "@/lib/properties/build-property-parts";
 import {
-  parseTodoNotes,
-  type TodoNoteEntry,
-} from "@/lib/properties/todo-notes";
+  pickNextPartAction,
+  type PropertyPartView,
+} from "@/lib/properties/build-property-parts";
+import {
+  partLabelDefinite,
+  PART_NEXT_STEP_PRIORITY,
+} from "@/lib/properties/component-lifespans";
+import type { OwnershipStatus } from "@/lib/properties/labels";
+import type { PropertyPartKey } from "@/lib/properties/parts-catalog";
 
-export type TodoPhase = "funderar" | "ager" | "both";
+export type TodoKind = "manual" | "auto";
 
-export type TodoTemplate = {
+export type PropertyTodoItem = {
   key: string;
   title: string;
   description: string;
-  phase: TodoPhase;
-  /** Lägre = högre prio i listan. */
   priority: number;
   href?: string;
+  completed: boolean;
+  /** Manuella handlingar får kryssruta. Auto (t.ex. verifiera delar) inte. */
+  kind: TodoKind;
+  source: "template" | "season" | "verify";
 };
 
-/** Statiska Att göra-punkter per fas. */
-export const TODO_TEMPLATES: readonly TodoTemplate[] = [
+const MANUAL_TEMPLATES: {
+  key: string;
+  title: string;
+  description: string;
+  phase: OwnershipStatus | "both";
+  priority: number;
+  requiresAnalysis?: boolean;
+}[] = [
   {
     key: "funderar_questions",
     title: "Förbered frågor till säljaren",
@@ -41,6 +53,7 @@ export const TODO_TEMPLATES: readonly TodoTemplate[] = [
     description: "Markera det du vill dubbelkolla på plats.",
     phase: "funderar",
     priority: 30,
+    requiresAnalysis: true,
   },
   {
     key: "funderar_mark_bought",
@@ -51,22 +64,6 @@ export const TODO_TEMPLATES: readonly TodoTemplate[] = [
     priority: 90,
   },
   {
-    key: "ager_season_check",
-    title: "Gör en säsongskoll av huset",
-    description:
-      "Tak, hängrännor, ventilation och värmesystem – små åtgärder i tid.",
-    phase: "ager",
-    priority: 10,
-  },
-  {
-    key: "ager_verify_parts",
-    title: "Verifiera husets delar",
-    description:
-      "Byggår ger antaganden. Fyll i verkliga bytesår där du kan.",
-    phase: "ager",
-    priority: 20,
-  },
-  {
     key: "ager_collect_docs",
     title: "Samla papper och kvitton",
     description:
@@ -74,18 +71,46 @@ export const TODO_TEMPLATES: readonly TodoTemplate[] = [
     phase: "ager",
     priority: 40,
   },
-] as const;
+];
 
-export type PropertyTodoItem = {
+type SeasonTodo = {
   key: string;
   title: string;
   description: string;
   priority: number;
-  href?: string;
-  completed: boolean;
-  notes: TodoNoteEntry[];
-  source: "template" | "part";
+  months: number[];
 };
+
+const SEASON_TODOS: SeasonTodo[] = [
+  {
+    key: "season_hangrannor",
+    title: "Rensa hängrännor och kontrollera takavvattning före vintern",
+    description: "Minskar risken för isdämmor och fuktskador.",
+    priority: 12,
+    months: [9, 10, 11],
+  },
+  {
+    key: "season_radon",
+    title: "Radonmät – eldningssäsongen är rätt period",
+    description: "Mät under eldningssäsongen för tillförlitligt resultat.",
+    priority: 14,
+    months: [10, 11, 12, 1, 2, 3, 4],
+  },
+  {
+    key: "season_after_winter",
+    title: "Kontrollera taket och fasaden efter vintern",
+    description: "Titta efter sprickor, lösa pannor och fuktfläckar.",
+    priority: 12,
+    months: [3, 4, 5],
+  },
+  {
+    key: "season_summer",
+    title: "Kontrollera tätningar och målning ute",
+    description: "Bäst väder för utvändigt underhåll.",
+    priority: 12,
+    months: [6, 7, 8],
+  },
+];
 
 export type TodoStateRow = {
   task_key: string;
@@ -93,81 +118,86 @@ export type TodoStateRow = {
   note: string | null;
 };
 
+function firstUnverifiedPart(
+  parts: PropertyPartView[],
+): PropertyPartView | null {
+  const byKey = new Map(parts.map((p) => [p.key, p]));
+  for (const key of PART_NEXT_STEP_PRIORITY) {
+    const part = byKey.get(key);
+    if (part && part.source !== "verified") return part;
+  }
+  return null;
+}
+
 export function buildPropertyTodos(input: {
   ownershipStatus: OwnershipStatus;
   hasAnalysis: boolean;
   parts: PropertyPartView[];
   states: TodoStateRow[];
   propertyId: string;
+  /** Override för tester. 1–12. */
+  month?: number;
 }): PropertyTodoItem[] {
   const stateByKey = new Map(
     input.states.map((s) => [s.task_key, s]),
   );
-
+  const month = input.month ?? new Date().getMonth() + 1;
   const items: PropertyTodoItem[] = [];
 
-  for (const template of TODO_TEMPLATES) {
+  const verifiedCount = input.parts.filter((p) => p.source === "verified")
+    .length;
+  const totalParts = input.parts.length;
+  const allVerified = totalParts > 0 && verifiedCount === totalParts;
+  const nextUnverified = firstUnverifiedPart(input.parts);
+
+  items.push({
+    key: "verify_parts",
+    title: `Verifiera husets delar (${verifiedCount}/${totalParts})`,
+    description: allVerified
+      ? "Alla delar är verifierade."
+      : nextUnverified
+        ? `Nästa: ange när ${partLabelDefinite(nextUnverified.key)} byttes.`
+        : "Fyll i bytt år för husets delar.",
+    priority: 5,
+    href: nextUnverified
+      ? `/profil/${input.propertyId}?del=${nextUnverified.key}`
+      : `#husets-delar`,
+    completed: allVerified,
+    kind: "auto",
+    source: "verify",
+  });
+
+  for (const template of MANUAL_TEMPLATES) {
     if (template.phase !== "both" && template.phase !== input.ownershipStatus) {
       continue;
     }
-    if (
-      template.key === "funderar_review_analysis" &&
-      !input.hasAnalysis
-    ) {
-      continue;
-    }
-
+    if (template.requiresAnalysis && !input.hasAnalysis) continue;
     const state = stateByKey.get(template.key);
     items.push({
       key: template.key,
       title: template.title,
       description: template.description,
       priority: template.priority,
-      href: template.href,
       completed: Boolean(state?.completed_at),
-      notes: parseTodoNotes(state?.note),
+      kind: "manual",
       source: "template",
     });
   }
 
-  // Larm: verifierad action/soon, eller likely/unknown som mjuk komplettering.
-  // assumed_ok skapar inte Att göra-punkter.
-  for (const part of input.parts) {
-    if (
-      part.tone !== "action" &&
-      part.tone !== "soon" &&
-      part.tone !== "likely" &&
-      part.tone !== "unknown"
-    ) {
-      continue;
+  if (input.ownershipStatus === "ager") {
+    for (const season of SEASON_TODOS) {
+      if (!season.months.includes(month)) continue;
+      const state = stateByKey.get(season.key);
+      items.push({
+        key: season.key,
+        title: season.title,
+        description: season.description,
+        priority: season.priority,
+        completed: Boolean(state?.completed_at),
+        kind: "manual",
+        source: "season",
+      });
     }
-
-    const key = `part_${part.key}`;
-    const state = stateByKey.get(key);
-    const isSoft = part.tone === "likely" || part.tone === "unknown";
-    items.push({
-      key,
-      title: isSoft
-        ? `Verifiera ${part.label.toLowerCase()}`
-        : part.tone === "soon"
-          ? `Planera ${part.label.toLowerCase()}`
-          : `Åtgärda eller verifiera ${part.label.toLowerCase()}`,
-      description: part.prompt
-        ? part.prompt
-        : `${part.ageLabel}. ${part.statusLabel}.`,
-      priority:
-        part.tone === "action"
-          ? 12
-          : part.tone === "soon"
-            ? 16
-            : part.tone === "likely"
-              ? 22
-              : 28,
-      href: `#husets-delar`,
-      completed: Boolean(state?.completed_at),
-      notes: parseTodoNotes(state?.note),
-      source: "part",
-    });
   }
 
   return items.sort((a, b) => {
@@ -189,11 +219,12 @@ export function pickNextStep(input: {
   ctaHref?: string;
   showBoughtButton?: boolean;
   tone?: "default" | "warning";
+  partKey?: PropertyPartKey;
 } {
   if (!input.constructionYear) {
     return {
-      title: "Saknar byggår",
-      body: "Utan byggår kan vi inte uppskatta ålder på tak, fasad och övriga delar. Fyll i det under uppgifter.",
+      title: "Ange byggår",
+      body: "Utan byggår kan vi inte uppskatta ålder på husets delar.",
       ctaLabel: "Ange byggår",
       ctaHref: "redigera",
       tone: "warning",
@@ -201,13 +232,15 @@ export function pickNextStep(input: {
   }
 
   if (input.ownershipStatus === "funderar") {
-    const firstOpen = input.openTodos.find((t) => !t.completed);
-    if (firstOpen?.href) {
+    const firstOpen = input.openTodos.find(
+      (t) => !t.completed && t.kind === "manual",
+    );
+    if (firstOpen) {
       return {
         title: firstOpen.title,
         body: firstOpen.description,
-        ctaLabel: "Öppna",
-        ctaHref: firstOpen.href,
+        ctaLabel: "Se Att göra",
+        ctaHref: "#att-gora",
         showBoughtButton: true,
       };
     }
@@ -228,50 +261,49 @@ export function pickNextStep(input: {
     };
   }
 
-  // Äger — saknad/osäker husdel: varning, inte auto-öppnad panel.
-  if (input.nextPart) {
-    const soft =
-      input.nextPart.tone === "likely" ||
-      input.nextPart.tone === "unknown" ||
-      input.nextPart.tone === "assumed_ok";
+  if (input.nextPart && input.nextPart.source !== "verified") {
+    const definite = partLabelDefinite(input.nextPart.key);
     return {
-      title: soft
-        ? `Komplettera ${input.nextPart.label.toLowerCase()}`
-        : `Kolla ${input.nextPart.label.toLowerCase()}`,
-      body: input.nextPart.prompt
-        ? input.nextPart.prompt
-        : soft
-          ? `${input.nextPart.label} är ${input.nextPart.statusLabel.toLowerCase()} (${input.nextPart.ageLabel.toLowerCase()}). Ange bytt år under Husets delar så blir riskbilden mer träffsäker.`
-          : `${input.nextPart.label}: ${input.nextPart.statusLabel}. ${input.nextPart.ageLabel}.`,
-      ctaLabel: "Gå till husets delar",
-      ctaHref: "#husets-delar",
+      title: `När byttes ${definite}?`,
+      body:
+        input.nextPart.prompt ??
+        `${input.nextPart.statusLabel}: ${input.nextPart.ageLabel}.`,
+      ctaLabel: `Ange när ${definite} byttes`,
+      ctaHref: `?del=${input.nextPart.key}`,
       tone: "warning",
+      partKey: input.nextPart.key,
     };
   }
 
-  const open = input.openTodos.find((t) => !t.completed);
+  if (input.nextPart && input.nextPart.source === "verified") {
+    const definite = partLabelDefinite(input.nextPart.key);
+    return {
+      title: `Planera ${definite}`,
+      body: `${input.nextPart.statusLabel}: ${input.nextPart.ageLabel}.`,
+      ctaLabel: `Öppna ${definite}`,
+      ctaHref: `?del=${input.nextPart.key}`,
+      tone: "warning",
+      partKey: input.nextPart.key,
+    };
+  }
+
+  const open = input.openTodos.find((t) => !t.completed && t.kind === "manual");
   if (open) {
     return {
       title: open.title,
       body: open.description,
-      ctaLabel: open.href ? "Öppna" : "Se Att göra",
-      ctaHref: open.href ?? "#att-gora",
-    };
-  }
-
-  if (!input.hasAnalysis) {
-    return {
-      title: "Analysera huset",
-      body: "Koppla en AI-analys för en första riskbild.",
-      ctaLabel: "Analysera",
-      ctaHref: "/analys",
+      ctaLabel: "Se Att göra",
+      ctaHref: "#att-gora",
     };
   }
 
   return {
-    title: "Bra läge",
-    body: "Husets delar och Att göra är ifyllda. Kom tillbaka när något byts.",
-    ctaLabel: "Öppna senaste analysen",
-    ctaHref: "latest-analysis",
+    title: "Allt är ifyllt",
+    body: "Vi påminner dig när något närmar sig.",
+    ctaLabel: "Se husets delar",
+    ctaHref: "#husets-delar",
   };
 }
+
+/** Exporterad för tester. */
+export { firstUnverifiedPart, pickNextPartAction };

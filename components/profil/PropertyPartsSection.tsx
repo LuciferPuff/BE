@@ -93,10 +93,15 @@ export function PropertyPartsSection({
           <li key={part.key}>
             <button
               type="button"
-              className={`profile-part-tile profile-part-tile--${part.tone} profile-part-tile--${part.emphasis}`}
+              className={`profile-part-tile profile-part-tile--${part.tone} profile-part-tile--${part.emphasis}${
+                part.source === "verified" ? " profile-part-tile--verified" : ""
+              }`}
               onClick={() => setActiveKey(part.key)}
             >
-              <span className="profile-part-tile-status">{part.statusLabel}</span>
+              <span className="profile-part-tile-status">
+                {part.source === "verified" ? "✓ " : null}
+                {part.statusLabel}
+              </span>
               <span className="profile-part-tile-label">{part.label}</span>
               <span className="profile-part-tile-age">{part.ageLabel}</span>
               <span className="profile-part-tile-action">{part.actionLabel}</span>

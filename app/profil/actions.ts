@@ -369,6 +369,54 @@ export type UpdateTodoState = {
   ok?: boolean;
 };
 
+export type FeatureInterestState = {
+  error?: string;
+  ok?: boolean;
+};
+
+const FEATURE_KEYS = new Set(["dokument", "ekonomi"]);
+
+/** Anmäl intresse för kommande funktion (visa-inte-igen via PK). */
+export async function registerFeatureInterestAction(
+  _prev: FeatureInterestState,
+  formData: FormData,
+): Promise<FeatureInterestState> {
+  const user = await getSessionUser();
+  const feature = optionalText(formData, "feature");
+  const propertyId = optionalText(formData, "property_id");
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!feature || !FEATURE_KEYS.has(feature)) {
+    return { error: "Ogiltig funktion." };
+  }
+
+  const supabase = await createAuthClient();
+  const { error } = await supabase.from("feature_interest").upsert(
+    {
+      user_id: user.id,
+      feature,
+      property_id: propertyId,
+    },
+    { onConflict: "user_id,feature", ignoreDuplicates: true },
+  );
+
+  if (error) {
+    console.error("[profil] feature_interest:", error.message, error.code);
+    return { error: "Kunde inte spara. Försök igen." };
+  }
+
+  if (propertyId) {
+    revalidatePath(`/profil/${propertyId}`);
+  }
+  return { ok: true };
+}
+
 /** Bockar av / ångrar Att göra-punkt, lägger till eller tar bort anteckning. */
 export async function updateTodoStateAction(
   _prev: UpdateTodoState,
@@ -389,6 +437,9 @@ export async function updateTodoStateAction(
   }
   if (!propertyId || !taskKey) {
     return { error: "Saknar uppgift." };
+  }
+  if (taskKey === "verify_parts" || taskKey.startsWith("part_")) {
+    return { error: "Den här punkten bockas av automatiskt." };
   }
   if (taskKey.length > 80) {
     return { error: "Ogiltig uppgift." };

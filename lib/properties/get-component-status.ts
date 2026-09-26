@@ -147,8 +147,8 @@ export function getComponentStatus(
         age == null
           ? "Känt problem"
           : verified
-            ? `${age} år (verifierad)`
-            : `ca ${age} år (antagen)`,
+            ? `${age} år, verifierad`
+            : `ca ${age} år, antagen från byggår`,
       actionLabel: verified
         ? formatVerifiedAction(input.replacedYear ?? input.buildYear)
         : "Ange år →",
@@ -189,6 +189,20 @@ export function getComponentStatus(
   if (input.buildYear != null && lifespanYears != null) {
     const ageYears = Math.max(0, now - input.buildYear);
     if (ageYears > lifespanYears * LIKELY_REPLACED_RATIO) {
+      if (input.key === "badrum") {
+        return {
+          status: "unknown",
+          source: "unknown",
+          ageYears,
+          referenceYear: input.buildYear,
+          lifespanYears,
+          statusLabel: "Okänt",
+          ageLabel: "Ålder okänd",
+          actionLabel: "Ange år →",
+          warning: null,
+          prompt: "Okänt – när lades tätskiktet?",
+        };
+      }
       return {
         status: "unknown",
         source: "unknown",
@@ -211,7 +225,7 @@ export function getComponentStatus(
         referenceYear: input.buildYear,
         lifespanYears,
         statusLabel: "Troligen dags",
-        ageLabel: `ca ${ageYears} år (antagen)`,
+        ageLabel: `ca ${ageYears} år, antagen från byggår`,
         actionLabel: "Ange år →",
         warning: null,
         prompt: null,
@@ -224,10 +238,25 @@ export function getComponentStatus(
       referenceYear: input.buildYear,
       lifespanYears,
       statusLabel: "Troligen OK",
-      ageLabel: `ca ${ageYears} år (antagen)`,
+      ageLabel: `ca ${ageYears} år, antagen från byggår`,
       actionLabel: "Ange år →",
       warning: null,
       prompt: null,
+    };
+  }
+
+  if (input.key === "badrum") {
+    return {
+      status: "unknown",
+      source: "unknown",
+      ageYears: null,
+      referenceYear: null,
+      lifespanYears,
+      statusLabel: "Okänt",
+      ageLabel: "Ålder okänd",
+      actionLabel: "Ange år →",
+      warning: null,
+      prompt: "Okänt – när lades tätskiktet?",
     };
   }
 
@@ -264,7 +293,7 @@ function buildVerified(
       referenceYear,
       lifespanYears: null,
       statusLabel: "Okänt",
-      ageLabel: `${ageYears} år (verifierad)`,
+      ageLabel: `${ageYears} år, verifierad`,
       actionLabel: formatVerifiedAction(verifiedYear),
       warning: null,
       prompt: null,
@@ -278,7 +307,7 @@ function buildVerified(
     referenceYear,
     lifespanYears,
     statusLabel: statusLabelFor(status),
-    ageLabel: `${ageYears} år (verifierad)`,
+    ageLabel: `${ageYears} år, verifierad`,
     actionLabel: formatVerifiedAction(verifiedYear),
     warning: null,
     prompt: null,

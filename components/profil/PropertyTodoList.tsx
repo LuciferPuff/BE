@@ -1,14 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useOptimistic } from "react";
+import { useActionState, useOptimistic, useState } from "react";
 
 import {
   updateTodoStateAction,
   type UpdateTodoState,
 } from "@/app/profil/actions";
 import type { PropertyTodoItem } from "@/lib/properties/build-todos";
-import type { TodoNoteEntry } from "@/lib/properties/todo-notes";
 
 type Props = {
   propertyId: string;
@@ -17,14 +16,13 @@ type Props = {
 };
 
 const initialState: UpdateTodoState = {};
-
-type OptimisticTodo = {
-  completed: boolean;
-  notes: TodoNoteEntry[];
-};
+const VISIBLE_LIMIT = 5;
 
 export function PropertyTodoList({ propertyId, todos, canEdit }: Props) {
+  const [showAll, setShowAll] = useState(false);
   const openCount = todos.filter((t) => !t.completed).length;
+  const visible = showAll ? todos : todos.slice(0, VISIBLE_LIMIT);
+  const hiddenCount = Math.max(0, todos.length - VISIBLE_LIMIT);
 
   return (
     <section
@@ -41,7 +39,7 @@ export function PropertyTodoList({ propertyId, todos, canEdit }: Props) {
           : `${openCount} öppna punkt${openCount === 1 ? "" : "er"}.`}
       </p>
       <ul className="profile-todo-list">
-        {todos.map((todo) => (
+        {visible.map((todo) => (
           <TodoRow
             key={todo.key}
             propertyId={propertyId}
@@ -50,6 +48,15 @@ export function PropertyTodoList({ propertyId, todos, canEdit }: Props) {
           />
         ))}
       </ul>
+      {!showAll && hiddenCount > 0 ? (
+        <button
+          type="button"
+          className="profile-todo-more"
+          onClick={() => setShowAll(true)}
+        >
+          Visa fler ({hiddenCount})
+        </button>
+      ) : null}
     </section>
   );
 }
@@ -67,178 +74,85 @@ function TodoRow({
     updateTodoStateAction,
     initialState,
   );
-  const [optimistic, setOptimistic] = useOptimistic<
-    OptimisticTodo,
-    OptimisticTodo
-  >(
-    { completed: todo.completed, notes: todo.notes },
-    (_current, next) => next,
+  const [optimisticCompleted, setOptimisticCompleted] = useOptimistic(
+    todo.completed,
+    (_current, next: boolean) => next,
   );
 
-  function runWithOptimistic(
-    formData: FormData,
-    next: OptimisticTodo,
-  ): void {
-    setOptimistic(next);
-    formAction(formData);
-  }
-
-  const noteCount = optimistic.notes.length;
+  const copy = (
+    <div className="profile-todo-copy">
+      <p className="profile-todo-title">{todo.title}</p>
+      <p className="profile-todo-desc">{todo.description}</p>
+      {state.error ? (
+        <p className="profile-ownership-error" role="alert">
+          {state.error}
+        </p>
+      ) : null}
+    </div>
+  );
 
   return (
     <li
       className={
-        optimistic.completed
+        optimisticCompleted
           ? "profile-todo-item profile-todo-item--done"
           : "profile-todo-item"
       }
       data-pending={pending ? "true" : undefined}
     >
       <div className="profile-todo-main">
-        {canEdit ? (
+        {todo.kind === "manual" && canEdit ? (
           <form
             action={(formData) => {
-              const nextCompleted = formData.get("completed") === "1";
-              runWithOptimistic(formData, {
-                completed: nextCompleted,
-                notes: optimistic.notes,
-              });
+              const next = formData.get("completed") === "1";
+              setOptimisticCompleted(next);
+              formAction(formData);
             }}
           >
             <input type="hidden" name="property_id" value={propertyId} />
             <input type="hidden" name="task_key" value={todo.key} />
-            <input type="hidden" name="note_op" value="toggle" />
             <input
               type="hidden"
               name="completed"
-              value={optimistic.completed ? "0" : "1"}
+              value={optimisticCompleted ? "0" : "1"}
             />
             <button
               type="submit"
               className="profile-todo-check"
-              aria-pressed={optimistic.completed}
+              aria-pressed={optimisticCompleted}
               aria-busy={pending}
               aria-label={
-                optimistic.completed
+                optimisticCompleted
                   ? "Markera som öppen"
                   : "Markera som klar"
               }
             >
-              {optimistic.completed ? "✓" : ""}
+              {optimisticCompleted ? "✓" : ""}
             </button>
           </form>
         ) : (
           <span
-            className="profile-todo-check profile-todo-check--static"
+            className={
+              optimisticCompleted
+                ? "profile-todo-check profile-todo-check--static profile-todo-check--auto"
+                : "profile-todo-check profile-todo-check--static"
+            }
             aria-hidden
           >
-            {optimistic.completed ? "✓" : ""}
+            {optimisticCompleted ? "✓" : ""}
           </span>
         )}
-        <div className="profile-todo-copy">
-          <p className="profile-todo-title">{todo.title}</p>
-          <p className="profile-todo-desc">{todo.description}</p>
-          {todo.href ? (
-            <Link href={todo.href} className="profile-todo-link" scroll={false}>
-              Öppna →
-            </Link>
-          ) : null}
-
-          {noteCount > 0 ? (
-            <ul className="profile-todo-notes">
-              {optimistic.notes.map((note) => (
-                <li key={note.id} className="profile-todo-note-row">
-                  <p className="profile-todo-note">{note.text}</p>
-                  {canEdit ? (
-                    <form
-                      action={(formData) => {
-                        runWithOptimistic(formData, {
-                          completed: optimistic.completed,
-                          notes: optimistic.notes.filter((n) => n.id !== note.id),
-                        });
-                      }}
-                    >
-                      <input
-                        type="hidden"
-                        name="property_id"
-                        value={propertyId}
-                      />
-                      <input type="hidden" name="task_key" value={todo.key} />
-                      <input type="hidden" name="note_op" value="remove" />
-                      <input type="hidden" name="note_id" value={note.id} />
-                      <input
-                        type="hidden"
-                        name="completed"
-                        value={optimistic.completed ? "1" : "0"}
-                      />
-                      <button
-                        type="submit"
-                        className="profile-todo-note-remove"
-                      >
-                        Ta bort
-                      </button>
-                    </form>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
-          {canEdit ? (
-            <details className="profile-todo-note-details">
-              <summary className="profile-todo-note-toggle">
-                Lägg till anteckning
-              </summary>
-              <form
-                className="profile-todo-note-form"
-                action={(formData) => {
-                  const raw = formData.get("note_text");
-                  const text =
-                    typeof raw === "string" ? raw.trim() : "";
-                  if (!text) return;
-                  runWithOptimistic(formData, {
-                    completed: optimistic.completed,
-                    notes: [
-                      ...optimistic.notes,
-                      {
-                        id: `tmp-${Date.now()}`,
-                        text,
-                        createdAt: new Date().toISOString(),
-                      },
-                    ],
-                  });
-                }}
-              >
-                <input type="hidden" name="property_id" value={propertyId} />
-                <input type="hidden" name="task_key" value={todo.key} />
-                <input type="hidden" name="note_op" value="add" />
-                <input
-                  type="hidden"
-                  name="completed"
-                  value={optimistic.completed ? "1" : "0"}
-                />
-                <input
-                  key={noteCount}
-                  type="text"
-                  name="note_text"
-                  className="analyse-form-input"
-                  defaultValue=""
-                  placeholder="Ny anteckning"
-                  maxLength={200}
-                  aria-label="Ny anteckning"
-                />
-                <button type="submit" className="profile-edit-link">
-                  Spara
-                </button>
-              </form>
-            </details>
-          ) : null}
-          {state.error ? (
-            <p className="profile-ownership-error" role="alert">
-              {state.error}
-            </p>
-          ) : null}
-        </div>
+        {todo.href ? (
+          <Link
+            href={todo.href}
+            className="profile-todo-row-link"
+            scroll={false}
+          >
+            {copy}
+          </Link>
+        ) : (
+          copy
+        )}
       </div>
     </li>
   );

@@ -1,13 +1,13 @@
 import Link from "next/link";
 
 import { MarkBoughtHouseButton } from "@/components/profil/MarkBoughtHouseButton";
+import { NotifyMeButton } from "@/components/profil/NotifyMeButton";
 import { OwnershipStatusSwitch } from "@/components/profil/OwnershipStatusSwitch";
 import { PropertyPartsSection } from "@/components/profil/PropertyPartsSection";
 import { PropertyTodoList } from "@/components/profil/PropertyTodoList";
 import { UnlinkAnalysisButton } from "@/components/mina-analyser/UnlinkAnalysisButton";
 import type { PropertyDashboard } from "@/lib/properties/get-property-dashboard";
 import {
-  ownershipStatusLabel,
   propertyRoleLabel,
   propertyTypeLabel,
 } from "@/lib/properties/labels";
@@ -75,6 +75,11 @@ export function PropertyDashboardView({
     canOwnStatus &&
     property.ownership_status === "funderar" &&
     (nextStep.showBoughtButton || !nextHref);
+  const showRole = property.memberCount > 1;
+  const showAnalyses =
+    property.ownership_status === "funderar" ||
+    property.analyses.length > 0;
+  const interested = new Set(property.interestedFeatures);
 
   const timeline: { key: string; label: string; date: string; href?: string }[] =
     [
@@ -93,6 +98,51 @@ export function PropertyDashboardView({
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     );
 
+  const analysesSection = showAnalyses ? (
+    <section
+      className="profile-dashboard-panel"
+      aria-labelledby="profile-analyses-heading"
+    >
+      <h2
+        id="profile-analyses-heading"
+        className="profile-dashboard-heading"
+      >
+        Analyser
+      </h2>
+      {property.analyses.length > 0 ? (
+        <ul className="profile-linked-list">
+          {property.analyses.map((analysis) => (
+            <li key={analysis.id} className="profile-linked-item">
+              <Link
+                href={`/mina-analyser/${analysis.id}`}
+                className="profile-linked-link"
+              >
+                <span>{analysis.address}</span>
+                <span className="profile-linked-date">
+                  {formatDate(analysis.created_at)}
+                </span>
+              </Link>
+              {canOwnStatus ? (
+                <UnlinkAnalysisButton
+                  analysisId={analysis.id}
+                  returnTo="profil"
+                  variant="inline"
+                />
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="profile-dashboard-empty">
+          <p>Inga kopplade analyser ännu.</p>
+          <Link href="/analys" className="profile-edit-link">
+            Analysera det här huset
+          </Link>
+        </div>
+      )}
+    </section>
+  ) : null;
+
   return (
     <div className="profile-dashboard">
       <header className="profile-dashboard-header">
@@ -101,12 +151,20 @@ export function PropertyDashboardView({
           {bits.length > 0 ? (
             <p className="profile-dashboard-meta">{bits.join(" · ")}</p>
           ) : null}
-          <p className="profile-dashboard-role">
-            Din roll: {propertyRoleLabel(property.role)}
-            {property.ownership_status === "ager" && ownedSince
-              ? ` · Äger sedan ${ownedSince}`
-              : ` · ${ownershipStatusLabel(property.ownership_status)}`}
-          </p>
+          {showRole ||
+          (property.ownership_status === "ager" && ownedSince) ? (
+            <p className="profile-dashboard-role">
+              {showRole ? `Din roll: ${propertyRoleLabel(property.role)}` : null}
+              {showRole &&
+              property.ownership_status === "ager" &&
+              ownedSince
+                ? " · "
+                : null}
+              {property.ownership_status === "ager" && ownedSince
+                ? `Äger sedan ${ownedSince}`
+                : null}
+            </p>
+          ) : null}
         </div>
         <div className="profile-dashboard-header-actions">
           {canOwnStatus ? (
@@ -136,29 +194,17 @@ export function PropertyDashboardView({
             }
             aria-labelledby="profile-next-heading"
           >
-            {nextStep.tone === "warning" ? (
-              <p className="profile-next-badge">Saknar data</p>
-            ) : null}
+            <p className="profile-next-badge">Nästa steg</p>
             <h2 id="profile-next-heading" className="profile-dashboard-heading">
-              {nextStep.tone === "warning" ? nextStep.title : "Nästa steg"}
+              {nextStep.title}
             </h2>
-            {nextStep.tone !== "warning" ? (
-              <p className="profile-next-title">{nextStep.title}</p>
-            ) : null}
             <p className="profile-dashboard-text">{nextStep.body}</p>
             <div className="profile-next-actions">
               {showBoughtPrimary && !nextHref ? (
                 <MarkBoughtHouseButton propertyId={property.id} />
               ) : null}
               {nextHref ? (
-                <Link
-                  href={nextHref}
-                  className={
-                    nextStep.tone === "warning"
-                      ? "profile-edit-link"
-                      : "home-btn home-btn-primary"
-                  }
-                >
+                <Link href={nextHref} className="home-btn home-btn-primary">
                   {nextStep.ctaLabel}
                 </Link>
               ) : null}
@@ -188,47 +234,28 @@ export function PropertyDashboardView({
           />
 
           <section
-            className="profile-dashboard-panel"
-            aria-labelledby="profile-analyses-heading"
+            className="profile-dashboard-panel profile-dashboard-panel--teaser"
+            aria-labelledby="profile-economy-heading"
           >
             <h2
-              id="profile-analyses-heading"
+              id="profile-economy-heading"
               className="profile-dashboard-heading"
             >
-              Analyser
+              Kommande kostnader
             </h2>
-            {property.analyses.length > 0 ? (
-              <ul className="profile-linked-list">
-                {property.analyses.map((analysis) => (
-                  <li key={analysis.id} className="profile-linked-item">
-                    <Link
-                      href={`/mina-analyser/${analysis.id}`}
-                      className="profile-linked-link"
-                    >
-                      <span>{analysis.address}</span>
-                      <span className="profile-linked-date">
-                        {formatDate(analysis.created_at)}
-                      </span>
-                    </Link>
-                    {canOwnStatus ? (
-                      <UnlinkAnalysisButton
-                        analysisId={analysis.id}
-                        returnTo="profil"
-                        variant="inline"
-                      />
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="profile-dashboard-empty">
-                <p>Inga kopplade analyser ännu.</p>
-                <Link href="/analys" className="profile-edit-link">
-                  Analysera det här huset
-                </Link>
-              </div>
-            )}
+            <p className="profile-dashboard-text">
+              Se vad huset troligen kostar i underhåll de närmaste 1, 5 och 10
+              åren.
+            </p>
+            <p className="profile-teaser-badge">Detta kommer</p>
+            <NotifyMeButton
+              feature="ekonomi"
+              propertyId={property.id}
+              alreadyInterested={interested.has("ekonomi")}
+            />
           </section>
+
+          {property.ownership_status === "funderar" ? analysesSection : null}
         </div>
 
         <aside className="profile-dashboard-aside">
@@ -242,25 +269,23 @@ export function PropertyDashboardView({
             >
               Profilen
             </h2>
-            <p className="profile-complete-percent">{completeness.percent} %</p>
+            <p className="profile-complete-meta profile-complete-meta--lead">
+              {completeness.verifiedParts} av {completeness.totalParts} delar
+              verifierade
+            </p>
             <div
               className="profile-complete-bar"
               role="progressbar"
-              aria-valuenow={completeness.percent}
+              aria-valuenow={completeness.verifiedParts}
               aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label="Profilens kompletthet"
+              aria-valuemax={completeness.totalParts}
+              aria-label="Verifierade husdelar"
             >
               <span
                 className="profile-complete-bar-fill"
                 style={{ width: `${completeness.percent}%` }}
               />
             </div>
-            <p className="profile-dashboard-text">{completeness.missingHint}</p>
-            <p className="profile-complete-meta">
-              {completeness.verifiedParts} av {completeness.totalParts} delar
-              verifierade
-            </p>
           </section>
 
           <section
@@ -298,9 +323,18 @@ export function PropertyDashboardView({
               Samla husets papper på ett ställe.
             </p>
             <p className="profile-teaser-badge">Detta kommer</p>
+            <NotifyMeButton
+              feature="dokument"
+              propertyId={property.id}
+              alreadyInterested={interested.has("dokument")}
+            />
           </section>
         </aside>
       </div>
+
+      {property.ownership_status === "ager" && analysesSection ? (
+        <div className="profile-dashboard-footer-block">{analysesSection}</div>
+      ) : null}
     </div>
   );
 }
