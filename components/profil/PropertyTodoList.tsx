@@ -148,9 +148,6 @@ function TodoRow({
               <summary className="profile-todo-note-toggle">
                 {optimistic.note ? "Anteckning" : "Lägg till anteckning"}
               </summary>
-              {optimistic.note ? (
-                <p className="profile-todo-note">{optimistic.note}</p>
-              ) : null}
               <form
                 className="profile-todo-note-form"
                 action={(formData) => {
@@ -171,6 +168,7 @@ function TodoRow({
                   value={optimistic.completed ? "1" : "0"}
                 />
                 <input
+                  key={optimistic.note ?? "empty"}
                   type="text"
                   name="note"
                   className="analyse-form-input"
@@ -182,6 +180,22 @@ function TodoRow({
                 <button type="submit" className="profile-edit-link">
                   Spara
                 </button>
+                {optimistic.note ? (
+                  <button
+                    type="submit"
+                    className="profile-todo-note-remove"
+                    formAction={(formData) => {
+                      formData.set("note", "");
+                      formData.set("clear_note", "1");
+                      runWithOptimistic(formData, {
+                        completed: optimistic.completed,
+                        note: null,
+                      });
+                    }}
+                  >
+                    Ta bort
+                  </button>
+                ) : null}
               </form>
             </details>
           ) : null}

@@ -368,7 +368,15 @@ export async function updateTodoStateAction(
   const propertyId = optionalText(formData, "property_id");
   const taskKey = optionalText(formData, "task_key");
   const completed = optionalText(formData, "completed") === "1";
-  const note = optionalText(formData, "note");
+  // Tom sträng / clear_note = ta bort anteckning (null i DB).
+  const clearNote = optionalText(formData, "clear_note") === "1";
+  const noteField = formData.get("note");
+  const note =
+    clearNote ||
+    noteField === "" ||
+    (typeof noteField === "string" && noteField.trim() === "")
+      ? null
+      : optionalText(formData, "note");
 
   if (!user) {
     redirect(

@@ -1318,6 +1318,24 @@ main.content-page {
   min-width: 10rem;
 }
 
+.profile-todo-note-remove {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgba(27, 46, 60, 0.55);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.profile-todo-note-remove:hover {
+  color: #a33b2c;
+}
+
 .profile-dashboard-empty {
   display: flex;
   flex-direction: column;
