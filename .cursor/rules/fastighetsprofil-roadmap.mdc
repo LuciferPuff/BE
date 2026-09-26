@@ -1,5 +1,5 @@
 ---
-description: Fastighetsprofil roadmap (backlog efter Fas A/B)
+description: Fastighetsprofil roadmap (backlog efter Fas A–C)
 alwaysApply: false
 ---
 
@@ -8,11 +8,7 @@ alwaysApply: false
 ## Klart
 - **Fas A** — dashboard-skal (`/profil/[id]`, status, analyser, tidslinje, dokument-teaser)
 - **Fas B** — husdelar, antagen/verifierad ålder, sidopanel, komplett-%, nästa steg
-
-## Fas C — Köpfas vs äger
-- Status styr Nästa steg och Att göra mer strukturellt
-- Knappen "Jag köpte huset" (övergång funderar → äger)
-- Enkel Att göra-lista (utan snooze först)
+- **Fas C** — statusstyrd Nästa steg, "Jag köpte huset", Att göra (bocka av + anteckning)
 
 ## Fas D — Dokument + tidslinje på riktigt
 - Uppladdning via signed URLs (`property-documents`)

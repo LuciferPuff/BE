@@ -306,9 +306,22 @@ export async function updateOwnershipStatusAction(
   const ownership_status: OwnershipStatus = rawStatus;
 
   const supabase = await createAuthClient();
+
+  const patch: Record<string, unknown> = { ownership_status };
+  if (ownership_status === "ager") {
+    const { data: current } = await supabase
+      .from("properties")
+      .select("purchase_date")
+      .eq("id", propertyId)
+      .maybeSingle();
+    if (!current?.purchase_date) {
+      patch.purchase_date = new Date().toISOString().slice(0, 10);
+    }
+  }
+
   const { data, error } = await supabase
     .from("properties")
-    .update({ ownership_status })
+    .update(patch)
     .eq("id", propertyId)
     .select("id");
 
@@ -325,6 +338,72 @@ export async function updateOwnershipStatusAction(
   revalidatePath("/profil");
   revalidatePath(`/profil/${propertyId}`);
   return {};
+}
+
+/** Fas C: tydlig CTA från köpfas → äger. */
+export async function markBoughtHouseAction(
+  _prev: OwnershipStatusState,
+  formData: FormData,
+): Promise<OwnershipStatusState> {
+  const next = new FormData();
+  const propertyId = formData.get("property_id");
+  if (typeof propertyId === "string") {
+    next.set("property_id", propertyId);
+  }
+  next.set("ownership_status", "ager");
+  return updateOwnershipStatusAction(_prev, next);
+}
+
+export type UpdateTodoState = {
+  error?: string;
+  ok?: boolean;
+};
+
+/** Bockar av / ångrar Att göra-punkt + valfri anteckning. */
+export async function updateTodoStateAction(
+  _prev: UpdateTodoState,
+  formData: FormData,
+): Promise<UpdateTodoState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  const taskKey = optionalText(formData, "task_key");
+  const completed = optionalText(formData, "completed") === "1";
+  const note = optionalText(formData, "note");
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId || !taskKey) {
+    return { error: "Saknar uppgift." };
+  }
+  if (taskKey.length > 80) {
+    return { error: "Ogiltig uppgift." };
+  }
+
+  const supabase = await createAuthClient();
+  const { error } = await supabase.from("property_todo_states").upsert(
+    {
+      property_id: propertyId,
+      task_key: taskKey,
+      completed_at: completed ? new Date().toISOString() : null,
+      note,
+      updated_by: user.id,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "property_id,task_key" },
+  );
+
+  if (error) {
+    console.error("[profil] todo_states:", error.message, error.code);
+    return { error: "Kunde inte spara. Försök igen." };
+  }
+
+  revalidatePath(`/profil/${propertyId}`);
+  return { ok: true };
 }
 
 export type UpdatePropertyPartState = {

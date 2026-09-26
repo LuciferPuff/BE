@@ -4,6 +4,11 @@ import {
   pickNextPartAction,
   type PropertyPartView,
 } from "@/lib/properties/build-property-parts";
+import {
+  buildPropertyTodos,
+  pickNextStep,
+  type PropertyTodoItem,
+} from "@/lib/properties/build-todos";
 import { createAuthClient } from "@/lib/supabase/auth-client";
 import type { OwnershipStatus } from "@/lib/properties/labels";
 
@@ -18,6 +23,14 @@ export type PropertyCompleteness = {
   verifiedParts: number;
   totalParts: number;
   missingHint: string;
+};
+
+export type PropertyNextStep = {
+  title: string;
+  body: string;
+  ctaLabel: string;
+  ctaHref?: string;
+  showBoughtButton?: boolean;
 };
 
 export type PropertyDashboard = {
@@ -38,6 +51,8 @@ export type PropertyDashboard = {
   parts: PropertyPartView[];
   completeness: PropertyCompleteness;
   nextPart: PropertyPartView | null;
+  todos: PropertyTodoItem[];
+  nextStep: PropertyNextStep;
 };
 
 function parseOwnershipStatus(value: unknown): OwnershipStatus {
@@ -99,6 +114,15 @@ export async function getPropertyDashboard(
     console.error("[profil] dashboard parts:", partsError.message);
   }
 
+  const { data: todoRows, error: todoError } = await supabase
+    .from("property_todo_states")
+    .select("task_key, completed_at, note")
+    .eq("property_id", propertyId);
+
+  if (todoError) {
+    console.error("[profil] dashboard todos:", todoError.message);
+  }
+
   const construction_year =
     typeof property.construction_year === "number"
       ? property.construction_year
@@ -108,6 +132,8 @@ export async function getPropertyDashboard(
 
   const living_area_sqm =
     property.living_area_sqm != null ? Number(property.living_area_sqm) : null;
+
+  const ownership_status = parseOwnershipStatus(property.ownership_status);
 
   const parts = buildPropertyPartViews(
     construction_year,
@@ -126,6 +152,33 @@ export async function getPropertyDashboard(
     parts,
   });
 
+  const analysesList = (analyses ?? []).map((a) => ({
+    id: a.id as string,
+    address: a.address as string,
+    created_at: a.created_at as string,
+  }));
+
+  const nextPart = pickNextPartAction(parts);
+  const todos = buildPropertyTodos({
+    ownershipStatus: ownership_status,
+    hasAnalysis: analysesList.length > 0,
+    parts,
+    states: (todoRows ?? []).map((r) => ({
+      task_key: r.task_key as string,
+      completed_at: (r.completed_at as string | null) ?? null,
+      note: (r.note as string | null) ?? null,
+    })),
+    propertyId,
+  });
+
+  const nextStep = pickNextStep({
+    ownershipStatus: ownership_status,
+    constructionYear: construction_year,
+    nextPart,
+    hasAnalysis: analysesList.length > 0,
+    openTodos: todos,
+  });
+
   return {
     id: property.id as string,
     address: property.address as string,
@@ -137,16 +190,14 @@ export async function getPropertyDashboard(
     construction_year,
     living_area_sqm,
     purchase_date: (property.purchase_date as string | null) ?? null,
-    ownership_status: parseOwnershipStatus(property.ownership_status),
+    ownership_status,
     role: membership.role as string,
     created_at: property.created_at as string,
-    analyses: (analyses ?? []).map((a) => ({
-      id: a.id as string,
-      address: a.address as string,
-      created_at: a.created_at as string,
-    })),
+    analyses: analysesList,
     parts,
     completeness,
-    nextPart: pickNextPartAction(parts),
+    nextPart,
+    todos,
+    nextStep,
   };
 }

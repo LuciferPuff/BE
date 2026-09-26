@@ -1,7 +1,9 @@
 import Link from "next/link";
 
+import { MarkBoughtHouseButton } from "@/components/profil/MarkBoughtHouseButton";
 import { OwnershipStatusSwitch } from "@/components/profil/OwnershipStatusSwitch";
 import { PropertyPartsSection } from "@/components/profil/PropertyPartsSection";
+import { PropertyTodoList } from "@/components/profil/PropertyTodoList";
 import { UnlinkAnalysisButton } from "@/components/mina-analyser/UnlinkAnalysisButton";
 import type { PropertyDashboard } from "@/lib/properties/get-property-dashboard";
 import {
@@ -41,6 +43,22 @@ function metaBits(property: PropertyDashboard): string[] {
   return bits.filter((b) => b && b !== "—");
 }
 
+function resolveNextStepHref(
+  property: PropertyDashboard,
+  ctaHref: string | undefined,
+): string | null {
+  if (!ctaHref) return null;
+  if (ctaHref === "redigera") return `/profil/${property.id}/redigera`;
+  if (ctaHref === "latest-analysis") {
+    return property.analyses[0]
+      ? `/mina-analyser/${property.analyses[0].id}`
+      : null;
+  }
+  if (ctaHref.startsWith("?")) return `/profil/${property.id}${ctaHref}`;
+  if (ctaHref.startsWith("#")) return ctaHref;
+  return ctaHref;
+}
+
 export function PropertyDashboardView({
   property,
   openPartKey = null,
@@ -51,7 +69,12 @@ export function PropertyDashboardView({
   const ownedSince = property.purchase_date
     ? new Date(property.purchase_date).getFullYear()
     : null;
-  const { completeness, nextPart } = property;
+  const { completeness, nextStep } = property;
+  const nextHref = resolveNextStepHref(property, nextStep.ctaHref);
+  const showBoughtPrimary =
+    canOwnStatus &&
+    property.ownership_status === "funderar" &&
+    (nextStep.showBoughtButton || !nextHref);
 
   const timeline: { key: string; label: string; date: string; href?: string }[] =
     [
@@ -112,56 +135,32 @@ export function PropertyDashboardView({
             <h2 id="profile-next-heading" className="profile-dashboard-heading">
               Nästa steg
             </h2>
-            {!property.construction_year ? (
-              <>
-                <p className="profile-dashboard-text">
-                  Lägg till byggår så kan vi anta ålder på tak, fasad och övriga
-                  delar.
-                </p>
-                <Link
-                  href={`/profil/${property.id}/redigera`}
-                  className="home-btn home-btn-primary"
-                >
-                  Ange byggår
+            <p className="profile-dashboard-text">{nextStep.body}</p>
+            <div className="profile-next-actions">
+              {showBoughtPrimary && !nextHref ? (
+                <MarkBoughtHouseButton propertyId={property.id} />
+              ) : null}
+              {nextHref ? (
+                <Link href={nextHref} className="home-btn home-btn-primary">
+                  {nextStep.ctaLabel}
                 </Link>
-              </>
-            ) : nextPart ? (
-              <>
-                <p className="profile-dashboard-text">
-                  När byttes {nextPart.label.toLowerCase()}? Svara så räknar vi
-                  om husets risker.
-                </p>
-                <Link
-                  href={`/profil/${property.id}?del=${nextPart.key}`}
-                  className="home-btn home-btn-primary"
-                >
-                  Uppdatera {nextPart.label.toLowerCase()}
-                </Link>
-              </>
-            ) : property.analyses.length === 0 ? (
-              <>
-                <p className="profile-dashboard-text">
-                  Koppla en AI-analys så huset får en första riskbild.
-                </p>
-                <Link href="/analys" className="home-btn home-btn-primary">
-                  Analysera det här huset
-                </Link>
-              </>
-            ) : (
-              <>
-                <p className="profile-dashboard-text">
-                  Bra jobbat — husets delar är ifyllda. Gå igenom din senaste
-                  analys eller komplettera övriga uppgifter.
-                </p>
-                <Link
-                  href={`/mina-analyser/${property.analyses[0].id}`}
-                  className="home-btn home-btn-primary"
-                >
-                  Öppna senaste analysen
-                </Link>
-              </>
-            )}
+              ) : null}
+              {canOwnStatus &&
+              property.ownership_status === "funderar" &&
+              nextHref ? (
+                <MarkBoughtHouseButton
+                  propertyId={property.id}
+                  variant="secondary"
+                />
+              ) : null}
+            </div>
           </section>
+
+          <PropertyTodoList
+            propertyId={property.id}
+            todos={property.todos}
+            canEdit={canEdit}
+          />
 
           <PropertyPartsSection
             propertyId={property.id}
