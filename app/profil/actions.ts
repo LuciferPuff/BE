@@ -11,6 +11,11 @@ import {
   type OwnershipStatus,
   type PropertyType,
 } from "@/lib/properties/labels";
+import {
+  isDocumentType,
+  isEventType,
+  sanitizeFileName,
+} from "@/lib/properties/document-labels";
 import { isPropertyPartKey } from "@/lib/properties/parts-catalog";
 import {
   isRoofMaterial,
@@ -664,6 +669,312 @@ export async function updatePropertyPartAction(
 
   revalidatePath(`/profil/${propertyId}`);
   revalidatePath("/profil");
+  return { ok: true };
+}
+
+const DOC_BUCKET = "property-documents";
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+
+export type DocumentUploadPrepareState = {
+  error?: string;
+  path?: string;
+  token?: string;
+  signedUrl?: string;
+};
+
+/** Skapar signed upload-URL. Klienten laddar upp, sedan confirmDocumentUploadAction. */
+export async function prepareDocumentUploadAction(
+  _prev: DocumentUploadPrepareState,
+  formData: FormData,
+): Promise<DocumentUploadPrepareState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  const fileName = optionalText(formData, "file_name");
+  const fileSizeRaw = optionalText(formData, "file_size");
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId || !fileName) {
+    return { error: "Saknar fil eller fastighet." };
+  }
+  const fileSize = fileSizeRaw ? Number(fileSizeRaw) : 0;
+  if (!Number.isFinite(fileSize) || fileSize <= 0) {
+    return { error: "Ogiltig filstorlek." };
+  }
+  if (fileSize > MAX_UPLOAD_BYTES) {
+    return { error: "Filen får vara högst 50 MB." };
+  }
+
+  const safe = sanitizeFileName(fileName);
+  const path = `${propertyId}/${crypto.randomUUID()}-${safe}`;
+  const supabase = await createAuthClient();
+
+  const { data, error } = await supabase.storage
+    .from(DOC_BUCKET)
+    .createSignedUploadUrl(path);
+
+  if (error || !data) {
+    console.error("[profil] signed upload:", error?.message);
+    return { error: "Kunde inte förbereda uppladdning. Försök igen." };
+  }
+
+  return {
+    path: data.path,
+    token: data.token,
+    signedUrl: data.signedUrl,
+  };
+}
+
+export type DocumentActionState = {
+  error?: string;
+  ok?: boolean;
+  url?: string;
+};
+
+/** Sparar metadata efter lyckad storage-uppladdning. */
+export async function confirmDocumentUploadAction(
+  _prev: DocumentActionState,
+  formData: FormData,
+): Promise<DocumentActionState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  const path = optionalText(formData, "file_path");
+  const typeRaw = optionalText(formData, "type");
+  const note = optionalText(formData, "note");
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId || !path) {
+    return { error: "Saknar fil." };
+  }
+  if (!path.startsWith(`${propertyId}/`)) {
+    return { error: "Ogiltig filsökväg." };
+  }
+  if (!typeRaw || !isDocumentType(typeRaw)) {
+    return { error: "Välj dokumenttyp." };
+  }
+
+  const supabase = await createAuthClient();
+  const { error } = await supabase.from("property_documents").insert({
+    property_id: propertyId,
+    type: typeRaw,
+    file_path: path,
+    note,
+    uploaded_by: user.id,
+  });
+
+  if (error) {
+    console.error("[profil] documents insert:", error.message, error.code);
+    return { error: "Kunde inte spara dokumentet. Försök igen." };
+  }
+
+  revalidatePath(`/profil/${propertyId}`);
+  return { ok: true };
+}
+
+/** Signed download-URL (kortlivad). */
+export async function getDocumentDownloadUrlAction(
+  _prev: DocumentActionState,
+  formData: FormData,
+): Promise<DocumentActionState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  const documentId = optionalText(formData, "document_id");
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId || !documentId) {
+    return { error: "Saknar dokument." };
+  }
+
+  const supabase = await createAuthClient();
+  const { data: doc, error: readError } = await supabase
+    .from("property_documents")
+    .select("file_path")
+    .eq("id", documentId)
+    .eq("property_id", propertyId)
+    .maybeSingle();
+
+  if (readError || !doc) {
+    return { error: "Dokumentet hittades inte." };
+  }
+
+  const { data, error } = await supabase.storage
+    .from(DOC_BUCKET)
+    .createSignedUrl(doc.file_path as string, 60 * 10);
+
+  if (error || !data?.signedUrl) {
+    console.error("[profil] signed download:", error?.message);
+    return { error: "Kunde inte öppna filen." };
+  }
+
+  return { ok: true, url: data.signedUrl };
+}
+
+/** Tar bort dokument (ägare) – storage + rad. */
+export async function deleteDocumentAction(
+  _prev: DocumentActionState,
+  formData: FormData,
+): Promise<DocumentActionState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  const documentId = optionalText(formData, "document_id");
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId || !documentId) {
+    return { error: "Saknar dokument." };
+  }
+
+  const supabase = await createAuthClient();
+  const { data: doc, error: readError } = await supabase
+    .from("property_documents")
+    .select("file_path")
+    .eq("id", documentId)
+    .eq("property_id", propertyId)
+    .maybeSingle();
+
+  if (readError || !doc) {
+    return { error: "Dokumentet hittades inte." };
+  }
+
+  const { error: storageError } = await supabase.storage
+    .from(DOC_BUCKET)
+    .remove([doc.file_path as string]);
+
+  if (storageError) {
+    console.error("[profil] storage delete:", storageError.message);
+  }
+
+  const { error } = await supabase
+    .from("property_documents")
+    .delete()
+    .eq("id", documentId)
+    .eq("property_id", propertyId);
+
+  if (error) {
+    console.error("[profil] documents delete:", error.message, error.code);
+    return { error: "Kunde inte ta bort dokumentet." };
+  }
+
+  revalidatePath(`/profil/${propertyId}`);
+  return { ok: true };
+}
+
+export type EventActionState = {
+  error?: string;
+  ok?: boolean;
+};
+
+/** Lägger till händelse i tidslinjen. */
+export async function createPropertyEventAction(
+  _prev: EventActionState,
+  formData: FormData,
+): Promise<EventActionState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  const typeRaw = optionalText(formData, "event_type");
+  const dateRaw = optionalText(formData, "event_date");
+  const description = optionalText(formData, "description");
+  const costRaw = optionalText(formData, "cost");
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId) {
+    return { error: "Saknar fastighet." };
+  }
+  if (!typeRaw || !isEventType(typeRaw)) {
+    return { error: "Välj typ av händelse." };
+  }
+  if (!dateRaw || !/^\d{4}-\d{2}-\d{2}$/.test(dateRaw)) {
+    return { error: "Ange ett giltigt datum." };
+  }
+
+  let cost: number | null = null;
+  if (costRaw) {
+    const parsed = Number(costRaw.replace(",", "."));
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return { error: "Ogiltig kostnad." };
+    }
+    cost = parsed;
+  }
+
+  const supabase = await createAuthClient();
+  const { error } = await supabase.from("property_events").insert({
+    property_id: propertyId,
+    event_type: typeRaw,
+    event_date: dateRaw,
+    description,
+    cost,
+    created_by: user.id,
+  });
+
+  if (error) {
+    console.error("[profil] events insert:", error.message, error.code);
+    return { error: "Kunde inte spara händelsen." };
+  }
+
+  revalidatePath(`/profil/${propertyId}`);
+  return { ok: true };
+}
+
+export async function deletePropertyEventAction(
+  _prev: EventActionState,
+  formData: FormData,
+): Promise<EventActionState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  const eventId = optionalText(formData, "event_id");
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId || !eventId) {
+    return { error: "Saknar händelse." };
+  }
+
+  const supabase = await createAuthClient();
+  const { error } = await supabase
+    .from("property_events")
+    .delete()
+    .eq("id", eventId)
+    .eq("property_id", propertyId);
+
+  if (error) {
+    console.error("[profil] events delete:", error.message, error.code);
+    return { error: "Kunde inte ta bort händelsen." };
+  }
+
+  revalidatePath(`/profil/${propertyId}`);
   return { ok: true };
 }
 

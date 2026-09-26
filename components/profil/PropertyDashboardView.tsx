@@ -3,7 +3,9 @@ import Link from "next/link";
 import { MarkBoughtHouseButton } from "@/components/profil/MarkBoughtHouseButton";
 import { NotifyMeButton } from "@/components/profil/NotifyMeButton";
 import { OwnershipStatusSwitch } from "@/components/profil/OwnershipStatusSwitch";
+import { PropertyDocumentsSection } from "@/components/profil/PropertyDocumentsSection";
 import { PropertyPartsSection } from "@/components/profil/PropertyPartsSection";
+import { PropertyTimelineSection } from "@/components/profil/PropertyTimelineSection";
 import { PropertyTodoList } from "@/components/profil/PropertyTodoList";
 import { UnlinkAnalysisButton } from "@/components/mina-analyser/UnlinkAnalysisButton";
 import type { PropertyDashboard } from "@/lib/properties/get-property-dashboard";
@@ -80,23 +82,6 @@ export function PropertyDashboardView({
     property.ownership_status === "funderar" ||
     property.analyses.length > 0;
   const interested = new Set(property.interestedFeatures);
-
-  const timeline: { key: string; label: string; date: string; href?: string }[] =
-    [
-      {
-        key: "created",
-        label: "Fastigheten lades till i Byggello",
-        date: property.created_at,
-      },
-      ...property.analyses.map((a) => ({
-        key: `analysis-${a.id}`,
-        label: "AI-analys kopplad",
-        date: a.created_at,
-        href: `/mina-analyser/${a.id}`,
-      })),
-    ].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-    );
 
   const analysesSection = showAnalyses ? (
     <section
@@ -288,47 +273,19 @@ export function PropertyDashboardView({
             </div>
           </section>
 
-          <section
-            className="profile-dashboard-panel"
-            aria-labelledby="profile-timeline-heading"
-          >
-            <h2
-              id="profile-timeline-heading"
-              className="profile-dashboard-heading"
-            >
-              Tidslinje
-            </h2>
-            <ol className="profile-timeline">
-              {timeline.map((item) => (
-                <li key={item.key} className="profile-timeline-item">
-                  <time dateTime={item.date}>{formatDate(item.date)}</time>
-                  {item.href ? (
-                    <Link href={item.href}>{item.label}</Link>
-                  ) : (
-                    <span>{item.label}</span>
-                  )}
-                </li>
-              ))}
-            </ol>
-          </section>
+          <PropertyTimelineSection
+            propertyId={property.id}
+            timeline={property.timeline}
+            canEdit={canEdit}
+            canDelete={canOwnStatus}
+          />
 
-          <section
-            className="profile-dashboard-panel profile-dashboard-panel--teaser"
-            aria-labelledby="profile-docs-heading"
-          >
-            <h2 id="profile-docs-heading" className="profile-dashboard-heading">
-              Dokument
-            </h2>
-            <p className="profile-dashboard-text">
-              Samla husets papper på ett ställe.
-            </p>
-            <p className="profile-teaser-badge">Detta kommer</p>
-            <NotifyMeButton
-              feature="dokument"
-              propertyId={property.id}
-              alreadyInterested={interested.has("dokument")}
-            />
-          </section>
+          <PropertyDocumentsSection
+            propertyId={property.id}
+            documents={property.documents}
+            canEdit={canEdit}
+            canDelete={canOwnStatus}
+          />
         </aside>
       </div>
 

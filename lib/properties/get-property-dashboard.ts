@@ -9,6 +9,11 @@ import {
   pickNextStep,
   type PropertyTodoItem,
 } from "@/lib/properties/build-todos";
+import {
+  displayNameFromFilePath,
+  documentTypeLabel,
+  eventTypeLabel,
+} from "@/lib/properties/document-labels";
 import { createAuthClient } from "@/lib/supabase/auth-client";
 import type { OwnershipStatus } from "@/lib/properties/labels";
 
@@ -33,6 +38,30 @@ export type PropertyNextStep = {
   tone?: "default" | "warning";
 };
 
+export type DashboardDocument = {
+  id: string;
+  type: string;
+  file_path: string;
+  note: string | null;
+  uploaded_at: string;
+};
+
+export type DashboardEvent = {
+  id: string;
+  event_type: string;
+  event_date: string;
+  description: string | null;
+  cost: number | null;
+};
+
+export type DashboardTimelineItem = {
+  key: string;
+  label: string;
+  date: string;
+  href?: string;
+  kind: "created" | "analysis" | "event" | "document";
+};
+
 export type PropertyDashboard = {
   id: string;
   address: string;
@@ -54,8 +83,10 @@ export type PropertyDashboard = {
   nextPart: PropertyPartView | null;
   todos: PropertyTodoItem[];
   nextStep: PropertyNextStep;
-  /** Features användaren redan anmält intresse för. */
   interestedFeatures: string[];
+  documents: DashboardDocument[];
+  events: DashboardEvent[];
+  timeline: DashboardTimelineItem[];
 };
 
 function parseOwnershipStatus(value: unknown): OwnershipStatus {
@@ -140,6 +171,26 @@ export async function getPropertyDashboard(
     console.error("[profil] feature_interest:", interestError.message);
   }
 
+  const { data: documentRows, error: documentsError } = await supabase
+    .from("property_documents")
+    .select("id, type, file_path, note, uploaded_at")
+    .eq("property_id", propertyId)
+    .order("uploaded_at", { ascending: false });
+
+  if (documentsError) {
+    console.error("[profil] documents:", documentsError.message);
+  }
+
+  const { data: eventRows, error: eventsError } = await supabase
+    .from("property_events")
+    .select("id, event_type, event_date, description, cost")
+    .eq("property_id", propertyId)
+    .order("event_date", { ascending: false });
+
+  if (eventsError) {
+    console.error("[profil] events:", eventsError.message);
+  }
+
   const construction_year =
     typeof property.construction_year === "number"
       ? property.construction_year
@@ -201,6 +252,54 @@ export async function getPropertyDashboard(
     openTodos: todos,
   });
 
+  const documents: DashboardDocument[] = (documentRows ?? []).map((d) => ({
+    id: d.id as string,
+    type: d.type as string,
+    file_path: d.file_path as string,
+    note: (d.note as string | null) ?? null,
+    uploaded_at: d.uploaded_at as string,
+  }));
+
+  const events: DashboardEvent[] = (eventRows ?? []).map((e) => ({
+    id: e.id as string,
+    event_type: e.event_type as string,
+    event_date: e.event_date as string,
+    description: (e.description as string | null) ?? null,
+    cost: e.cost != null ? Number(e.cost) : null,
+  }));
+
+  const timeline: DashboardTimelineItem[] = [
+    {
+      key: "created",
+      label: "Fastigheten lades till i Byggello",
+      date: property.created_at as string,
+      kind: "created" as const,
+    },
+    ...analysesList.map((a) => ({
+      key: `analysis-${a.id}`,
+      label: "AI-analys kopplad",
+      date: a.created_at,
+      href: `/mina-analyser/${a.id}`,
+      kind: "analysis" as const,
+    })),
+    ...events.map((e) => ({
+      key: `event-${e.id}`,
+      label: e.description?.trim()
+        ? `${eventTypeLabel(e.event_type)}: ${e.description.trim()}`
+        : eventTypeLabel(e.event_type),
+      date: e.event_date,
+      kind: "event" as const,
+    })),
+    ...documents.map((d) => ({
+      key: `doc-${d.id}`,
+      label: `Dokument: ${documentTypeLabel(d.type)} (${displayNameFromFilePath(d.file_path)})`,
+      date: d.uploaded_at,
+      kind: "document" as const,
+    })),
+  ].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  );
+
   return {
     id: property.id as string,
     address: property.address as string,
@@ -223,5 +322,8 @@ export async function getPropertyDashboard(
     todos,
     nextStep,
     interestedFeatures: (interestRows ?? []).map((r) => r.feature as string),
+    documents,
+    events,
+    timeline,
   };
 }
