@@ -49,7 +49,7 @@ export default async function PropertyDashboardPage({ params }: Props) {
           </p>
         </div>
       </section>
-      <div className="home-container my-analyses-content">
+      <div className="home-container my-analyses-content profile-dashboard-content">
         <PropertyDashboardView property={property} />
       </div>
       <SiteFooter />
