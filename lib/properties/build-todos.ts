@@ -144,7 +144,7 @@ export function buildPropertyTodos(input: {
           : `Åtgärda eller verifiera ${part.label.toLowerCase()}`,
       description: `${part.ageLabel}. ${part.statusLabel}.`,
       priority: 15 + (part.tone === "action" ? 0 : 5),
-      href: `/profil/${input.propertyId}?del=${part.key}`,
+      href: `#husets-delar`,
       completed: Boolean(state?.completed_at),
       notes: parseTodoNotes(state?.note),
       source: "part",
@@ -169,13 +169,15 @@ export function pickNextStep(input: {
   ctaLabel: string;
   ctaHref?: string;
   showBoughtButton?: boolean;
+  tone?: "default" | "warning";
 } {
   if (!input.constructionYear) {
     return {
-      title: "Ange byggår",
-      body: "Med byggår kan vi anta ålder på tak, fasad och övriga delar.",
+      title: "Saknar byggår",
+      body: "Utan byggår kan vi inte uppskatta ålder på tak, fasad och övriga delar. Fyll i det under uppgifter.",
       ctaLabel: "Ange byggår",
       ctaHref: "redigera",
+      tone: "warning",
     };
   }
 
@@ -207,13 +209,14 @@ export function pickNextStep(input: {
     };
   }
 
-  // Äger
+  // Äger — saknad/osäker husdel: varning, inte auto-öppnad panel.
   if (input.nextPart) {
     return {
-      title: `När byttes ${input.nextPart.label.toLowerCase()}?`,
-      body: "Svara så räknar vi om husets risker och underhåll.",
-      ctaLabel: `Uppdatera ${input.nextPart.label.toLowerCase()}`,
-      ctaHref: `?del=${input.nextPart.key}`,
+      title: `Komplettera ${input.nextPart.label.toLowerCase()}`,
+      body: `${input.nextPart.label} är ${input.nextPart.statusLabel.toLowerCase()} (${input.nextPart.ageLabel.toLowerCase()}). Ange bytt år under Husets delar så blir riskbilden mer träffsäker.`,
+      ctaLabel: "Gå till husets delar",
+      ctaHref: "#husets-delar",
+      tone: "warning",
     };
   }
 

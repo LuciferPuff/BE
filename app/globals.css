@@ -1180,6 +1180,26 @@ main.content-page {
   margin-top: 0;
 }
 
+.profile-next-panel--warning {
+  border-color: rgba(196, 138, 26, 0.35);
+  background: rgba(196, 138, 26, 0.08);
+}
+
+.profile-next-badge {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #8a6110;
+}
+
+.profile-next-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
 .profile-bought-form {
   display: inline-flex;
   flex-direction: column;

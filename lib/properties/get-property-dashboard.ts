@@ -31,6 +31,8 @@ export type PropertyNextStep = {
   ctaLabel: string;
   ctaHref?: string;
   showBoughtButton?: boolean;
+  /** Varning om saknad data (byggår/husdel) — ingen auto-öppnad panel. */
+  tone?: "default" | "warning";
 };
 
 export type PropertyDashboard = {

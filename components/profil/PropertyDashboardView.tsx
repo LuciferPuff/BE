@@ -129,19 +129,36 @@ export function PropertyDashboardView({
       <div className="profile-dashboard-grid">
         <div className="profile-dashboard-primary">
           <section
-            className="profile-dashboard-panel"
+            className={
+              nextStep.tone === "warning"
+                ? "profile-dashboard-panel profile-next-panel profile-next-panel--warning"
+                : "profile-dashboard-panel profile-next-panel"
+            }
             aria-labelledby="profile-next-heading"
           >
+            {nextStep.tone === "warning" ? (
+              <p className="profile-next-badge">Saknar data</p>
+            ) : null}
             <h2 id="profile-next-heading" className="profile-dashboard-heading">
-              Nästa steg
+              {nextStep.tone === "warning" ? nextStep.title : "Nästa steg"}
             </h2>
+            {nextStep.tone !== "warning" ? (
+              <p className="profile-next-title">{nextStep.title}</p>
+            ) : null}
             <p className="profile-dashboard-text">{nextStep.body}</p>
             <div className="profile-next-actions">
               {showBoughtPrimary && !nextHref ? (
                 <MarkBoughtHouseButton propertyId={property.id} />
               ) : null}
               {nextHref ? (
-                <Link href={nextHref} className="home-btn home-btn-primary">
+                <Link
+                  href={nextHref}
+                  className={
+                    nextStep.tone === "warning"
+                      ? "profile-edit-link"
+                      : "home-btn home-btn-primary"
+                  }
+                >
                   {nextStep.ctaLabel}
                 </Link>
               ) : null}

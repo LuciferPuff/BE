@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useId, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 
 import {
   updatePropertyPartAction,
@@ -13,7 +14,7 @@ type Props = {
   propertyId: string;
   parts: PropertyPartView[];
   canEdit: boolean;
-  /** Öppna panelen för denna del (t.ex. från Nästa steg). */
+  /** Öppna panelen för denna del (t.ex. gammal ?del=-länk). */
   initialPartKey?: string | null;
 };
 
@@ -25,33 +26,43 @@ export function PropertyPartsSection({
   canEdit,
   initialPartKey = null,
 }: Props) {
-  const [activeKey, setActiveKey] = useState<string | null>(
-    initialPartKey && parts.some((p) => p.key === initialPartKey)
-      ? initialPartKey
-      : null,
-  );
+  const router = useRouter();
+  const pathname = usePathname();
+  const openedFromQuery = useRef<string | null>(null);
+  const [activeKey, setActiveKey] = useState<string | null>(null);
   const active = parts.find((p) => p.key === activeKey) ?? null;
   const titleId = useId();
 
-  // Soft-nav från Att göra "?del=" uppdaterar prop utan remount.
+  // Öppna högst en gång från ?del= — inte igen vid varje revalidate.
   useEffect(() => {
     if (!initialPartKey) return;
+    if (openedFromQuery.current === initialPartKey) return;
     if (!parts.some((p) => p.key === initialPartKey)) return;
+    openedFromQuery.current = initialPartKey;
     setActiveKey(initialPartKey);
   }, [initialPartKey, parts]);
+
+  function closeSheet() {
+    setActiveKey(null);
+    if (initialPartKey) {
+      router.replace(pathname, { scroll: false });
+    }
+  }
 
   useEffect(() => {
     if (!activeKey) return;
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setActiveKey(null);
+      if (event.key === "Escape") closeSheet();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [activeKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- stäng via aktuell closeSheet
+  }, [activeKey, initialPartKey, pathname]);
 
   return (
     <section
       className="profile-dashboard-panel"
+      id="husets-delar"
       aria-labelledby="profile-parts-heading"
     >
       <h2 id="profile-parts-heading" className="profile-dashboard-heading">
@@ -59,7 +70,7 @@ export function PropertyPartsSection({
       </h2>
       <p className="profile-dashboard-text">
         Grått är okänt, färger bygger på ålder. Antagen från byggår tills du
-        verifierar.
+        verifierar. Klicka på en del för att ange bytt år.
       </p>
       <ul className="profile-parts-grid">
         {parts.map((part) => (
@@ -89,7 +100,7 @@ export function PropertyPartsSection({
             type="button"
             className="profile-part-sheet-backdrop"
             aria-label="Stäng"
-            onClick={() => setActiveKey(null)}
+            onClick={closeSheet}
           />
           <div className="profile-part-sheet-panel">
             <div className="profile-part-sheet-head">
@@ -97,7 +108,7 @@ export function PropertyPartsSection({
               <button
                 type="button"
                 className="profile-part-sheet-close"
-                onClick={() => setActiveKey(null)}
+                onClick={closeSheet}
               >
                 Stäng
               </button>
@@ -123,7 +134,7 @@ export function PropertyPartsSection({
               <PartVerifyForm
                 propertyId={propertyId}
                 part={active}
-                onDone={() => setActiveKey(null)}
+                onDone={closeSheet}
               />
             ) : (
               <p className="analyse-form-help">
