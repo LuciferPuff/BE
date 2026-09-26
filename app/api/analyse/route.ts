@@ -5,6 +5,10 @@ import { runClaudeAnalyse } from "@/lib/analyse/anthropic";
 import { buildAnalysePrompt } from "@/lib/analyse/claude-prompt";
 import { buildInputHashSource } from "@/lib/analyse/build-hash-source";
 import {
+  computeInputRichness,
+  isSignificantlyRicher,
+} from "@/lib/analyse/input-richness";
+import {
   parseAnalysisJson,
   type AnalysisResult,
 } from "@/lib/analyse/parse-analysis-json";
@@ -31,7 +35,7 @@ const CURRENT_PROMPT_VERSION = 3;
 
 const PROPERTY_TYPES = new Set(["Villa", "Kedjehus", "Radhus", "Fritidshus"]);
 
-const CACHE_SELECT = "id, result, prompt_version";
+const CACHE_SELECT = "id, result, prompt_version, input_richness";
 
 type Utm = {
   utm_source?: unknown;
@@ -48,6 +52,12 @@ type Body = {
   askingPrice?: number;
   adText?: string;
   utm?: Utm;
+};
+
+type CachedAnalysisRow = {
+  id: string;
+  result: AnalysisResult;
+  inputRichness: number;
 };
 
 const UTM_MAX_LEN = 200;
@@ -93,10 +103,11 @@ function persistFailureMessage(
     msg.includes("prompt_version") ||
     msg.includes("user_id") ||
     msg.includes("client_ip") ||
+    msg.includes("input_richness") ||
     (msg.toLowerCase().includes("column") &&
       msg.toLowerCase().includes("schema cache"))
   ) {
-    return "Databasen saknar en kolumn (prompt_version, user_id eller client_ip). Kör Supabase-migrationerna, t.ex. supabase db push, och ev. ”Reload schema” under API-inställningar.";
+    return "Databasen saknar en kolumn (prompt_version, user_id, client_ip eller input_richness). Kör Supabase-migrationerna, t.ex. supabase db push, och ev. ”Reload schema” under API-inställningar.";
   }
   if (
     code === "42501" ||
@@ -226,6 +237,11 @@ export async function POST(request: NextRequest) {
   }
 
   const inputHash = computeInputHash(address, buildYear, objectType);
+  const incomingRichness = computeInputRichness({
+    adText,
+    sizeSqm,
+    askingPrice,
+  });
   const sessionUser = await getSessionUserFromRequest(request);
   const userId = sessionUser?.id ?? null;
 
@@ -253,7 +269,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let cachedRow: { id: string; result: AnalysisResult } | null = null;
+  let cachedRow: CachedAnalysisRow | null = null;
 
   if (propertyId != null) {
     const { data, error } = await supabase
@@ -278,6 +294,7 @@ export async function POST(request: NextRequest) {
       cachedRow = {
         id: data.id,
         result: data.result as AnalysisResult,
+        inputRichness: Number(data.input_richness) || 0,
       };
     }
   } else {
@@ -304,25 +321,41 @@ export async function POST(request: NextRequest) {
       cachedRow = {
         id: data.id,
         result: data.result as AnalysisResult,
+        inputRichness: Number(data.input_richness) || 0,
       };
     }
   }
 
+  // Tunn cachad analys + rikare indata → kör om (skriv över samma rad senare).
+  let upgradeExistingId: string | null = null;
   if (cachedRow != null) {
-    if (supportsUserId) {
-      const existingUserId = await fetchAnalysisUserId(supabase, cachedRow.id);
-      await attachUserIdIfNeeded(
-        supabase,
-        cachedRow.id,
-        userId,
-        existingUserId,
+    if (isSignificantlyRicher(incomingRichness, cachedRow.inputRichness)) {
+      console.info(
+        "[analyse] richer input – regenerating cache",
+        JSON.stringify({
+          analysisId: cachedRow.id,
+          cachedRichness: cachedRow.inputRichness,
+          incomingRichness,
+        }),
       );
+      upgradeExistingId = cachedRow.id;
+      cachedRow = null;
+    } else {
+      if (supportsUserId) {
+        const existingUserId = await fetchAnalysisUserId(supabase, cachedRow.id);
+        await attachUserIdIfNeeded(
+          supabase,
+          cachedRow.id,
+          userId,
+          existingUserId,
+        );
+      }
+      return returnAnalysisSuccess(request, supabase, {
+        analysisId: cachedRow.id,
+        analysis: cachedRow.result,
+        cached: true,
+      });
     }
-    return returnAnalysisSuccess(request, supabase, {
-      analysisId: cachedRow.id,
-      analysis: cachedRow.result,
-      cached: true,
-    });
   }
 
   const ip = clientIp(request);
@@ -377,6 +410,7 @@ export async function POST(request: NextRequest) {
     size_sqm: sizeSqm,
     asking_price: Math.round(askingPrice),
     ad_text: adText,
+    input_richness: incomingRichness,
     result: analysis,
     prompt_version: CURRENT_PROMPT_VERSION,
     utm_source: cleanUtm(body.utm?.utm_source) ?? "direkt",
@@ -389,60 +423,78 @@ export async function POST(request: NextRequest) {
   }
 
   let savedId: string | null = null;
-  const insertRes = await supabase
-    .from("analyses")
-    .insert(rowPayload)
-    .select("id")
-    .maybeSingle();
+  let persistError: { message?: string; code?: string } | null = null;
 
-  let persistError = insertRes.error;
-
-  if (persistError?.code === "23505") {
-    const upd = propertyId
-      ? await supabase
-          .from("analyses")
-          .update(rowPayload)
-          .eq("property_id", propertyId)
-          .select("id")
-          .maybeSingle()
-      : await supabase
-          .from("analyses")
-          .update(rowPayload)
-          .eq("input_hash", inputHash)
-          .is("property_id", null)
-          .select("id")
-          .maybeSingle();
+  // Uppgradera befintlig rad (behåller id / linked_property_id / user_id).
+  if (upgradeExistingId != null) {
+    const upgradePayload = { ...rowPayload };
+    delete upgradePayload.user_id;
+    const upd = await supabase
+      .from("analyses")
+      .update(upgradePayload)
+      .eq("id", upgradeExistingId)
+      .select("id")
+      .maybeSingle();
     persistError = upd.error;
     if (typeof upd.data?.id === "string") {
       savedId = upd.data.id;
     }
-  } else if (typeof insertRes.data?.id === "string") {
-    savedId = insertRes.data.id;
-  }
+  } else {
+    const insertRes = await supabase
+      .from("analyses")
+      .insert(rowPayload)
+      .select("id")
+      .maybeSingle();
 
-  if (savedId == null && persistError == null) {
-    const refetch = propertyId
-      ? await supabase
-          .from("analyses")
-          .select("id")
-          .eq("property_id", propertyId)
-          .maybeSingle()
-      : await supabase
-          .from("analyses")
-          .select("id")
-          .eq("input_hash", inputHash)
-          .is("property_id", null)
-          .maybeSingle();
-    if (typeof refetch.data?.id === "string") {
-      savedId = refetch.data.id;
-    } else {
-      console.error(
-        "[analyse] insert returned no id and refetch missed:",
-        JSON.stringify({
-          insertError: insertRes.error,
-          insertData: insertRes.data,
-        }),
-      );
+    persistError = insertRes.error;
+
+    if (persistError?.code === "23505") {
+      const upd = propertyId
+        ? await supabase
+            .from("analyses")
+            .update(rowPayload)
+            .eq("property_id", propertyId)
+            .select("id")
+            .maybeSingle()
+        : await supabase
+            .from("analyses")
+            .update(rowPayload)
+            .eq("input_hash", inputHash)
+            .is("property_id", null)
+            .select("id")
+            .maybeSingle();
+      persistError = upd.error;
+      if (typeof upd.data?.id === "string") {
+        savedId = upd.data.id;
+      }
+    } else if (typeof insertRes.data?.id === "string") {
+      savedId = insertRes.data.id;
+    }
+
+    if (savedId == null && persistError == null) {
+      const refetch = propertyId
+        ? await supabase
+            .from("analyses")
+            .select("id")
+            .eq("property_id", propertyId)
+            .maybeSingle()
+        : await supabase
+            .from("analyses")
+            .select("id")
+            .eq("input_hash", inputHash)
+            .is("property_id", null)
+            .maybeSingle();
+      if (typeof refetch.data?.id === "string") {
+        savedId = refetch.data.id;
+      } else {
+        console.error(
+          "[analyse] insert returned no id and refetch missed:",
+          JSON.stringify({
+            insertError: insertRes.error,
+            insertData: insertRes.data,
+          }),
+        );
+      }
     }
   }
 
@@ -461,11 +513,13 @@ export async function POST(request: NextRequest) {
             .is("property_id", null)
             .maybeSingle();
       const againPv = Number(again?.prompt_version);
+      const againRichness = Number(again?.input_richness) || 0;
       if (
         again?.result != null &&
         typeof again.id === "string" &&
         Number.isFinite(againPv) &&
-        againPv === CURRENT_PROMPT_VERSION
+        againPv === CURRENT_PROMPT_VERSION &&
+        !isSignificantlyRicher(incomingRichness, againRichness)
       ) {
         if (supportsUserId) {
           const existingUserId = await fetchAnalysisUserId(supabase, again.id);
