@@ -13,6 +13,10 @@ import {
 } from "@/lib/properties/labels";
 import { isPropertyPartKey } from "@/lib/properties/parts-catalog";
 import {
+  isRoofMaterial,
+  ROOF_KNOWN_ISSUES,
+} from "@/lib/properties/component-lifespans";
+import {
   MAX_NOTE_LENGTH,
   MAX_NOTES,
   parseTodoNotes,
@@ -465,7 +469,7 @@ export type UpdatePropertyPartState = {
   ok?: boolean;
 };
 
-/** Sparar verifierat bytesår för en husdel (Fas B). */
+/** Sparar husdel: precision, år, material (tak) och kända problem. */
 export async function updatePropertyPartAction(
   _prev: UpdatePropertyPartState,
   formData: FormData,
@@ -473,8 +477,14 @@ export async function updatePropertyPartAction(
   const user = await getSessionUser();
   const propertyId = optionalText(formData, "property_id");
   const partKey = optionalText(formData, "part_key");
-  const yearRaw = optionalText(formData, "replaced_year");
   const clear = optionalText(formData, "clear") === "1";
+  const precisionRaw = optionalText(formData, "year_precision");
+  const yearRaw = optionalText(formData, "replaced_year");
+  const decadeRaw = optionalText(formData, "decade");
+  const materialRaw = optionalText(formData, "material");
+  const knownIssues = formData
+    .getAll("known_issues")
+    .filter((v): v is string => typeof v === "string" && v.length > 0);
 
   if (!user) {
     redirect(
@@ -490,25 +500,106 @@ export async function updatePropertyPartAction(
     return { error: "Ogiltig husdel." };
   }
 
+  const allowedIssues = new Set(
+    ROOF_KNOWN_ISSUES.map((i) => i.key as string),
+  );
+  const known_issues =
+    partKey === "tak"
+      ? knownIssues.filter((k) => allowedIssues.has(k)).slice(0, 10)
+      : [];
+
+  let material: string | null = null;
+  if (partKey === "tak") {
+    if (!materialRaw || !isRoofMaterial(materialRaw)) {
+      if (!clear) {
+        return { error: "Välj takmaterial." };
+      }
+    } else {
+      material = materialRaw;
+    }
+  }
+
+  const supabase = await createAuthClient();
+
+  if (clear || precisionRaw === "unknown") {
+    const { error } = await supabase.from("property_parts").upsert(
+      {
+        property_id: propertyId,
+        part_key: partKey,
+        replaced_year: null,
+        year_precision: null,
+        material: partKey === "tak" ? material : null,
+        known_issues,
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "property_id,part_key" },
+    );
+    if (error) {
+      console.error("[profil] property_parts:", error.message, error.code);
+      return { error: "Kunde inte spara. Försök igen." };
+    }
+    revalidatePath(`/profil/${propertyId}`);
+    revalidatePath("/profil");
+    return { ok: true };
+  }
+
+  let year_precision: "exact" | "decade" | "original" | null = null;
   let replaced_year: number | null = null;
-  if (!clear) {
+  const maxYear = new Date().getFullYear();
+  const minYear = 1850;
+
+  if (precisionRaw === "original") {
+    const { data: property } = await supabase
+      .from("properties")
+      .select("construction_year")
+      .eq("id", propertyId)
+      .maybeSingle();
+    const buildYear =
+      property?.construction_year != null
+        ? Number(property.construction_year)
+        : null;
+    if (buildYear == null || !Number.isFinite(buildYear)) {
+      return { error: "Ange byggår på fastigheten först." };
+    }
+    year_precision = "original";
+    replaced_year = buildYear;
+  } else if (precisionRaw === "decade") {
+    if (!decadeRaw) {
+      return { error: "Välj årtionde." };
+    }
+    const decadeStart = Number.parseInt(decadeRaw, 10);
+    if (
+      !Number.isFinite(decadeStart) ||
+      decadeStart < 1950 ||
+      decadeStart > maxYear
+    ) {
+      return { error: "Ogiltigt årtionde." };
+    }
+    year_precision = "decade";
+    replaced_year = decadeStart + 5; // mitt i årtiondet
+  } else if (precisionRaw === "exact" || !precisionRaw) {
     if (!yearRaw) {
       return { error: "Ange år då delen byttes eller renoverades." };
     }
     const year = Number.parseInt(yearRaw, 10);
-    const maxYear = new Date().getFullYear() + 1;
-    if (!Number.isFinite(year) || year < 1800 || year > maxYear) {
-      return { error: "Ange ett rimligt årtal." };
+    if (!Number.isFinite(year) || year < minYear || year > maxYear) {
+      return { error: `Ange ett år mellan ${minYear} och ${maxYear}.` };
     }
+    year_precision = "exact";
     replaced_year = year;
+  } else {
+    return { error: "Välj hur du vet åldern." };
   }
 
-  const supabase = await createAuthClient();
   const { error } = await supabase.from("property_parts").upsert(
     {
       property_id: propertyId,
       part_key: partKey,
       replaced_year,
+      year_precision,
+      material: partKey === "tak" ? material : null,
+      known_issues,
       updated_by: user.id,
       updated_at: new Date().toISOString(),
     },

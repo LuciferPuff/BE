@@ -6,6 +6,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "test": "tsx --test lib/properties/**/*.test.ts",
     "sanity:deploy": "sanity deploy"
   },
   "engines": {
@@ -33,6 +34,7 @@
     "eslint-config-next": "^16.2.1",
     "sanity": "^5.19.0",
     "styled-components": "^6.3.12",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.3"
   }
 }

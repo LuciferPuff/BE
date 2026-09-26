@@ -183,6 +183,7 @@ export function PropertyDashboardView({
             propertyId={property.id}
             parts={property.parts}
             canEdit={canEdit}
+            constructionYear={property.construction_year}
             initialPartKey={openPartKey}
           />
 

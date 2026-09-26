@@ -1,40 +1,63 @@
 import {
+  getComponentStatus,
+  type YearPrecision,
+} from "@/lib/properties/get-component-status";
+import {
   PROPERTY_PARTS,
-  type PropertyPartDefinition,
   type PropertyPartKey,
 } from "@/lib/properties/parts-catalog";
 
 export type PartSource = "unknown" | "assumed" | "verified";
-export type PartStatusTone = "unknown" | "ok" | "watch" | "action";
+export type PartStatusTone =
+  | "ok"
+  | "soon"
+  | "action"
+  | "likely"
+  | "assumed_ok"
+  | "unknown";
 
 export type PropertyPartView = {
   key: PropertyPartKey;
   label: string;
-  lifespanYears: number;
+  lifespanYears: number | null;
   summary: string;
   ifWaiting: string;
   guideHref?: string;
-  /** Beräknad ålder, null om okänd. */
   ageYears: number | null;
-  /** År som används för beräkning (byte eller byggår). */
   referenceYear: number | null;
   replacedYear: number | null;
+  yearPrecision: YearPrecision | null;
+  material: string | null;
+  knownIssues: string[];
   source: PartSource;
   tone: PartStatusTone;
   statusLabel: string;
   ageLabel: string;
-  sourceLabel: string;
+  actionLabel: string;
+  warning: string | null;
+  prompt: string | null;
+  /** Heldagen kant = verifierad status (ok/soon/action) eller eternit/problem. */
+  emphasis: "solid" | "muted";
 };
 
 export type PropertyPartRow = {
   part_key: string;
   replaced_year: number | null;
+  year_precision?: string | null;
+  material?: string | null;
+  known_issues?: string[] | null;
 };
 
-const currentYear = () => new Date().getFullYear();
+function parsePrecision(value: string | null | undefined): YearPrecision | null {
+  if (value === "exact" || value === "decade" || value === "original") {
+    return value;
+  }
+  // Legacy: bara replaced_year utan precision = exact
+  return null;
+}
 
 export function computePartView(
-  def: PropertyPartDefinition,
+  def: (typeof PROPERTY_PARTS)[number],
   constructionYear: number | null,
   row: PropertyPartRow | undefined,
 ): PropertyPartView {
@@ -43,76 +66,55 @@ export function computePartView(
       ? Number(row.replaced_year)
       : null;
 
-  let source: PartSource = "unknown";
-  let referenceYear: number | null = null;
-
-  if (replacedYear != null) {
-    source = "verified";
-    referenceYear = replacedYear;
-  } else if (constructionYear != null) {
-    source = "assumed";
-    referenceYear = constructionYear;
+  let yearPrecision = parsePrecision(row?.year_precision ?? null);
+  // Legacy-rader med år men utan precision räknas som exact.
+  if (replacedYear != null && yearPrecision == null) {
+    yearPrecision = "exact";
   }
 
-  const ageYears =
-    referenceYear != null ? Math.max(0, currentYear() - referenceYear) : null;
+  const material = row?.material?.trim() || null;
+  const knownIssues = Array.isArray(row?.known_issues)
+    ? row.known_issues.filter(Boolean)
+    : [];
 
-  const tone = resolveTone(ageYears, def.lifespanYears, source);
-  const statusLabel = statusLabelFor(tone);
-  const ageLabel =
-    ageYears == null
-      ? "Ålder okänd"
-      : source === "verified"
-        ? `${ageYears} år (verifierad)`
-        : `ca ${ageYears} år (antagen)`;
-  const sourceLabel =
-    source === "verified"
-      ? "Verifierad"
-      : source === "assumed"
-        ? "Antagen från byggår"
-        : "Okänd";
+  const status = getComponentStatus({
+    key: def.key,
+    buildYear: constructionYear,
+    replacedYear,
+    yearPrecision,
+    material,
+    knownIssues,
+  });
+
+  const emphasis: "solid" | "muted" =
+    status.status === "ok" ||
+    status.status === "soon" ||
+    status.status === "action"
+      ? "solid"
+      : "muted";
 
   return {
     key: def.key,
     label: def.label,
-    lifespanYears: def.lifespanYears,
+    lifespanYears: status.lifespanYears ?? def.lifespanYears,
     summary: def.summary,
     ifWaiting: def.ifWaiting,
     guideHref: def.guideHref,
-    ageYears,
-    referenceYear,
+    ageYears: status.ageYears,
+    referenceYear: status.referenceYear,
     replacedYear,
-    source,
-    tone,
-    statusLabel,
-    ageLabel,
-    sourceLabel,
+    yearPrecision,
+    material,
+    knownIssues,
+    source: status.source,
+    tone: status.status,
+    statusLabel: status.statusLabel,
+    ageLabel: status.ageLabel,
+    actionLabel: status.actionLabel,
+    warning: status.warning,
+    prompt: status.prompt,
+    emphasis,
   };
-}
-
-function resolveTone(
-  ageYears: number | null,
-  lifespan: number,
-  source: PartSource,
-): PartStatusTone {
-  if (ageYears == null || source === "unknown") return "unknown";
-  const remaining = lifespan - ageYears;
-  if (remaining <= 0) return "action";
-  if (remaining <= 5) return "watch";
-  return "ok";
-}
-
-function statusLabelFor(tone: PartStatusTone): string {
-  switch (tone) {
-    case "ok":
-      return "OK";
-    case "watch":
-      return "Inom 5 år";
-    case "action":
-      return "Åtgärda";
-    default:
-      return "Okänt";
-  }
 }
 
 export function buildPropertyPartViews(
@@ -132,7 +134,12 @@ export function computeProfileCompleteness(input: {
   hasConstructionYear: boolean;
   hasLivingArea: boolean;
   parts: PropertyPartView[];
-}): { percent: number; verifiedParts: number; totalParts: number; missingHint: string } {
+}): {
+  percent: number;
+  verifiedParts: number;
+  totalParts: number;
+  missingHint: string;
+} {
   const metaChecks = [
     input.hasKommun,
     input.hasPropertyType,
@@ -140,7 +147,9 @@ export function computeProfileCompleteness(input: {
     input.hasLivingArea,
   ];
   const metaScore = metaChecks.filter(Boolean).length;
-  const verifiedParts = input.parts.filter((p) => p.source === "verified").length;
+  const verifiedParts = input.parts.filter(
+    (p) => p.source === "verified",
+  ).length;
   const totalParts = input.parts.length;
   const earned = metaScore + verifiedParts;
   const total = metaChecks.length + totalParts;
@@ -161,12 +170,18 @@ export function computeProfileCompleteness(input: {
   return { percent, verifiedParts, totalParts, missingHint };
 }
 
+/**
+ * Nästa del att komplettera: verifierade larm först, sedan troligen dags, sedan okänt.
+ * Antagen "Troligen OK" prioriteras inte.
+ */
 export function pickNextPartAction(
   parts: PropertyPartView[],
 ): PropertyPartView | null {
   return (
     parts.find((p) => p.tone === "action") ??
-    parts.find((p) => p.tone === "watch") ??
+    parts.find((p) => p.tone === "soon") ??
+    parts.find((p) => p.tone === "likely") ??
+    parts.find((p) => p.tone === "unknown") ??
     parts.find((p) => p.source !== "verified") ??
     null
   );

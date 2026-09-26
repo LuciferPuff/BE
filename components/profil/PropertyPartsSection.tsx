@@ -9,21 +9,38 @@ import {
   type UpdatePropertyPartState,
 } from "@/app/profil/actions";
 import type { PropertyPartView } from "@/lib/properties/build-property-parts";
+import {
+  lifespanForPart,
+  ROOF_KNOWN_ISSUES,
+  ROOF_MATERIAL_LABELS,
+  ROOF_MATERIALS,
+  type RoofMaterial,
+} from "@/lib/properties/component-lifespans";
 
 type Props = {
   propertyId: string;
   parts: PropertyPartView[];
   canEdit: boolean;
+  constructionYear: number | null;
   /** Öppna panelen för denna del (t.ex. gammal ?del=-länk). */
   initialPartKey?: string | null;
 };
 
 const initialState: UpdatePropertyPartState = {};
 
+function decadeOptions(maxYear: number): number[] {
+  const start = 1950;
+  const last = Math.floor(maxYear / 10) * 10;
+  const out: number[] = [];
+  for (let y = last; y >= start; y -= 10) out.push(y);
+  return out;
+}
+
 export function PropertyPartsSection({
   propertyId,
   parts,
   canEdit,
+  constructionYear,
   initialPartKey = null,
 }: Props) {
   const router = useRouter();
@@ -33,7 +50,6 @@ export function PropertyPartsSection({
   const active = parts.find((p) => p.key === activeKey) ?? null;
   const titleId = useId();
 
-  // Öppna högst en gång från ?del= — inte igen vid varje revalidate.
   useEffect(() => {
     if (!initialPartKey) return;
     if (openedFromQuery.current === initialPartKey) return;
@@ -56,7 +72,7 @@ export function PropertyPartsSection({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- stäng via aktuell closeSheet
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeKey, initialPartKey, pathname]);
 
   return (
@@ -69,21 +85,21 @@ export function PropertyPartsSection({
         Husets delar
       </h2>
       <p className="profile-dashboard-text">
-        Grått är okänt, färger bygger på ålder. Antagen från byggår tills du
-        verifierar. Klicka på en del för att ange bytt år.
+        Heldragen färg = verifierat. Dämpat = antaget från byggår. Klicka på en
+        del för att ange när den byttes.
       </p>
       <ul className="profile-parts-grid">
         {parts.map((part) => (
           <li key={part.key}>
             <button
               type="button"
-              className={`profile-part-tile profile-part-tile--${part.tone}`}
+              className={`profile-part-tile profile-part-tile--${part.tone} profile-part-tile--${part.emphasis}`}
               onClick={() => setActiveKey(part.key)}
             >
               <span className="profile-part-tile-status">{part.statusLabel}</span>
               <span className="profile-part-tile-label">{part.label}</span>
               <span className="profile-part-tile-age">{part.ageLabel}</span>
-              <span className="profile-part-tile-source">{part.sourceLabel}</span>
+              <span className="profile-part-tile-action">{part.actionLabel}</span>
             </button>
           </li>
         ))}
@@ -116,16 +132,27 @@ export function PropertyPartsSection({
             <p
               className={`profile-part-badge profile-part-badge--${active.tone}`}
             >
-              {active.statusLabel} · {active.sourceLabel}
+              {active.statusLabel}
             </p>
+            {active.warning ? (
+              <p className="profile-part-warning" role="status">
+                {active.warning}
+              </p>
+            ) : null}
+            {active.prompt ? (
+              <p className="profile-dashboard-text">{active.prompt}</p>
+            ) : null}
             <p className="profile-dashboard-text">{active.summary}</p>
             <p className="profile-dashboard-text">
-              Normal livslängd ca {active.lifespanYears} år. {active.ifWaiting}
+              {active.lifespanYears != null
+                ? `Normal livslängd ca ${active.lifespanYears} år. `
+                : null}
+              {active.ifWaiting}
             </p>
             {active.guideHref ? (
               <p>
                 <Link href={active.guideHref} className="profile-edit-link">
-                  Läs mer i guiderna
+                  Läs mer
                 </Link>
               </p>
             ) : null}
@@ -134,6 +161,7 @@ export function PropertyPartsSection({
               <PartVerifyForm
                 propertyId={propertyId}
                 part={active}
+                constructionYear={constructionYear}
                 onDone={closeSheet}
               />
             ) : (
@@ -151,51 +179,201 @@ export function PropertyPartsSection({
 function PartVerifyForm({
   propertyId,
   part,
+  constructionYear,
   onDone,
 }: {
   propertyId: string;
   part: PropertyPartView;
+  constructionYear: number | null;
   onDone: () => void;
 }) {
   const [state, formAction, pending] = useActionState(
     updatePropertyPartAction,
     initialState,
   );
+  const [precision, setPrecision] = useState<
+    "exact" | "decade" | "original" | "unknown"
+  >(
+    part.yearPrecision === "decade"
+      ? "decade"
+      : part.yearPrecision === "original"
+        ? "original"
+        : part.replacedYear != null
+          ? "exact"
+          : "exact",
+  );
+  const [material, setMaterial] = useState<RoofMaterial | "">(
+    part.material &&
+      (ROOF_MATERIALS as readonly string[]).includes(part.material)
+      ? (part.material as RoofMaterial)
+      : "",
+  );
+
+  const now = new Date().getFullYear();
+  const materialLifespan =
+    part.key === "tak" && material
+      ? lifespanForPart("tak", material)
+      : part.lifespanYears;
 
   useEffect(() => {
     if (state.ok) onDone();
-  }, [state.ok]); // eslint-disable-line react-hooks/exhaustive-deps -- stäng bara vid lyckat sparande
+  }, [state.ok]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="profile-part-verify">
-      <p className="profile-part-verify-label">Uppdatera: byttes år</p>
-      <form action={formAction} className="profile-part-verify-form">
+      <form action={formAction} className="profile-part-verify-stack">
         <input type="hidden" name="property_id" value={propertyId} />
         <input type="hidden" name="part_key" value={part.key} />
-        <input
-          type="number"
-          name="replaced_year"
-          className="analyse-form-input"
-          min={1800}
-          max={new Date().getFullYear() + 1}
-          defaultValue={part.replacedYear ?? ""}
-          placeholder="t.ex. 2012"
-          disabled={pending}
-          required
-        />
-        <button
-          type="submit"
-          className="home-btn home-btn-primary"
-          disabled={pending}
-        >
-          {pending ? "Sparar…" : "Spara"}
-        </button>
+
+        {part.key === "tak" ? (
+          <fieldset className="profile-part-fieldset">
+            <legend>Takmaterial</legend>
+            <div className="profile-part-choice-list">
+              {ROOF_MATERIALS.map((key) => (
+                <label key={key} className="profile-part-choice">
+                  <input
+                    type="radio"
+                    name="material"
+                    value={key}
+                    checked={material === key}
+                    onChange={() => setMaterial(key)}
+                    disabled={pending}
+                    required
+                  />
+                  <span>{ROOF_MATERIAL_LABELS[key]}</span>
+                </label>
+              ))}
+            </div>
+            {materialLifespan != null ? (
+              <p className="analyse-form-help">
+                Riktvärde för livslängd: ca {materialLifespan} år.
+              </p>
+            ) : material === "okand" || !material ? (
+              <p className="analyse-form-help">
+                Välj material för att få rätt livslängdsriktvärde.
+              </p>
+            ) : null}
+          </fieldset>
+        ) : null}
+
+        <fieldset className="profile-part-fieldset">
+          <legend>När byttes / renoverades delen?</legend>
+          <div className="profile-part-choice-list">
+            {(
+              [
+                ["exact", "Exakt år"],
+                ["decade", "Årtionde"],
+                ["original", "Original från byggår"],
+                ["unknown", "Vet ej"],
+              ] as const
+            ).map(([value, label]) => (
+              <label key={value} className="profile-part-choice">
+                <input
+                  type="radio"
+                  name="year_precision"
+                  value={value}
+                  checked={precision === value}
+                  onChange={() => setPrecision(value)}
+                  disabled={pending}
+                />
+                <span>{label}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        {precision === "exact" ? (
+          <label className="profile-part-field">
+            <span>År</span>
+            <input
+              type="text"
+              name="replaced_year"
+              className="analyse-form-input"
+              inputMode="numeric"
+              pattern="[0-9]{4}"
+              defaultValue={
+                part.yearPrecision === "exact" && part.replacedYear != null
+                  ? String(part.replacedYear)
+                  : ""
+              }
+              placeholder="t.ex. 2012"
+              disabled={pending}
+              autoComplete="off"
+            />
+          </label>
+        ) : null}
+
+        {precision === "decade" ? (
+          <label className="profile-part-field">
+            <span>Årtionde</span>
+            <select
+              name="decade"
+              className="analyse-form-input"
+              defaultValue={
+                part.yearPrecision === "decade" && part.replacedYear != null
+                  ? String(Math.floor(part.replacedYear / 10) * 10)
+                  : ""
+              }
+              disabled={pending}
+              required
+            >
+              <option value="">Välj årtionde</option>
+              {decadeOptions(now).map((y) => (
+                <option key={y} value={y}>
+                  {y}-tal
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+
+        {precision === "original" ? (
+          <p className="analyse-form-help">
+            {constructionYear != null
+              ? `Räknas som original från byggår ${constructionYear}.`
+              : "Ange byggår på fastigheten först."}
+          </p>
+        ) : null}
+
+        {part.key === "tak" ? (
+          <fieldset className="profile-part-fieldset">
+            <legend>Kända problem</legend>
+            <div className="profile-part-choice-list">
+              {ROOF_KNOWN_ISSUES.map((issue) => (
+                <label key={issue.key} className="profile-part-choice">
+                  <input
+                    type="checkbox"
+                    name="known_issues"
+                    value={issue.key}
+                    defaultChecked={part.knownIssues.includes(issue.key)}
+                    disabled={pending}
+                  />
+                  <span>{issue.label}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
+
+        <div className="profile-part-verify-actions">
+          <button
+            type="submit"
+            className="home-btn home-btn-primary"
+            disabled={pending}
+          >
+            {pending ? "Sparar…" : "Spara"}
+          </button>
+        </div>
       </form>
-      {part.source === "verified" ? (
-        <form action={formAction}>
+
+      {part.source === "verified" || part.material || part.knownIssues.length > 0 ? (
+        <form action={formAction} className="profile-part-clear-form">
           <input type="hidden" name="property_id" value={propertyId} />
           <input type="hidden" name="part_key" value={part.key} />
           <input type="hidden" name="clear" value="1" />
+          {part.key === "tak" && material ? (
+            <input type="hidden" name="material" value={material} />
+          ) : null}
           <button
             type="submit"
             className="profile-part-clear"
@@ -205,6 +383,7 @@ function PartVerifyForm({
           </button>
         </form>
       ) : null}
+
       {state.error ? (
         <p className="profile-ownership-error" role="alert">
           {state.error}

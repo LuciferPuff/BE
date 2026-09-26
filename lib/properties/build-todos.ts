@@ -130,20 +130,39 @@ export function buildPropertyTodos(input: {
     });
   }
 
-  // Endast delar som behöver koll (action/watch) — håller listan kort.
+  // Larm: verifierad action/soon, eller likely/unknown som mjuk komplettering.
+  // assumed_ok skapar inte Att göra-punkter.
   for (const part of input.parts) {
-    if (part.tone !== "action" && part.tone !== "watch") continue;
+    if (
+      part.tone !== "action" &&
+      part.tone !== "soon" &&
+      part.tone !== "likely" &&
+      part.tone !== "unknown"
+    ) {
+      continue;
+    }
 
     const key = `part_${part.key}`;
     const state = stateByKey.get(key);
+    const isSoft = part.tone === "likely" || part.tone === "unknown";
     items.push({
       key,
-      title:
-        input.ownershipStatus === "funderar"
-          ? `Kolla ${part.label.toLowerCase()} inför köp`
+      title: isSoft
+        ? `Verifiera ${part.label.toLowerCase()}`
+        : part.tone === "soon"
+          ? `Planera ${part.label.toLowerCase()}`
           : `Åtgärda eller verifiera ${part.label.toLowerCase()}`,
-      description: `${part.ageLabel}. ${part.statusLabel}.`,
-      priority: 15 + (part.tone === "action" ? 0 : 5),
+      description: part.prompt
+        ? part.prompt
+        : `${part.ageLabel}. ${part.statusLabel}.`,
+      priority:
+        part.tone === "action"
+          ? 12
+          : part.tone === "soon"
+            ? 16
+            : part.tone === "likely"
+              ? 22
+              : 28,
       href: `#husets-delar`,
       completed: Boolean(state?.completed_at),
       notes: parseTodoNotes(state?.note),
@@ -211,9 +230,19 @@ export function pickNextStep(input: {
 
   // Äger — saknad/osäker husdel: varning, inte auto-öppnad panel.
   if (input.nextPart) {
+    const soft =
+      input.nextPart.tone === "likely" ||
+      input.nextPart.tone === "unknown" ||
+      input.nextPart.tone === "assumed_ok";
     return {
-      title: `Komplettera ${input.nextPart.label.toLowerCase()}`,
-      body: `${input.nextPart.label} är ${input.nextPart.statusLabel.toLowerCase()} (${input.nextPart.ageLabel.toLowerCase()}). Ange bytt år under Husets delar så blir riskbilden mer träffsäker.`,
+      title: soft
+        ? `Komplettera ${input.nextPart.label.toLowerCase()}`
+        : `Kolla ${input.nextPart.label.toLowerCase()}`,
+      body: input.nextPart.prompt
+        ? input.nextPart.prompt
+        : soft
+          ? `${input.nextPart.label} är ${input.nextPart.statusLabel.toLowerCase()} (${input.nextPart.ageLabel.toLowerCase()}). Ange bytt år under Husets delar så blir riskbilden mer träffsäker.`
+          : `${input.nextPart.label}: ${input.nextPart.statusLabel}. ${input.nextPart.ageLabel}.`,
       ctaLabel: "Gå till husets delar",
       ctaHref: "#husets-delar",
       tone: "warning",
