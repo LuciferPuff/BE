@@ -113,6 +113,41 @@ export function CreatePropertyForm() {
         </select>
       </div>
 
+      <div className="analyse-form-row">
+        <div className="analyse-form-field">
+          <label className="analyse-form-label" htmlFor="property-year">
+            Byggår
+          </label>
+          <input
+            id="property-year"
+            name="construction_year"
+            type="number"
+            inputMode="numeric"
+            min={1800}
+            max={new Date().getFullYear() + 1}
+            className="analyse-form-input"
+            placeholder="t.ex. 1975"
+            disabled={pending}
+          />
+        </div>
+        <div className="analyse-form-field">
+          <label className="analyse-form-label" htmlFor="property-area">
+            Boarea (m²)
+          </label>
+          <input
+            id="property-area"
+            name="living_area_sqm"
+            type="number"
+            inputMode="decimal"
+            min={1}
+            step={0.1}
+            className="analyse-form-input"
+            placeholder="t.ex. 142"
+            disabled={pending}
+          />
+        </div>
+      </div>
+
       <div className="analyse-form-actions">
         <button
           type="submit"

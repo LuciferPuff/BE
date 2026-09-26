@@ -11,6 +11,7 @@ import {
   type OwnershipStatus,
   type PropertyType,
 } from "@/lib/properties/labels";
+import { isPropertyPartKey } from "@/lib/properties/parts-catalog";
 import { createAuthClient } from "@/lib/supabase/auth-client";
 
 export type PropertyFormState = {
@@ -32,6 +33,8 @@ function parsePropertyFields(formData: FormData): {
   city: string | null;
   kommun: string | null;
   property_type: PropertyType | null;
+  construction_year: number | null;
+  living_area_sqm: number | null;
 } {
   const address = optionalText(formData, "address");
   if (!address) {
@@ -42,6 +45,8 @@ function parsePropertyFields(formData: FormData): {
       city: null,
       kommun: null,
       property_type: null,
+      construction_year: null,
+      living_area_sqm: null,
     };
   }
 
@@ -54,6 +59,8 @@ function parsePropertyFields(formData: FormData): {
       city: null,
       kommun: null,
       property_type: null,
+      construction_year: null,
+      living_area_sqm: null,
     };
   }
   const kommun = parseSwedishMunicipality(rawKommun);
@@ -65,6 +72,8 @@ function parsePropertyFields(formData: FormData): {
       city: null,
       kommun: null,
       property_type: null,
+      construction_year: null,
+      living_area_sqm: null,
     };
   }
 
@@ -79,9 +88,50 @@ function parsePropertyFields(formData: FormData): {
         city: null,
         kommun: null,
         property_type: null,
+        construction_year: null,
+        living_area_sqm: null,
       };
     }
     property_type = rawType;
+  }
+
+  const yearRaw = optionalText(formData, "construction_year");
+  let construction_year: number | null = null;
+  if (yearRaw) {
+    const year = Number.parseInt(yearRaw, 10);
+    const maxYear = new Date().getFullYear() + 1;
+    if (!Number.isFinite(year) || year < 1800 || year > maxYear) {
+      return {
+        error: "Ange ett rimligt byggår.",
+        designation: null,
+        postal_code: null,
+        city: null,
+        kommun: null,
+        property_type: null,
+        construction_year: null,
+        living_area_sqm: null,
+      };
+    }
+    construction_year = year;
+  }
+
+  const areaRaw = optionalText(formData, "living_area_sqm");
+  let living_area_sqm: number | null = null;
+  if (areaRaw) {
+    const area = Number.parseFloat(areaRaw.replace(",", "."));
+    if (!Number.isFinite(area) || area <= 0 || area > 5000) {
+      return {
+        error: "Ange en rimlig boarea i m².",
+        designation: null,
+        postal_code: null,
+        city: null,
+        kommun: null,
+        property_type: null,
+        construction_year: null,
+        living_area_sqm: null,
+      };
+    }
+    living_area_sqm = area;
   }
 
   return {
@@ -91,6 +141,8 @@ function parsePropertyFields(formData: FormData): {
     city: optionalText(formData, "city"),
     kommun,
     property_type,
+    construction_year,
+    living_area_sqm,
   };
 }
 
@@ -122,6 +174,8 @@ export async function createPropertyAction(
     city: parsed.city,
     kommun: parsed.kommun,
     property_type: parsed.property_type,
+    construction_year: parsed.construction_year,
+    living_area_sqm: parsed.living_area_sqm,
   });
 
   if (insertError) {
@@ -199,6 +253,8 @@ export async function updatePropertyAction(
       city: parsed.city,
       kommun: parsed.kommun,
       property_type: parsed.property_type,
+      construction_year: parsed.construction_year,
+      living_area_sqm: parsed.living_area_sqm,
     })
     .eq("id", propertyId)
     .select("id");
@@ -269,6 +325,71 @@ export async function updateOwnershipStatusAction(
   revalidatePath("/profil");
   revalidatePath(`/profil/${propertyId}`);
   return {};
+}
+
+export type UpdatePropertyPartState = {
+  error?: string;
+  ok?: boolean;
+};
+
+/** Sparar verifierat bytesår för en husdel (Fas B). */
+export async function updatePropertyPartAction(
+  _prev: UpdatePropertyPartState,
+  formData: FormData,
+): Promise<UpdatePropertyPartState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  const partKey = optionalText(formData, "part_key");
+  const yearRaw = optionalText(formData, "replaced_year");
+  const clear = optionalText(formData, "clear") === "1";
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId) {
+    return { error: "Saknar fastighet." };
+  }
+  if (!partKey || !isPropertyPartKey(partKey)) {
+    return { error: "Ogiltig husdel." };
+  }
+
+  let replaced_year: number | null = null;
+  if (!clear) {
+    if (!yearRaw) {
+      return { error: "Ange år då delen byttes eller renoverades." };
+    }
+    const year = Number.parseInt(yearRaw, 10);
+    const maxYear = new Date().getFullYear() + 1;
+    if (!Number.isFinite(year) || year < 1800 || year > maxYear) {
+      return { error: "Ange ett rimligt årtal." };
+    }
+    replaced_year = year;
+  }
+
+  const supabase = await createAuthClient();
+  const { error } = await supabase.from("property_parts").upsert(
+    {
+      property_id: propertyId,
+      part_key: partKey,
+      replaced_year,
+      updated_by: user.id,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "property_id,part_key" },
+  );
+
+  if (error) {
+    console.error("[profil] property_parts:", error.message, error.code);
+    return { error: "Kunde inte spara. Försök igen." };
+  }
+
+  revalidatePath(`/profil/${propertyId}`);
+  revalidatePath("/profil");
+  return { ok: true };
 }
 
 /** @deprecated Use PropertyFormState */

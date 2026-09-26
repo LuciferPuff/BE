@@ -1,3 +1,9 @@
+import {
+  buildPropertyPartViews,
+  computeProfileCompleteness,
+  pickNextPartAction,
+  type PropertyPartView,
+} from "@/lib/properties/build-property-parts";
 import { createAuthClient } from "@/lib/supabase/auth-client";
 import type { OwnershipStatus } from "@/lib/properties/labels";
 
@@ -5,6 +11,13 @@ export type DashboardLinkedAnalysis = {
   id: string;
   address: string;
   created_at: string;
+};
+
+export type PropertyCompleteness = {
+  percent: number;
+  verifiedParts: number;
+  totalParts: number;
+  missingHint: string;
 };
 
 export type PropertyDashboard = {
@@ -22,6 +35,9 @@ export type PropertyDashboard = {
   role: string;
   created_at: string;
   analyses: DashboardLinkedAnalysis[];
+  parts: PropertyPartView[];
+  completeness: PropertyCompleteness;
+  nextPart: PropertyPartView | null;
 };
 
 function parseOwnershipStatus(value: unknown): OwnershipStatus {
@@ -74,6 +90,42 @@ export async function getPropertyDashboard(
     console.error("[profil] dashboard analyses:", analysesError.message);
   }
 
+  const { data: partRows, error: partsError } = await supabase
+    .from("property_parts")
+    .select("part_key, replaced_year")
+    .eq("property_id", propertyId);
+
+  if (partsError) {
+    console.error("[profil] dashboard parts:", partsError.message);
+  }
+
+  const construction_year =
+    typeof property.construction_year === "number"
+      ? property.construction_year
+      : property.construction_year != null
+        ? Number(property.construction_year)
+        : null;
+
+  const living_area_sqm =
+    property.living_area_sqm != null ? Number(property.living_area_sqm) : null;
+
+  const parts = buildPropertyPartViews(
+    construction_year,
+    (partRows ?? []).map((r) => ({
+      part_key: r.part_key as string,
+      replaced_year:
+        r.replaced_year != null ? Number(r.replaced_year) : null,
+    })),
+  );
+
+  const completeness = computeProfileCompleteness({
+    hasKommun: Boolean((property.kommun as string | null)?.trim()),
+    hasPropertyType: Boolean(property.property_type),
+    hasConstructionYear: construction_year != null,
+    hasLivingArea: living_area_sqm != null && Number.isFinite(living_area_sqm),
+    parts,
+  });
+
   return {
     id: property.id as string,
     address: property.address as string,
@@ -82,16 +134,8 @@ export async function getPropertyDashboard(
     city: (property.city as string | null) ?? null,
     kommun: (property.kommun as string | null) ?? null,
     property_type: (property.property_type as string | null) ?? null,
-    construction_year:
-      typeof property.construction_year === "number"
-        ? property.construction_year
-        : property.construction_year != null
-          ? Number(property.construction_year)
-          : null,
-    living_area_sqm:
-      property.living_area_sqm != null
-        ? Number(property.living_area_sqm)
-        : null,
+    construction_year,
+    living_area_sqm,
     purchase_date: (property.purchase_date as string | null) ?? null,
     ownership_status: parseOwnershipStatus(property.ownership_status),
     role: membership.role as string,
@@ -101,5 +145,8 @@ export async function getPropertyDashboard(
       address: a.address as string,
       created_at: a.created_at as string,
     })),
+    parts,
+    completeness,
+    nextPart: pickNextPartAction(parts),
   };
 }

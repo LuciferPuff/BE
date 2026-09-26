@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { OwnershipStatusSwitch } from "@/components/profil/OwnershipStatusSwitch";
+import { PropertyPartsSection } from "@/components/profil/PropertyPartsSection";
 import { UnlinkAnalysisButton } from "@/components/mina-analyser/UnlinkAnalysisButton";
 import type { PropertyDashboard } from "@/lib/properties/get-property-dashboard";
 import {
@@ -11,6 +12,7 @@ import {
 
 type Props = {
   property: PropertyDashboard;
+  openPartKey?: string | null;
 };
 
 function formatDate(iso: string): string {
@@ -28,7 +30,10 @@ function metaBits(property: PropertyDashboard): string[] {
     bits.push(`Byggår ${property.construction_year}`);
   }
   bits.push(propertyTypeLabel(property.property_type));
-  if (property.living_area_sqm != null && Number.isFinite(property.living_area_sqm)) {
+  if (
+    property.living_area_sqm != null &&
+    Number.isFinite(property.living_area_sqm)
+  ) {
     bits.push(`${property.living_area_sqm} m²`);
   }
   const place = property.kommun?.trim() || property.city?.trim();
@@ -36,12 +41,17 @@ function metaBits(property: PropertyDashboard): string[] {
   return bits.filter((b) => b && b !== "—");
 }
 
-export function PropertyDashboardView({ property }: Props) {
-  const canEdit = property.role === "agare";
+export function PropertyDashboardView({
+  property,
+  openPartKey = null,
+}: Props) {
+  const canEdit = property.role === "agare" || property.role === "medlem";
+  const canOwnStatus = property.role === "agare";
   const bits = metaBits(property);
   const ownedSince = property.purchase_date
     ? new Date(property.purchase_date).getFullYear()
     : null;
+  const { completeness, nextPart } = property;
 
   const timeline: { key: string; label: string; date: string; href?: string }[] =
     [
@@ -76,7 +86,7 @@ export function PropertyDashboardView({ property }: Props) {
           </p>
         </div>
         <div className="profile-dashboard-header-actions">
-          {canEdit ? (
+          {canOwnStatus ? (
             <>
               <OwnershipStatusSwitch
                 propertyId={property.id}
@@ -102,7 +112,33 @@ export function PropertyDashboardView({ property }: Props) {
             <h2 id="profile-next-heading" className="profile-dashboard-heading">
               Nästa steg
             </h2>
-            {property.analyses.length === 0 ? (
+            {!property.construction_year ? (
+              <>
+                <p className="profile-dashboard-text">
+                  Lägg till byggår så kan vi anta ålder på tak, fasad och övriga
+                  delar.
+                </p>
+                <Link
+                  href={`/profil/${property.id}/redigera`}
+                  className="home-btn home-btn-primary"
+                >
+                  Ange byggår
+                </Link>
+              </>
+            ) : nextPart ? (
+              <>
+                <p className="profile-dashboard-text">
+                  När byttes {nextPart.label.toLowerCase()}? Svara så räknar vi
+                  om husets risker.
+                </p>
+                <Link
+                  href={`/profil/${property.id}?del=${nextPart.key}`}
+                  className="home-btn home-btn-primary"
+                >
+                  Uppdatera {nextPart.label.toLowerCase()}
+                </Link>
+              </>
+            ) : property.analyses.length === 0 ? (
               <>
                 <p className="profile-dashboard-text">
                   Koppla en AI-analys så huset får en första riskbild.
@@ -111,11 +147,11 @@ export function PropertyDashboardView({ property }: Props) {
                   Analysera det här huset
                 </Link>
               </>
-            ) : property.ownership_status === "funderar" ? (
+            ) : (
               <>
                 <p className="profile-dashboard-text">
-                  Du har en kopplad analys. Gå igenom den inför visning och
-                  markera när du köpt huset.
+                  Bra jobbat — husets delar är ifyllda. Gå igenom din senaste
+                  analys eller komplettera övriga uppgifter.
                 </p>
                 <Link
                   href={`/mina-analyser/${property.analyses[0].id}`}
@@ -124,21 +160,15 @@ export function PropertyDashboardView({ property }: Props) {
                   Öppna senaste analysen
                 </Link>
               </>
-            ) : (
-              <>
-                <p className="profile-dashboard-text">
-                  Bygg vidare på profilen – mer uppgifter ger skarpare nästa
-                  steg (kommer i nästa fas).
-                </p>
-                <Link
-                  href={`/profil/${property.id}/redigera`}
-                  className="home-btn home-btn-primary"
-                >
-                  Komplettera uppgifter
-                </Link>
-              </>
             )}
           </section>
+
+          <PropertyPartsSection
+            propertyId={property.id}
+            parts={property.parts}
+            canEdit={canEdit}
+            initialPartKey={openPartKey}
+          />
 
           <section
             className="profile-dashboard-panel"
@@ -163,7 +193,7 @@ export function PropertyDashboardView({ property }: Props) {
                         {formatDate(analysis.created_at)}
                       </span>
                     </Link>
-                    {canEdit ? (
+                    {canOwnStatus ? (
                       <UnlinkAnalysisButton
                         analysisId={analysis.id}
                         returnTo="profil"
@@ -185,6 +215,37 @@ export function PropertyDashboardView({ property }: Props) {
         </div>
 
         <aside className="profile-dashboard-aside">
+          <section
+            className="profile-dashboard-panel"
+            aria-labelledby="profile-complete-heading"
+          >
+            <h2
+              id="profile-complete-heading"
+              className="profile-dashboard-heading"
+            >
+              Profilen
+            </h2>
+            <p className="profile-complete-percent">{completeness.percent} %</p>
+            <div
+              className="profile-complete-bar"
+              role="progressbar"
+              aria-valuenow={completeness.percent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Profilens kompletthet"
+            >
+              <span
+                className="profile-complete-bar-fill"
+                style={{ width: `${completeness.percent}%` }}
+              />
+            </div>
+            <p className="profile-dashboard-text">{completeness.missingHint}</p>
+            <p className="profile-complete-meta">
+              {completeness.verifiedParts} av {completeness.totalParts} delar
+              verifierade
+            </p>
+          </section>
+
           <section
             className="profile-dashboard-panel"
             aria-labelledby="profile-timeline-heading"

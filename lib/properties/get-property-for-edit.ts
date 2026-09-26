@@ -8,6 +8,8 @@ export type PropertyEditData = {
   city: string | null;
   kommun: string | null;
   property_type: string | null;
+  construction_year: number | null;
+  living_area_sqm: number | null;
   role: string;
 };
 
@@ -35,7 +37,7 @@ export async function getPropertyForEdit(
   const { data: property, error } = await supabase
     .from("properties")
     .select(
-      "id, address, designation, postal_code, city, kommun, property_type",
+      "id, address, designation, postal_code, city, kommun, property_type, construction_year, living_area_sqm",
     )
     .eq("id", propertyId)
     .maybeSingle();
@@ -53,6 +55,14 @@ export async function getPropertyForEdit(
     city: (property.city as string | null) ?? null,
     kommun: (property.kommun as string | null) ?? null,
     property_type: (property.property_type as string | null) ?? null,
+    construction_year:
+      property.construction_year != null
+        ? Number(property.construction_year)
+        : null,
+    living_area_sqm:
+      property.living_area_sqm != null
+        ? Number(property.living_area_sqm)
+        : null,
     role: membership.role as string,
   };
 }

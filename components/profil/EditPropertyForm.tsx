@@ -127,6 +127,43 @@ export function EditPropertyForm({ property }: Props) {
         </select>
       </div>
 
+      <div className="analyse-form-row">
+        <div className="analyse-form-field">
+          <label className="analyse-form-label" htmlFor="property-year">
+            Byggår
+          </label>
+          <input
+            id="property-year"
+            name="construction_year"
+            type="number"
+            inputMode="numeric"
+            min={1800}
+            max={new Date().getFullYear() + 1}
+            className="analyse-form-input"
+            placeholder="t.ex. 1975"
+            defaultValue={property.construction_year ?? ""}
+            disabled={pending}
+          />
+        </div>
+        <div className="analyse-form-field">
+          <label className="analyse-form-label" htmlFor="property-area">
+            Boarea (m²)
+          </label>
+          <input
+            id="property-area"
+            name="living_area_sqm"
+            type="number"
+            inputMode="decimal"
+            min={1}
+            step={0.1}
+            className="analyse-form-input"
+            placeholder="t.ex. 142"
+            defaultValue={property.living_area_sqm ?? ""}
+            disabled={pending}
+          />
+        </div>
+      </div>
+
       <div className="analyse-form-actions">
         <button
           type="submit"
