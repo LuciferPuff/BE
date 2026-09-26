@@ -8,6 +8,7 @@ import {
   type UpdateTodoState,
 } from "@/app/profil/actions";
 import type { PropertyTodoItem } from "@/lib/properties/build-todos";
+import type { TodoNoteEntry } from "@/lib/properties/todo-notes";
 
 type Props = {
   propertyId: string;
@@ -19,7 +20,7 @@ const initialState: UpdateTodoState = {};
 
 type OptimisticTodo = {
   completed: boolean;
-  note: string | null;
+  notes: TodoNoteEntry[];
 };
 
 export function PropertyTodoList({ propertyId, todos, canEdit }: Props) {
@@ -70,7 +71,7 @@ function TodoRow({
     OptimisticTodo,
     OptimisticTodo
   >(
-    { completed: todo.completed, note: todo.note },
+    { completed: todo.completed, notes: todo.notes },
     (_current, next) => next,
   );
 
@@ -81,6 +82,8 @@ function TodoRow({
     setOptimistic(next);
     formAction(formData);
   }
+
+  const noteCount = optimistic.notes.length;
 
   return (
     <li
@@ -98,18 +101,18 @@ function TodoRow({
               const nextCompleted = formData.get("completed") === "1";
               runWithOptimistic(formData, {
                 completed: nextCompleted,
-                note: optimistic.note,
+                notes: optimistic.notes,
               });
             }}
           >
             <input type="hidden" name="property_id" value={propertyId} />
             <input type="hidden" name="task_key" value={todo.key} />
+            <input type="hidden" name="note_op" value="toggle" />
             <input
               type="hidden"
               name="completed"
               value={optimistic.completed ? "0" : "1"}
             />
-            <input type="hidden" name="note" value={optimistic.note ?? ""} />
             <button
               type="submit"
               className="profile-todo-check"
@@ -140,62 +143,93 @@ function TodoRow({
               Öppna →
             </Link>
           ) : null}
-          {optimistic.note && !canEdit ? (
-            <p className="profile-todo-note">Anteckning: {optimistic.note}</p>
+
+          {noteCount > 0 ? (
+            <ul className="profile-todo-notes">
+              {optimistic.notes.map((note) => (
+                <li key={note.id} className="profile-todo-note-row">
+                  <p className="profile-todo-note">{note.text}</p>
+                  {canEdit ? (
+                    <form
+                      action={(formData) => {
+                        runWithOptimistic(formData, {
+                          completed: optimistic.completed,
+                          notes: optimistic.notes.filter((n) => n.id !== note.id),
+                        });
+                      }}
+                    >
+                      <input
+                        type="hidden"
+                        name="property_id"
+                        value={propertyId}
+                      />
+                      <input type="hidden" name="task_key" value={todo.key} />
+                      <input type="hidden" name="note_op" value="remove" />
+                      <input type="hidden" name="note_id" value={note.id} />
+                      <input
+                        type="hidden"
+                        name="completed"
+                        value={optimistic.completed ? "1" : "0"}
+                      />
+                      <button
+                        type="submit"
+                        className="profile-todo-note-remove"
+                      >
+                        Ta bort
+                      </button>
+                    </form>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
           ) : null}
+
           {canEdit ? (
             <details className="profile-todo-note-details">
               <summary className="profile-todo-note-toggle">
-                {optimistic.note ? "Anteckning" : "Lägg till anteckning"}
+                Lägg till anteckning
               </summary>
               <form
                 className="profile-todo-note-form"
                 action={(formData) => {
-                  const raw = formData.get("note");
-                  const note =
-                    typeof raw === "string" && raw.trim() ? raw.trim() : null;
+                  const raw = formData.get("note_text");
+                  const text =
+                    typeof raw === "string" ? raw.trim() : "";
+                  if (!text) return;
                   runWithOptimistic(formData, {
                     completed: optimistic.completed,
-                    note,
+                    notes: [
+                      ...optimistic.notes,
+                      {
+                        id: `tmp-${Date.now()}`,
+                        text,
+                        createdAt: new Date().toISOString(),
+                      },
+                    ],
                   });
                 }}
               >
                 <input type="hidden" name="property_id" value={propertyId} />
                 <input type="hidden" name="task_key" value={todo.key} />
+                <input type="hidden" name="note_op" value="add" />
                 <input
                   type="hidden"
                   name="completed"
                   value={optimistic.completed ? "1" : "0"}
                 />
                 <input
-                  key={optimistic.note ?? "empty"}
+                  key={noteCount}
                   type="text"
-                  name="note"
+                  name="note_text"
                   className="analyse-form-input"
-                  defaultValue={optimistic.note ?? ""}
-                  placeholder="Kort anteckning"
+                  defaultValue=""
+                  placeholder="Ny anteckning"
                   maxLength={200}
-                  aria-label="Anteckning"
+                  aria-label="Ny anteckning"
                 />
                 <button type="submit" className="profile-edit-link">
                   Spara
                 </button>
-                {optimistic.note ? (
-                  <button
-                    type="submit"
-                    className="profile-todo-note-remove"
-                    formAction={(formData) => {
-                      formData.set("note", "");
-                      formData.set("clear_note", "1");
-                      runWithOptimistic(formData, {
-                        completed: optimistic.completed,
-                        note: null,
-                      });
-                    }}
-                  >
-                    Ta bort
-                  </button>
-                ) : null}
               </form>
             </details>
           ) : null}

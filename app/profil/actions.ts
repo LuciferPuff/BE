@@ -12,6 +12,12 @@ import {
   type PropertyType,
 } from "@/lib/properties/labels";
 import { isPropertyPartKey } from "@/lib/properties/parts-catalog";
+import {
+  MAX_NOTE_LENGTH,
+  MAX_NOTES,
+  parseTodoNotes,
+  serializeTodoNotes,
+} from "@/lib/properties/todo-notes";
 import { createAuthClient } from "@/lib/supabase/auth-client";
 
 export type PropertyFormState = {
@@ -359,7 +365,7 @@ export type UpdateTodoState = {
   ok?: boolean;
 };
 
-/** Bockar av / ångrar Att göra-punkt + valfri anteckning. */
+/** Bockar av / ångrar Att göra-punkt, lägger till eller tar bort anteckning. */
 export async function updateTodoStateAction(
   _prev: UpdateTodoState,
   formData: FormData,
@@ -367,16 +373,8 @@ export async function updateTodoStateAction(
   const user = await getSessionUser();
   const propertyId = optionalText(formData, "property_id");
   const taskKey = optionalText(formData, "task_key");
+  const noteOp = optionalText(formData, "note_op") ?? "toggle";
   const completed = optionalText(formData, "completed") === "1";
-  // Tom sträng / clear_note = ta bort anteckning (null i DB).
-  const clearNote = optionalText(formData, "clear_note") === "1";
-  const noteField = formData.get("note");
-  const note =
-    clearNote ||
-    noteField === "" ||
-    (typeof noteField === "string" && noteField.trim() === "")
-      ? null
-      : optionalText(formData, "note");
 
   if (!user) {
     redirect(
@@ -391,14 +389,62 @@ export async function updateTodoStateAction(
   if (taskKey.length > 80) {
     return { error: "Ogiltig uppgift." };
   }
+  if (noteOp !== "toggle" && noteOp !== "add" && noteOp !== "remove") {
+    return { error: "Ogiltig åtgärd." };
+  }
 
   const supabase = await createAuthClient();
+
+  const { data: existing, error: readError } = await supabase
+    .from("property_todo_states")
+    .select("note, completed_at")
+    .eq("property_id", propertyId)
+    .eq("task_key", taskKey)
+    .maybeSingle();
+
+  if (readError) {
+    console.error("[profil] todo_states read:", readError.message);
+    return { error: "Kunde inte spara. Försök igen." };
+  }
+
+  let notes = parseTodoNotes(existing?.note ?? null);
+  const completedAt = completed
+    ? ((existing?.completed_at as string | null) ?? new Date().toISOString())
+    : null;
+
+  if (noteOp === "add") {
+    const text = optionalText(formData, "note_text");
+    if (!text) {
+      return { error: "Skriv en anteckning först." };
+    }
+    if (text.length > MAX_NOTE_LENGTH) {
+      return { error: `Max ${MAX_NOTE_LENGTH} tecken.` };
+    }
+    if (notes.length >= MAX_NOTES) {
+      return { error: `Max ${MAX_NOTES} anteckningar per punkt.` };
+    }
+    notes = [
+      ...notes,
+      {
+        id: crypto.randomUUID(),
+        text,
+        createdAt: new Date().toISOString(),
+      },
+    ];
+  } else if (noteOp === "remove") {
+    const noteId = optionalText(formData, "note_id");
+    if (!noteId) {
+      return { error: "Saknar anteckning." };
+    }
+    notes = notes.filter((n) => n.id !== noteId);
+  }
+
   const { error } = await supabase.from("property_todo_states").upsert(
     {
       property_id: propertyId,
       task_key: taskKey,
-      completed_at: completed ? new Date().toISOString() : null,
-      note,
+      completed_at: completedAt,
+      note: serializeTodoNotes(notes),
       updated_by: user.id,
       updated_at: new Date().toISOString(),
     },

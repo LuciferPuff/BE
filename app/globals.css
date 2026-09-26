@@ -1287,6 +1287,28 @@ main.content-page {
   color: rgba(27, 46, 60, 0.65);
 }
 
+.profile-todo-notes {
+  list-style: none;
+  margin: 0.55rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.profile-todo-note-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 0.75rem;
+}
+
+.profile-todo-note-row .profile-todo-note {
+  margin: 0;
+  flex: 1;
+  min-width: 8rem;
+}
+
 .profile-todo-note-details {
   margin-top: 0.4rem;
 }

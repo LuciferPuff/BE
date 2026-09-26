@@ -1,5 +1,9 @@
 import type { OwnershipStatus } from "@/lib/properties/labels";
 import type { PropertyPartView } from "@/lib/properties/build-property-parts";
+import {
+  parseTodoNotes,
+  type TodoNoteEntry,
+} from "@/lib/properties/todo-notes";
 
 export type TodoPhase = "funderar" | "ager" | "both";
 
@@ -79,7 +83,7 @@ export type PropertyTodoItem = {
   priority: number;
   href?: string;
   completed: boolean;
-  note: string | null;
+  notes: TodoNoteEntry[];
   source: "template" | "part";
 };
 
@@ -121,7 +125,7 @@ export function buildPropertyTodos(input: {
       priority: template.priority,
       href: template.href,
       completed: Boolean(state?.completed_at),
-      note: state?.note ?? null,
+      notes: parseTodoNotes(state?.note),
       source: "template",
     });
   }
@@ -142,7 +146,7 @@ export function buildPropertyTodos(input: {
       priority: 15 + (part.tone === "action" ? 0 : 5),
       href: `/profil/${input.propertyId}?del=${part.key}`,
       completed: Boolean(state?.completed_at),
-      note: state?.note ?? null,
+      notes: parseTodoNotes(state?.note),
       source: "part",
     });
   }
