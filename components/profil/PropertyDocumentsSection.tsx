@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useMemo, useRef, useState } from "react";
 
 import {
   confirmDocumentUploadAction,
@@ -12,10 +12,13 @@ import {
 } from "@/app/profil/actions";
 import type { DashboardDocument } from "@/lib/properties/get-property-dashboard";
 import {
-  DOCUMENT_TYPES,
+  DOCUMENT_FOLDER_ORDER,
   DOCUMENT_TYPE_LABELS,
+  DOCUMENT_TYPES,
   displayNameFromFilePath,
   documentTypeLabel,
+  isDocumentType,
+  type DocumentType,
 } from "@/lib/properties/document-labels";
 
 type Props = {
@@ -27,6 +30,54 @@ type Props = {
 
 const actionInitial: DocumentActionState = {};
 
+function groupByFolder(
+  documents: DashboardDocument[],
+): { type: DocumentType | string; label: string; docs: DashboardDocument[] }[] {
+  const map = new Map<string, DashboardDocument[]>();
+  for (const doc of documents) {
+    const key = isDocumentType(doc.type) ? doc.type : "ovrigt";
+    const list = map.get(key) ?? [];
+    list.push(doc);
+    map.set(key, list);
+  }
+
+  const folders: {
+    type: DocumentType | string;
+    label: string;
+    docs: DashboardDocument[];
+  }[] = [];
+
+  for (const type of DOCUMENT_FOLDER_ORDER) {
+    const docs = map.get(type) ?? [];
+    if (docs.length === 0) continue;
+    docs.sort(
+      (a, b) =>
+        new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime(),
+    );
+    folders.push({
+      type,
+      label: DOCUMENT_TYPE_LABELS[type],
+      docs,
+    });
+    map.delete(type);
+  }
+
+  // Okända typer (legacy) sist
+  for (const [type, docs] of map) {
+    docs.sort(
+      (a, b) =>
+        new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime(),
+    );
+    folders.push({
+      type,
+      label: documentTypeLabel(type),
+      docs,
+    });
+  }
+
+  return folders;
+}
+
 export function PropertyDocumentsSection({
   propertyId,
   documents,
@@ -36,7 +87,9 @@ export function PropertyDocumentsSection({
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadFolder, setUploadFolder] = useState<DocumentType>("ovrigt");
   const fileRef = useRef<HTMLInputElement>(null);
+  const folders = useMemo(() => groupByFolder(documents), [documents]);
 
   async function handleUpload(form: HTMLFormElement) {
     setError(null);
@@ -60,6 +113,7 @@ export function PropertyDocumentsSection({
       prepFd.set("property_id", propertyId);
       prepFd.set("file_name", file.name);
       prepFd.set("file_size", String(file.size));
+      prepFd.set("type", type);
 
       const prep = await prepareDocumentUploadAction({}, prepFd);
       if (prep.error || !prep.signedUrl || !prep.path) {
@@ -92,6 +146,7 @@ export function PropertyDocumentsSection({
       }
 
       form.reset();
+      setUploadFolder("ovrigt");
       if (fileRef.current) fileRef.current.value = "";
       router.refresh();
     } catch {
@@ -111,19 +166,33 @@ export function PropertyDocumentsSection({
         Dokument
       </h2>
       <p className="profile-dashboard-text">
-        Besiktningsprotokoll, energideklaration och andra papper – privat för er
-        som har tillgång till huset.
+        Sortera papper i mappar – kvitton, instruktioner, besiktning och mer.
       </p>
 
-      {documents.length > 0 ? (
-        <ul className="profile-doc-list">
-          {documents.map((doc) => (
-            <DocumentRow
-              key={doc.id}
-              propertyId={propertyId}
-              doc={doc}
-              canDelete={canDelete}
-            />
+      {folders.length > 0 ? (
+        <ul className="profile-doc-folders">
+          {folders.map((folder) => (
+            <li key={folder.type}>
+              <details className="profile-doc-folder" open>
+                <summary className="profile-doc-folder-summary">
+                  <span className="profile-doc-folder-name">{folder.label}</span>
+                  <span className="profile-doc-folder-count">
+                    {folder.docs.length}{" "}
+                    {folder.docs.length === 1 ? "fil" : "filer"}
+                  </span>
+                </summary>
+                <ul className="profile-doc-list">
+                  {folder.docs.map((doc) => (
+                    <DocumentRow
+                      key={doc.id}
+                      propertyId={propertyId}
+                      doc={doc}
+                      canDelete={canDelete}
+                    />
+                  ))}
+                </ul>
+              </details>
+            </li>
           ))}
         </ul>
       ) : (
@@ -139,13 +208,16 @@ export function PropertyDocumentsSection({
           }}
         >
           <label className="profile-part-field">
-            <span>Typ</span>
+            <span>Mapp</span>
             <select
               name="type"
               className="analyse-form-input"
               required
               disabled={uploading}
-              defaultValue="ovrigt"
+              value={uploadFolder}
+              onChange={(e) =>
+                setUploadFolder(e.target.value as DocumentType)
+              }
             >
               {DOCUMENT_TYPES.map((t) => (
                 <option key={t} value={t}>
@@ -233,9 +305,11 @@ function DocumentRow({
   return (
     <li className="profile-doc-item">
       <div className="profile-doc-item-main">
-        <p className="profile-doc-title">{documentTypeLabel(doc.type)}</p>
-        <p className="profile-doc-meta">
+        <p className="profile-doc-title">
           {displayNameFromFilePath(doc.file_path)}
+        </p>
+        <p className="profile-doc-meta">
+          {new Date(doc.uploaded_at).toLocaleDateString("sv-SE")}
           {doc.note ? ` · ${doc.note}` : null}
         </p>
       </div>

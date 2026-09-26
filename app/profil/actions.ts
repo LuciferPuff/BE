@@ -691,6 +691,7 @@ export async function prepareDocumentUploadAction(
   const propertyId = optionalText(formData, "property_id");
   const fileName = optionalText(formData, "file_name");
   const fileSizeRaw = optionalText(formData, "file_size");
+  const typeRaw = optionalText(formData, "type");
 
   if (!user) {
     redirect(
@@ -702,6 +703,9 @@ export async function prepareDocumentUploadAction(
   if (!propertyId || !fileName) {
     return { error: "Saknar fil eller fastighet." };
   }
+  if (!typeRaw || !isDocumentType(typeRaw)) {
+    return { error: "Välj mapp." };
+  }
   const fileSize = fileSizeRaw ? Number(fileSizeRaw) : 0;
   if (!Number.isFinite(fileSize) || fileSize <= 0) {
     return { error: "Ogiltig filstorlek." };
@@ -711,7 +715,7 @@ export async function prepareDocumentUploadAction(
   }
 
   const safe = sanitizeFileName(fileName);
-  const path = `${propertyId}/${crypto.randomUUID()}-${safe}`;
+  const path = `${propertyId}/${typeRaw}/${crypto.randomUUID()}-${safe}`;
   const supabase = await createAuthClient();
 
   const { data, error } = await supabase.storage

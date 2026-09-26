@@ -1,22 +1,35 @@
-/** Typer och etiketter för dokument och tidslinje-händelser. */
+/** Typer/mappar och etiketter för dokument och tidslinje-händelser. */
 
 export const DOCUMENT_TYPES = [
   "besiktningsprotokoll",
   "energideklaration",
   "ritning",
   "kvitto_renovering",
+  "instruktion",
   "ovrigt",
 ] as const;
 
 export type DocumentType = (typeof DOCUMENT_TYPES)[number];
 
+/** Visningsnamn för mappar i dokumentbiblioteket. */
 export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
-  besiktningsprotokoll: "Besiktningsprotokoll",
+  besiktningsprotokoll: "Besiktning",
   energideklaration: "Energideklaration",
-  ritning: "Ritning",
-  kvitto_renovering: "Kvitto / renovering",
+  ritning: "Ritningar",
+  kvitto_renovering: "Kvitton",
+  instruktion: "Instruktioner",
   ovrigt: "Övrigt",
 };
+
+/** Ordning i UI (mapplista). */
+export const DOCUMENT_FOLDER_ORDER: readonly DocumentType[] = [
+  "besiktningsprotokoll",
+  "energideklaration",
+  "ritning",
+  "kvitto_renovering",
+  "instruktion",
+  "ovrigt",
+];
 
 export const EVENT_TYPES = [
   "renovering",
@@ -56,7 +69,7 @@ export function eventTypeLabel(type: string): string {
   return type;
 }
 
-/** Visningsnamn från storage-sökväg `{propertyId}/{uuid}-{filename}`. */
+/** Visningsnamn från storage-sökväg `{propertyId}/{type?}/{uuid}-{filename}`. */
 export function displayNameFromFilePath(filePath: string): string {
   const base = filePath.split("/").pop() ?? filePath;
   const dash = base.indexOf("-");
