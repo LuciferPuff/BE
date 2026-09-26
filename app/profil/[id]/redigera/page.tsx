@@ -50,8 +50,8 @@ export default async function RedigeraFastighetPage({ params }: Props) {
       >
         <div className="home-container my-analyses-hero-inner">
           <p className="profile-account-nav">
-            <Link href="/profil" className="my-analyses-back">
-              ← Tillbaka till profil
+            <Link href={`/profil/${id}`} className="my-analyses-back">
+              ← Tillbaka till huset
             </Link>
           </p>
           <h1 id="redigera-fastighet-heading" className="my-analyses-title">

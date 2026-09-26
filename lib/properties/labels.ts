@@ -38,3 +38,22 @@ export function propertyTypeLabel(type: string | null | undefined): string {
 export function isPropertyType(value: string): value is PropertyType {
   return (PROPERTY_TYPES as readonly string[]).includes(value);
 }
+
+export const OWNERSHIP_STATUSES = ["funderar", "ager"] as const;
+export type OwnershipStatus = (typeof OWNERSHIP_STATUSES)[number];
+
+const OWNERSHIP_LABELS: Record<OwnershipStatus, string> = {
+  funderar: "Funderar på att köpa",
+  ager: "Äger",
+};
+
+export function ownershipStatusLabel(status: string): string {
+  if (status in OWNERSHIP_LABELS) {
+    return OWNERSHIP_LABELS[status as OwnershipStatus];
+  }
+  return status;
+}
+
+export function isOwnershipStatus(value: string): value is OwnershipStatus {
+  return (OWNERSHIP_STATUSES as readonly string[]).includes(value);
+}

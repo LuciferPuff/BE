@@ -12,7 +12,7 @@ import { getSiteUrl } from "@/lib/site";
 const base = getSiteUrl();
 
 export const metadata: Metadata = {
-  title: "Min profil",
+  title: "Mina hus",
   description: "Dina fastigheter på Byggello.",
   alternates: { canonical: `${base}/profil` },
   robots: { index: false, follow: false },
@@ -37,10 +37,10 @@ export default async function ProfilPage() {
             </Link>
           </p>
           <h1 id="profil-heading" className="my-analyses-title">
-            Min profil
+            Mina hus
           </h1>
           <p className="my-analyses-intro">
-            Här samlar du dina fastigheter och kopplade analyser.
+            Öppna ett hus för att se analyser, tidslinje och nästa steg.
           </p>
         </div>
       </section>
@@ -48,12 +48,16 @@ export default async function ProfilPage() {
         {properties.length === 0 ? (
           <div className="my-analyses-empty">
             <p>
-              Du har inga fastigheter ännu. Skapa din första för att börja
-              bygga upp din fastighetsprofil.
+              Lägg till ditt första hus, eller analysera en annons från Hemnet.
             </p>
-            <Link href="/profil/ny" className="home-btn home-btn-primary">
-              Skapa fastighet
-            </Link>
+            <div className="profile-empty-actions">
+              <Link href="/profil/ny" className="home-btn home-btn-primary">
+                Lägg till hus
+              </Link>
+              <Link href="/analys" className="home-btn home-btn-ghost">
+                Analysera annons
+              </Link>
+            </div>
           </div>
         ) : (
           <>

@@ -1,0 +1,39 @@
+---
+description: Fastighetsprofil roadmap (backlog efter Fas A)
+alwaysApply: false
+---
+
+# Fastighetsprofil — backlog
+
+Fas A (dashboard-skal) byggs nu. Nedan väntar.
+
+## Fas B — Antaget → verifiera
+- 6–8 husdelar med statusfärger (grå/gul/röd/grön)
+- Antagen ålder från byggår vs verifierad
+- Sidopanel: förklaring + "Byttes år ___"
+- Ett Nästa steg-kort styrt av saknad data
+- Enkel komplett-%
+
+## Fas C — Köpfas vs äger
+- Status styr Nästa steg och Att göra
+- Knappen "Jag köpte huset" (övergång funderar → äger)
+- Enkel Att göra-lista (utan snooze först)
+
+## Fas D — Dokument + tidslinje på riktigt
+- Uppladdning via signed URLs (`property-documents`)
+- Events i tidslinjen
+- "Meddela mig" på 1–2 teasers
+
+## Fas E — Ekonomi + premium-teaser
+- Schablon 1/5/10 år
+- Låst/teaser i gratis
+- Energi senare
+
+## Fas F — Delning + hantverkare
+- Dela via roller (UI)
+- Offert-CTA sparsamt
+
+## Principer
+- Antaget vs verifierat synligt
+- Max 2–3 "Detta kommer"-boxar per sida
+- Ett tydligt nästa steg per besök

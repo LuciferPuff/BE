@@ -1,4 +1,5 @@
 import { createAuthClient } from "@/lib/supabase/auth-client";
+import type { OwnershipStatus } from "@/lib/properties/labels";
 
 export type LinkedAnalysisSummary = {
   id: string;
@@ -13,6 +14,8 @@ export type UserPropertySummary = {
   kommun: string | null;
   city: string | null;
   property_type: string | null;
+  construction_year: number | null;
+  ownership_status: OwnershipStatus;
   role: string;
   analyses: LinkedAnalysisSummary[];
 };
@@ -24,6 +27,8 @@ type PropertyFields = {
   kommun: string | null;
   city: string | null;
   property_type: string | null;
+  construction_year: number | null;
+  ownership_status: string | null;
 };
 
 type MemberRow = {
@@ -38,6 +43,10 @@ function unwrapProperty(
   return Array.isArray(value) ? (value[0] ?? null) : value;
 }
 
+function parseOwnershipStatus(value: string | null): OwnershipStatus {
+  return value === "ager" ? "ager" : "funderar";
+}
+
 /**
  * Fastigheter användaren är medlem i + kopplade analyser.
  * Använder cookie-session + RLS — inte service role.
@@ -50,7 +59,7 @@ export async function getUserProperties(
   const { data: memberRows, error: membersError } = await supabase
     .from("property_members")
     .select(
-      "role, properties ( id, address, designation, kommun, city, property_type )",
+      "role, properties ( id, address, designation, kommun, city, property_type, construction_year, ownership_status )",
     )
     .eq("user_id", userId);
 
@@ -70,6 +79,13 @@ export async function getUserProperties(
       kommun: p.kommun,
       city: p.city,
       property_type: p.property_type,
+      construction_year:
+        typeof p.construction_year === "number"
+          ? p.construction_year
+          : p.construction_year != null
+            ? Number(p.construction_year)
+            : null,
+      ownership_status: parseOwnershipStatus(p.ownership_status),
       role: row.role,
       analyses: [],
     });

@@ -6,7 +6,9 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth/get-session-user";
 import { parseSwedishMunicipality } from "@/lib/geo/swedish-municipalities";
 import {
+  isOwnershipStatus,
   isPropertyType,
+  type OwnershipStatus,
   type PropertyType,
 } from "@/lib/properties/labels";
 import { createAuthClient } from "@/lib/supabase/auth-client";
@@ -160,7 +162,8 @@ export async function createPropertyAction(
   }
 
   revalidatePath("/profil");
-  redirect("/profil");
+  revalidatePath(`/profil/${propertyId}`);
+  redirect(`/profil/${propertyId}`);
 }
 
 export async function updatePropertyAction(
@@ -214,7 +217,58 @@ export async function updatePropertyAction(
 
   revalidatePath("/profil");
   revalidatePath(`/profil/${propertyId}/redigera`);
-  redirect("/profil");
+  revalidatePath(`/profil/${propertyId}`);
+  redirect(`/profil/${propertyId}`);
+}
+
+export type OwnershipStatusState = {
+  error?: string;
+};
+
+/** Uppdaterar köpfas / äger på dashboarden. Endast ägare. */
+export async function updateOwnershipStatusAction(
+  _prev: OwnershipStatusState,
+  formData: FormData,
+): Promise<OwnershipStatusState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  const rawStatus = optionalText(formData, "ownership_status");
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId) {
+    return { error: "Saknar fastighet." };
+  }
+  if (!rawStatus || !isOwnershipStatus(rawStatus)) {
+    return { error: "Ogiltig status." };
+  }
+  const ownership_status: OwnershipStatus = rawStatus;
+
+  const supabase = await createAuthClient();
+  const { data, error } = await supabase
+    .from("properties")
+    .update({ ownership_status })
+    .eq("id", propertyId)
+    .select("id");
+
+  if (error) {
+    console.error("[profil] ownership_status:", error.message, error.code);
+    return { error: "Kunde inte uppdatera status. Försök igen." };
+  }
+  if (!data || data.length === 0) {
+    return {
+      error: "Du har inte behörighet att ändra den här fastigheten.",
+    };
+  }
+
+  revalidatePath("/profil");
+  revalidatePath(`/profil/${propertyId}`);
+  return {};
 }
 
 /** @deprecated Use PropertyFormState */

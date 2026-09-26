@@ -992,6 +992,207 @@ main.content-page {
   border-color: rgba(242, 101, 34, 0.35);
 }
 
+.profile-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.profile-property-card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.profile-property-card-link:hover .my-analyses-card-address {
+  color: var(--color-accent);
+}
+
+.profile-card-open {
+  margin: 1rem 0 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.profile-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.profile-dashboard-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding-bottom: 0.5rem;
+}
+
+@media (min-width: 900px) {
+  .profile-dashboard-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 2rem;
+  }
+}
+
+.profile-dashboard-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.75rem;
+  line-height: 1.25;
+}
+
+.profile-dashboard-meta,
+.profile-dashboard-role,
+.profile-dashboard-text {
+  margin: 0;
+  color: rgba(27, 46, 60, 0.75);
+  font-size: 0.9875rem;
+}
+
+.profile-dashboard-role {
+  margin-top: 0.35rem;
+  font-size: 0.875rem;
+}
+
+.profile-dashboard-header-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.profile-ownership-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgba(27, 46, 60, 0.65);
+}
+
+.profile-ownership-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.profile-ownership-btn {
+  appearance: none;
+  border: 1px solid rgba(27, 46, 60, 0.18);
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.profile-ownership-btn--active {
+  border-color: rgba(242, 101, 34, 0.45);
+  background: rgba(242, 101, 34, 0.08);
+  color: var(--color-accent);
+}
+
+.profile-ownership-btn:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.profile-ownership-btn:not(.profile-ownership-btn--active):disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.profile-ownership-error {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  color: #b42318;
+}
+
+.profile-dashboard-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+@media (min-width: 900px) {
+  .profile-dashboard-grid {
+    grid-template-columns: minmax(0, 1.6fr) minmax(16rem, 0.9fr);
+    align-items: start;
+  }
+}
+
+.profile-dashboard-primary,
+.profile-dashboard-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.profile-dashboard-panel {
+  background: var(--color-white);
+  border: 1px solid rgba(27, 46, 60, 0.08);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.35rem;
+}
+
+.profile-dashboard-panel--teaser {
+  background: rgba(232, 240, 247, 0.45);
+}
+
+.profile-dashboard-heading {
+  margin: 0 0 0.75rem;
+  font-size: 1.125rem;
+}
+
+.profile-dashboard-panel .home-btn {
+  margin-top: 1rem;
+}
+
+.profile-dashboard-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.profile-dashboard-empty p {
+  margin: 0;
+  color: rgba(27, 46, 60, 0.7);
+}
+
+.profile-teaser-badge {
+  display: inline-block;
+  margin: 0.85rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: rgba(27, 46, 60, 0.55);
+}
+
+.profile-timeline {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.profile-timeline-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.9375rem;
+}
+
+.profile-timeline-item time {
+  font-size: 0.8125rem;
+  color: rgba(27, 46, 60, 0.55);
+}
+
 .link-analysis-panel {
   margin-bottom: 1.75rem;
 }
