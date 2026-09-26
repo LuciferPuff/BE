@@ -1516,7 +1516,8 @@ main.content-page {
 }
 
 .profile-part-tile--muted {
-  border-left-style: dashed;
+  border-left-style: solid;
+  opacity: 0.92;
 }
 
 .profile-part-tile--muted .profile-part-tile-status,
