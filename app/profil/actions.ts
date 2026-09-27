@@ -643,7 +643,6 @@ export async function updatePropertyPartAction(
       return { error: "Kunde inte spara. Försök igen." };
     }
     revalidatePath(`/profil/${propertyId}`);
-    revalidatePath("/profil");
     return { ok: true };
   }
 
@@ -714,7 +713,6 @@ export async function updatePropertyPartAction(
   }
 
   revalidatePath(`/profil/${propertyId}`);
-  revalidatePath("/profil");
   return { ok: true };
 }
 

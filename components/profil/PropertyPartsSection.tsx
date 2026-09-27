@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useActionState, useEffect, useId, useRef, useState } from "react";
+import { startTransition, useEffect, useId, useRef, useState } from "react";
 
 import {
   addPropertyPartAction,
   setPartNotApplicableAction,
   updatePropertyPartAction,
-  type UpdatePropertyPartState,
 } from "@/app/profil/actions";
 import type {
   PropertyBuildingView,
@@ -21,9 +20,7 @@ import {
   ROOF_MATERIALS,
   type RoofMaterial,
 } from "@/lib/properties/component-lifespans";
-import {
-  addablePartOptions,
-} from "@/lib/properties/parts-catalog";
+import { addablePartOptions } from "@/lib/properties/parts-catalog";
 
 type Props = {
   propertyId: string;
@@ -32,8 +29,6 @@ type Props = {
   /** Öppna panelen för denna del-id eller legacy part_key. */
   initialPartId?: string | null;
 };
-
-const initialState: UpdatePropertyPartState = {};
 
 function decadeOptions(maxYear: number): number[] {
   const start = 1950;
@@ -57,6 +52,12 @@ function findPart(
     if (byKey) return byKey;
   }
   return null;
+}
+
+function refreshInBackground(router: ReturnType<typeof useRouter>) {
+  startTransition(() => {
+    router.refresh();
+  });
 }
 
 export function PropertyPartsSection({
@@ -282,20 +283,37 @@ function AddPartForm({
   existingKeys: string[];
 }) {
   const router = useRouter();
-  const [state, formAction, pending] = useActionState(
-    addPropertyPartAction,
-    initialState,
-  );
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const options = addablePartOptions(existingKeys);
-
-  useEffect(() => {
-    if (state.ok) router.refresh();
-  }, [state.ok, router]);
 
   if (options.length === 0) return null;
 
   return (
-    <form action={formAction} className="profile-part-add">
+    <form
+      className="profile-part-add"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const form = e.currentTarget;
+        void (async () => {
+          setPending(true);
+          setError(null);
+          try {
+            const result = await addPropertyPartAction({}, new FormData(form));
+            if (result.error) {
+              setError(result.error);
+              return;
+            }
+            form.reset();
+            refreshInBackground(router);
+          } catch {
+            setError("Kunde inte lägga till delen.");
+          } finally {
+            setPending(false);
+          }
+        })();
+      }}
+    >
       <input type="hidden" name="property_id" value={propertyId} />
       <input type="hidden" name="building_id" value={buildingId} />
       <label className="profile-part-field">
@@ -336,9 +354,9 @@ function AddPartForm({
       >
         {pending ? "Lägger till…" : "Lägg till"}
       </button>
-      {state.error ? (
+      {error ? (
         <p className="profile-ownership-error" role="alert">
-          {state.error}
+          {error}
         </p>
       ) : null}
     </form>
@@ -357,17 +375,8 @@ function NotApplicablePanel({
   onDone: () => void;
 }) {
   const router = useRouter();
-  const [state, formAction, pending] = useActionState(
-    setPartNotApplicableAction,
-    initialState,
-  );
-
-  useEffect(() => {
-    if (state.ok) {
-      router.refresh();
-      onDone();
-    }
-  }, [state.ok]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   return (
     <div className="profile-part-verify">
@@ -375,22 +384,40 @@ function NotApplicablePanel({
         Den här delen är markerad som ej relevant för byggnaden.
       </p>
       {canEdit ? (
-        <form action={formAction}>
-          <input type="hidden" name="property_id" value={propertyId} />
-          <input type="hidden" name="part_id" value={part.id} />
-          <input type="hidden" name="not_applicable" value="0" />
-          <button
-            type="submit"
-            className="home-btn home-btn-primary"
-            disabled={pending}
-          >
-            {pending ? "Sparar…" : "Återställ – delen finns"}
-          </button>
-        </form>
+        <button
+          type="button"
+          className="home-btn home-btn-primary"
+          disabled={pending}
+          onClick={() => {
+            void (async () => {
+              setPending(true);
+              setError(null);
+              try {
+                const fd = new FormData();
+                fd.set("property_id", propertyId);
+                fd.set("part_id", part.id);
+                fd.set("not_applicable", "0");
+                const result = await setPartNotApplicableAction({}, fd);
+                if (result.error) {
+                  setError(result.error);
+                  return;
+                }
+                onDone();
+                refreshInBackground(router);
+              } catch {
+                setError("Kunde inte uppdatera delen.");
+              } finally {
+                setPending(false);
+              }
+            })();
+          }}
+        >
+          {pending ? "Sparar…" : "Återställ – delen finns"}
+        </button>
       ) : null}
-      {state.error ? (
+      {error ? (
         <p className="profile-ownership-error" role="alert">
-          {state.error}
+          {error}
         </p>
       ) : null}
     </div>
@@ -409,14 +436,8 @@ function PartVerifyForm({
   onDone: () => void;
 }) {
   const router = useRouter();
-  const [state, formAction, pending] = useActionState(
-    updatePropertyPartAction,
-    initialState,
-  );
-  const [naState, naAction, naPending] = useActionState(
-    setPartNotApplicableAction,
-    initialState,
-  );
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [precision, setPrecision] = useState<
     "exact" | "decade" | "original" | "unknown"
   >(
@@ -441,16 +462,55 @@ function PartVerifyForm({
       ? lifespanForPart("tak", material)
       : part.lifespanYears;
 
-  useEffect(() => {
-    if (state.ok || naState.ok) {
-      router.refresh();
+  async function runSave(fd: FormData) {
+    setPending(true);
+    setError(null);
+    try {
+      const result = await updatePropertyPartAction({}, fd);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
       onDone();
+      refreshInBackground(router);
+    } catch {
+      setError("Kunde inte spara. Försök igen.");
+    } finally {
+      setPending(false);
     }
-  }, [state.ok, naState.ok]); // eslint-disable-line react-hooks/exhaustive-deps
+  }
+
+  async function runNotApplicable() {
+    setPending(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.set("property_id", propertyId);
+      fd.set("part_id", part.id);
+      fd.set("not_applicable", "1");
+      const result = await setPartNotApplicableAction({}, fd);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      onDone();
+      refreshInBackground(router);
+    } catch {
+      setError("Kunde inte uppdatera delen.");
+    } finally {
+      setPending(false);
+    }
+  }
 
   return (
     <div className="profile-part-verify">
-      <form action={formAction} className="profile-part-verify-stack">
+      <form
+        className="profile-part-verify-stack"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void runSave(new FormData(e.currentTarget));
+        }}
+      >
         <input type="hidden" name="property_id" value={propertyId} />
         <input type="hidden" name="part_id" value={part.id} />
 
@@ -603,7 +663,7 @@ function PartVerifyForm({
           <button
             type="submit"
             className="home-btn home-btn-primary"
-            disabled={pending || naPending}
+            disabled={pending}
           >
             {pending ? "Sparar…" : "Spara"}
           </button>
@@ -613,39 +673,39 @@ function PartVerifyForm({
       {part.source === "verified" ||
       part.material ||
       part.knownIssues.length > 0 ? (
-        <form action={formAction} className="profile-part-clear-form">
+        <form
+          className="profile-part-clear-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void runSave(new FormData(e.currentTarget));
+          }}
+        >
           <input type="hidden" name="property_id" value={propertyId} />
           <input type="hidden" name="part_id" value={part.id} />
           <input type="hidden" name="clear" value="1" />
           {part.key === "tak" && material ? (
             <input type="hidden" name="material" value={material} />
           ) : null}
-          <button
-            type="submit"
-            className="profile-part-clear"
-            disabled={pending || naPending}
-          >
+          <button type="submit" className="profile-part-clear" disabled={pending}>
             Rensa till antagen
           </button>
         </form>
       ) : null}
 
-      <form action={naAction} className="profile-part-clear-form">
-        <input type="hidden" name="property_id" value={propertyId} />
-        <input type="hidden" name="part_id" value={part.id} />
-        <input type="hidden" name="not_applicable" value="1" />
+      <div className="profile-part-clear-form">
         <button
-          type="submit"
+          type="button"
           className="profile-part-clear"
-          disabled={pending || naPending}
+          disabled={pending}
+          onClick={() => void runNotApplicable()}
         >
           Finns inte / ej relevant
         </button>
-      </form>
+      </div>
 
-      {state.error || naState.error ? (
+      {error ? (
         <p className="profile-ownership-error" role="alert">
-          {state.error || naState.error}
+          {error}
         </p>
       ) : null}
     </div>
