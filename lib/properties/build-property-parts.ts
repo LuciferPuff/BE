@@ -1,5 +1,6 @@
 import {
   getComponentStatus,
+  heatCompatibilityWarning,
   type YearPrecision,
 } from "@/lib/properties/get-component-status";
 import {
@@ -11,12 +12,19 @@ import {
   BUILDING_TYPE_LABELS,
   getPartDefinition,
   isBuildingType,
+  isPartRole,
   isPropertyPartKey,
   type BuildingType,
+  type PartRole,
   type PropertyPartKey,
 } from "@/lib/properties/parts-catalog";
 
-export type PartSource = "unknown" | "assumed" | "verified" | "not_applicable";
+export type PartSource =
+  | "unknown"
+  | "assumed"
+  | "verified"
+  | "not_applicable"
+  | "integrated";
 export type PartStatusTone =
   | "ok"
   | "soon"
@@ -30,12 +38,13 @@ export type PropertyPartView = {
   id: string;
   buildingId: string;
   key: PropertyPartKey;
-  /** Visningsnamn (eget namn eller katalogetikett). */
   label: string;
   catalogLabel: string;
   name: string | null;
   allowMultiple: boolean;
   notApplicable: boolean;
+  integrated: boolean;
+  role: PartRole | null;
   buildYear: number | null;
   lifespanYears: number | null;
   summary: string;
@@ -45,6 +54,8 @@ export type PropertyPartView = {
   referenceYear: number | null;
   replacedYear: number | null;
   yearPrecision: YearPrecision | null;
+  variant: string | null;
+  /** @deprecated alias för variant (tak-UI under övergång) */
   material: string | null;
   knownIssues: string[];
   source: PartSource;
@@ -54,7 +65,10 @@ export type PropertyPartView = {
   actionLabel: string;
   warning: string | null;
   prompt: string | null;
+  note: string | null;
   emphasis: "solid" | "muted";
+  /** Räknas i X av Y / nästa steg. */
+  countsTowardCompleteness: boolean;
 };
 
 export type PropertyBuildingView = {
@@ -65,8 +79,10 @@ export type PropertyBuildingView = {
   parts: PropertyPartView[];
   relevantCount: number;
   verifiedCount: number;
-  /** Kort sammanfattning för hopfälld komplementbyggnad. */
   collapsedSummary: string;
+  heatCompatibilityWarning: string | null;
+  /** Värmepump finns → visa VVB-integrerad-kryss. */
+  hasHeatPump: boolean;
 };
 
 export type PropertyBuildingRow = {
@@ -84,8 +100,12 @@ export type PropertyPartRow = {
   not_applicable?: boolean | null;
   replaced_year: number | null;
   year_precision?: string | null;
+  variant?: string | null;
+  /** Legacy alias */
   material?: string | null;
   known_issues?: string[] | null;
+  role?: string | null;
+  integrated?: boolean | null;
 };
 
 function parsePrecision(value: string | null | undefined): YearPrecision | null {
@@ -95,10 +115,7 @@ function parsePrecision(value: string | null | undefined): YearPrecision | null 
   return null;
 }
 
-function displayLabel(
-  catalogLabel: string,
-  name: string | null,
-): string {
+function displayLabel(catalogLabel: string, name: string | null): string {
   const trimmed = name?.trim();
   return trimmed || catalogLabel;
 }
@@ -112,8 +129,12 @@ export function computePartView(
   if (!def) return null;
 
   const notApplicable = Boolean(row.not_applicable);
+  const integrated = Boolean(row.integrated);
   const name = row.name?.trim() || null;
   const label = displayLabel(def.label, name);
+  const role: PartRole | null =
+    row.role && isPartRole(row.role) ? row.role : null;
+  const variant = (row.variant ?? row.material)?.trim() || null;
 
   if (notApplicable) {
     return {
@@ -125,6 +146,8 @@ export function computePartView(
       name,
       allowMultiple: def.allowMultiple,
       notApplicable: true,
+      integrated: false,
+      role,
       buildYear,
       lifespanYears: def.lifespanYears,
       summary: def.summary,
@@ -134,6 +157,7 @@ export function computePartView(
       referenceYear: null,
       replacedYear: null,
       yearPrecision: null,
+      variant: null,
       material: null,
       knownIssues: [],
       source: "not_applicable",
@@ -143,7 +167,9 @@ export function computePartView(
       actionLabel: "Återställ om den finns",
       warning: null,
       prompt: null,
+      note: null,
       emphasis: "muted",
+      countsTowardCompleteness: false,
     };
   }
 
@@ -157,7 +183,6 @@ export function computePartView(
     yearPrecision = "exact";
   }
 
-  const material = row.material?.trim() || null;
   const knownIssues = Array.isArray(row.known_issues)
     ? row.known_issues.filter(Boolean)
     : [];
@@ -167,10 +192,16 @@ export function computePartView(
     buildYear,
     replacedYear,
     yearPrecision,
-    material,
+    variant,
     knownIssues,
+    role,
+    integrated,
   });
 
+  const isIntegratedVvb = def.key === "varmvattenberedare" && integrated;
+  const source: PartSource = isIntegratedVvb
+    ? "integrated"
+    : status.source;
   const emphasis: "solid" | "muted" =
     status.source === "verified" ? "solid" : "muted";
 
@@ -183,6 +214,11 @@ export function computePartView(
     name,
     allowMultiple: def.allowMultiple,
     notApplicable: false,
+    integrated,
+    role:
+      def.key === "varmekalla"
+        ? role ?? "primar"
+        : role,
     buildYear,
     lifespanYears: status.lifespanYears ?? def.lifespanYears,
     summary: def.summary,
@@ -192,16 +228,19 @@ export function computePartView(
     referenceYear: status.referenceYear,
     replacedYear,
     yearPrecision,
-    material,
+    variant,
+    material: variant,
     knownIssues,
-    source: status.source,
+    source,
     tone: status.status,
     statusLabel: status.statusLabel,
     ageLabel: status.ageLabel,
     actionLabel: status.actionLabel,
     warning: status.warning,
     prompt: status.prompt,
+    note: status.note,
     emphasis,
+    countsTowardCompleteness: !isIntegratedVvb,
   };
 }
 
@@ -211,7 +250,7 @@ function partSortKey(part: PropertyPartView): number {
 }
 
 function collapsedSummary(parts: PropertyPartView[]): string {
-  const relevant = parts.filter((p) => !p.notApplicable);
+  const relevant = parts.filter((p) => p.countsTowardCompleteness);
   const n = relevant.length;
   const actionish = relevant.filter(
     (p) =>
@@ -252,8 +291,24 @@ export function buildPropertyBuildingViews(
       if (ka !== kb) return ka - kb;
       return a.label.localeCompare(bPart.label, "sv");
     });
-    const relevant = parts.filter((p) => !p.notApplicable);
+    const relevant = parts.filter((p) => p.countsTowardCompleteness);
     const verified = relevant.filter((p) => p.source === "verified");
+
+    const heatSources = parts
+      .filter((p) => p.key === "varmekalla" && !p.notApplicable)
+      .map((p) => ({ variant: p.variant, role: p.role }));
+    const distributions = parts
+      .filter((p) => p.key === "varmedistribution" && !p.notApplicable)
+      .map((p) => ({ variant: p.variant }));
+
+    const hasHeatPump = heatSources.some(
+      (s) =>
+        s.variant &&
+        ["bergvarme", "jordvarme", "sjovarme", "luft_vatten", "franluft"].includes(
+          s.variant,
+        ),
+    );
+
     return {
       id: b.id,
       type,
@@ -266,10 +321,14 @@ export function buildPropertyBuildingViews(
       relevantCount: relevant.length,
       verifiedCount: verified.length,
       collapsedSummary: collapsedSummary(parts),
+      heatCompatibilityWarning: heatCompatibilityWarning({
+        heatSources,
+        distributions,
+      }),
+      hasHeatPump,
     };
   });
 
-  // Huvudbyggnad först, sedan övriga
   views.sort((a, b) => {
     if (a.type === "huvudbyggnad" && b.type !== "huvudbyggnad") return -1;
     if (b.type === "huvudbyggnad" && a.type !== "huvudbyggnad") return 1;
@@ -279,14 +338,12 @@ export function buildPropertyBuildingViews(
   return views;
 }
 
-/** Platt lista av alla delar (för todos / nästa steg). */
 export function flattenBuildingParts(
   buildings: PropertyBuildingView[],
 ): PropertyPartView[] {
   return buildings.flatMap((b) => b.parts);
 }
 
-/** Andel verifierade bland relevanta delar (ej "finns inte"). */
 export function computeProfileCompleteness(input: {
   parts: PropertyPartView[];
 }): {
@@ -294,7 +351,7 @@ export function computeProfileCompleteness(input: {
   verifiedParts: number;
   totalParts: number;
 } {
-  const relevant = input.parts.filter((p) => !p.notApplicable);
+  const relevant = input.parts.filter((p) => p.countsTowardCompleteness);
   const verifiedParts = relevant.filter((p) => p.source === "verified").length;
   const totalParts = relevant.length;
   const percent =
@@ -304,13 +361,29 @@ export function computeProfileCompleteness(input: {
 }
 
 /**
- * Nästa del: första overifierade bland relevanta i PART_NEXT_STEP_PRIORITY.
- * Om alla verifierade: värst underhåll (action/soon) i samma ordning.
+ * Nästa del bland relevanta. Komplement-värmekälla hoppas över om primär finns.
  */
 export function pickNextPartAction(
   parts: PropertyPartView[],
 ): PropertyPartView | null {
-  const relevant = parts.filter((p) => !p.notApplicable);
+  const hasPrimaryHeat = parts.some(
+    (p) =>
+      p.key === "varmekalla" &&
+      !p.notApplicable &&
+      (p.role === "primar" || p.role == null),
+  );
+
+  const relevant = parts.filter((p) => {
+    if (!p.countsTowardCompleteness) return false;
+    if (
+      p.key === "varmekalla" &&
+      p.role === "komplement" &&
+      hasPrimaryHeat
+    ) {
+      return false;
+    }
+    return true;
+  });
 
   for (const key of PART_NEXT_STEP_PRIORITY) {
     const match = relevant.find(
@@ -342,13 +415,15 @@ export function pickNextPartAction(
   return best;
 }
 
-/** @deprecated Använd buildPropertyBuildingViews. Behålls för tester under övergång. */
+/** Test-hjälpare: bygg views från partial rows. */
 export function buildPropertyPartViews(
   constructionYear: number | null,
-  rows: Array<Omit<PropertyPartRow, "id" | "building_id"> & {
-    id?: string;
-    building_id?: string;
-  }>,
+  rows: Array<
+    Omit<PropertyPartRow, "id" | "building_id"> & {
+      id?: string;
+      building_id?: string;
+    }
+  >,
 ): PropertyPartView[] {
   const buildingId = "test-building";
   const buildings: PropertyBuildingRow[] = [
@@ -367,8 +442,10 @@ export function buildPropertyPartViews(
     not_applicable: r.not_applicable ?? false,
     replaced_year: r.replaced_year,
     year_precision: r.year_precision,
-    material: r.material,
+    variant: r.variant ?? r.material ?? null,
     known_issues: r.known_issues,
+    role: r.role ?? null,
+    integrated: r.integrated ?? false,
   }));
 
   const existing = new Set(fullRows.map((r) => r.part_key));
@@ -382,12 +459,12 @@ export function buildPropertyPartViews(
       not_applicable: false,
       replaced_year: null,
       year_precision: null,
-      material: null,
+      variant: null,
       known_issues: [],
+      role: key === "varmekalla" ? "primar" : null,
+      integrated: false,
     });
   }
 
-  return flattenBuildingParts(
-    buildPropertyBuildingViews(buildings, fullRows),
-  );
+  return flattenBuildingParts(buildPropertyBuildingViews(buildings, fullRows));
 }

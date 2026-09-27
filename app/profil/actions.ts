@@ -18,6 +18,7 @@ import {
 } from "@/lib/properties/document-labels";
 import {
   getPartDefinition,
+  isPartRole,
   isPropertyPartKey,
   partAllowsMultiple,
 } from "@/lib/properties/parts-catalog";
@@ -26,6 +27,8 @@ import {
   syncHuvudbyggnadBuildYear,
 } from "@/lib/properties/ensure-buildings";
 import {
+  isHeatDistVariant,
+  isHeatSourceVariant,
   isRoofMaterial,
   ROOF_KNOWN_ISSUES,
 } from "@/lib/properties/component-lifespans";
@@ -553,7 +556,7 @@ export type UpdatePropertyPartState = {
   ok?: boolean;
 };
 
-/** Sparar husdel: precision, år, material (tak) och kända problem. */
+/** Sparar husdel: precision, år, variant och kända problem. */
 export async function updatePropertyPartAction(
   _prev: UpdatePropertyPartState,
   formData: FormData,
@@ -565,8 +568,11 @@ export async function updatePropertyPartAction(
   const precisionRaw = optionalText(formData, "year_precision");
   const yearRaw = optionalText(formData, "replaced_year");
   const decadeRaw = optionalText(formData, "decade");
-  const materialRaw = optionalText(formData, "material");
+  const variantRaw =
+    optionalText(formData, "variant") ?? optionalText(formData, "material");
   const nameRaw = optionalText(formData, "name");
+  const roleRaw = optionalText(formData, "role");
+  const integrated = optionalText(formData, "integrated") === "1";
   const knownIssues = formData
     .getAll("known_issues")
     .filter((v): v is string => typeof v === "string" && v.length > 0);
@@ -585,7 +591,7 @@ export async function updatePropertyPartAction(
   const supabase = await createAuthClient();
   const { data: existing, error: readError } = await supabase
     .from("property_parts")
-    .select("id, part_key, building_id, name")
+    .select("id, part_key, building_id, name, role")
     .eq("id", partId)
     .eq("property_id", propertyId)
     .maybeSingle();
@@ -607,15 +613,39 @@ export async function updatePropertyPartAction(
       ? knownIssues.filter((k) => allowedIssues.has(k)).slice(0, 10)
       : [];
 
-  let material: string | null = null;
+  let variant: string | null = null;
   if (partKey === "tak") {
-    if (!materialRaw || !isRoofMaterial(materialRaw)) {
+    if (!variantRaw || !isRoofMaterial(variantRaw)) {
       if (!clear) {
         return { error: "Välj takmaterial." };
       }
     } else {
-      material = materialRaw;
+      variant = variantRaw;
     }
+  } else if (partKey === "varmekalla") {
+    if (!variantRaw || !isHeatSourceVariant(variantRaw)) {
+      if (!clear && precisionRaw !== "unknown") {
+        return { error: "Välj värmekälla." };
+      }
+    } else {
+      variant = variantRaw;
+    }
+  } else if (partKey === "varmedistribution") {
+    if (!variantRaw || !isHeatDistVariant(variantRaw)) {
+      if (!clear && precisionRaw !== "unknown") {
+        return { error: "Välj värmedistribution." };
+      }
+    } else {
+      variant = variantRaw;
+    }
+  }
+
+  let role: string | null = null;
+  if (partKey === "varmekalla") {
+    role =
+      roleRaw && isPartRole(roleRaw)
+        ? roleRaw
+        : ((existing.role as string | null) ?? "primar");
   }
 
   const name =
@@ -623,13 +653,136 @@ export async function updatePropertyPartAction(
       ? nameRaw.trim().slice(0, 80)
       : (existing.name as string | null);
 
+  const integratedValue =
+    partKey === "varmvattenberedare" ? integrated : false;
+
   if (clear || precisionRaw === "unknown") {
     const { error } = await supabase
       .from("property_parts")
       .update({
         replaced_year: null,
         year_precision: null,
-        material: partKey === "tak" ? material : null,
+        variant:
+          partKey === "tak" ||
+          partKey === "varmekalla" ||
+          partKey === "varmedistribution"
+            ? variant
+            : null,
+        known_issues,
+        name,
+        role,
+        integrated: integratedValue,
+        not_applicable: false,
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", partId)
+      .eq("property_id", propertyId);
+    if (error) {
+      console.error("[profil] property_parts:", error.message, error.code);
+      return { error: "Kunde inte spara. Försök igen." };
+    }
+    revalidatePath(`/profil/${propertyId}`);
+    return { ok: true };
+  }
+
+  // Integrerad VVB: ingen ålder krävs
+  if (partKey === "varmvattenberedare" && integratedValue) {
+    const { error } = await supabase
+      .from("property_parts")
+      .update({
+        replaced_year: null,
+        year_precision: null,
+        variant: null,
+        known_issues: [],
+        name,
+        integrated: true,
+        not_applicable: false,
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", partId)
+      .eq("property_id", propertyId);
+    if (error) {
+      console.error("[profil] property_parts:", error.message, error.code);
+      return { error: "Kunde inte spara. Försök igen." };
+    }
+    revalidatePath(`/profil/${propertyId}`);
+    return { ok: true };
+  }
+
+  // Värmekälla/kamin/luftburen: tillåt spara bara variant utan år
+  if (
+    (partKey === "varmekalla" && variant === "kamin") ||
+    (partKey === "varmedistribution" && variant === "luftburen")
+  ) {
+    if (!yearRaw && precisionRaw !== "decade" && precisionRaw !== "original") {
+      const { error } = await supabase
+        .from("property_parts")
+        .update({
+          replaced_year: null,
+          year_precision: null,
+          variant,
+          known_issues,
+          name,
+          role,
+          integrated: false,
+          not_applicable: false,
+          updated_by: user.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", partId)
+        .eq("property_id", propertyId);
+      if (error) {
+        console.error("[profil] property_parts:", error.message, error.code);
+        return { error: "Kunde inte spara. Försök igen." };
+      }
+      revalidatePath(`/profil/${propertyId}`);
+      return { ok: true };
+    }
+  }
+
+  // Värmekälla: tillåt spara bara variant (år optional → unknown status)
+  if (partKey === "varmekalla" && variant && !yearRaw && !decadeRaw && precisionRaw !== "original" && precisionRaw !== "decade" && precisionRaw !== "exact") {
+    const { error } = await supabase
+      .from("property_parts")
+      .update({
+        replaced_year: null,
+        year_precision: null,
+        variant,
+        known_issues,
+        name,
+        role,
+        not_applicable: false,
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", partId)
+      .eq("property_id", propertyId);
+    if (error) {
+      console.error("[profil] property_parts:", error.message, error.code);
+      return { error: "Kunde inte spara. Försök igen." };
+    }
+    revalidatePath(`/profil/${propertyId}`);
+    return { ok: true };
+  }
+
+  // Distribution: tillåt spara bara variant
+  if (
+    partKey === "varmedistribution" &&
+    variant &&
+    !yearRaw &&
+    !decadeRaw &&
+    precisionRaw !== "original" &&
+    precisionRaw !== "decade" &&
+    precisionRaw !== "exact"
+  ) {
+    const { error } = await supabase
+      .from("property_parts")
+      .update({
+        replaced_year: null,
+        year_precision: null,
+        variant,
         known_issues,
         name,
         not_applicable: false,
@@ -697,9 +850,16 @@ export async function updatePropertyPartAction(
     .update({
       replaced_year,
       year_precision,
-      material: partKey === "tak" ? material : null,
+      variant:
+        partKey === "tak" ||
+        partKey === "varmekalla" ||
+        partKey === "varmedistribution"
+          ? variant
+          : null,
       known_issues,
       name,
+      role,
+      integrated: integratedValue,
       not_applicable: false,
       updated_by: user.id,
       updated_at: new Date().toISOString(),
@@ -743,8 +903,9 @@ export async function setPartNotApplicableAction(
         not_applicable: true,
         replaced_year: null,
         year_precision: null,
-        material: null,
+        variant: null,
         known_issues: [] as string[],
+        integrated: false,
         updated_by: user.id,
         updated_at: new Date().toISOString(),
       }
@@ -829,12 +990,20 @@ export async function addPropertyPartAction(
       ? `${def.label} ${nextIndex}`
       : null);
 
+  const role =
+    partKey === "varmekalla"
+      ? count > 0
+        ? "komplement"
+        : "primar"
+      : null;
+
   const { error } = await supabase.from("property_parts").insert({
     property_id: propertyId,
     building_id: buildingId,
     part_key: partKey,
     name: finalName,
     not_applicable: false,
+    role,
     updated_by: user.id,
   });
 

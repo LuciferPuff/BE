@@ -160,7 +160,7 @@ export async function getPropertyDashboard(
   const { data: partRows, error: partsError } = await supabase
     .from("property_parts")
     .select(
-      "id, building_id, part_key, name, not_applicable, replaced_year, year_precision, material, known_issues",
+      "id, building_id, part_key, name, not_applicable, replaced_year, year_precision, variant, known_issues, role, integrated",
     )
     .eq("property_id", propertyId);
 
@@ -235,10 +235,12 @@ export async function getPropertyDashboard(
       replaced_year:
         r.replaced_year != null ? Number(r.replaced_year) : null,
       year_precision: (r.year_precision as string | null) ?? null,
-      material: (r.material as string | null) ?? null,
+      variant: (r.variant as string | null) ?? null,
       known_issues: Array.isArray(r.known_issues)
         ? (r.known_issues as string[])
         : [],
+      role: (r.role as string | null) ?? null,
+      integrated: Boolean(r.integrated),
     })),
   );
 

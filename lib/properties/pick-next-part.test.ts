@@ -16,7 +16,7 @@ function row(
     part_key: key,
     replaced_year: year,
     year_precision: precision,
-    material: key === "tak" ? "tegel" : null,
+    variant: key === "tak" ? "tegel" : null,
     known_issues: [] as string[],
   };
 }
@@ -26,16 +26,14 @@ describe("pickNextPartAction priority", () => {
     const parts = buildPropertyPartViews(1980, [
       row("fasad", null),
       row("vatrum", null),
-      // tak saknar material → unknown, overifierad
     ]);
-    // Without tak row, tak is still in catalog as unknown/assumed
     const next = pickNextPartAction(parts);
     assert.equal(next?.key, "tak");
   });
 
   it("hoppar verifierad tak och tar våtrum", () => {
     const parts = buildPropertyPartViews(1980, [
-      { ...row("tak", 2015), material: "tegel" },
+      { ...row("tak", 2015), variant: "tegel" },
       row("vatrum", null),
       row("dranering", null),
     ]);
@@ -45,12 +43,26 @@ describe("pickNextPartAction priority", () => {
 
   it("när allt verifierat: snart/action i prioritet", () => {
     const parts = buildPropertyPartViews(1970, [
-      { ...row("tak", 1972), material: "papp" }, // gammalt papp → action
+      { ...row("tak", 1972), variant: "papp" },
       row("vatrum", 2020),
       row("dranering", 2015),
       row("va", 2010),
       row("el", 2010),
-      row("uppvarmning", 2018),
+      {
+        part_key: "varmekalla",
+        replaced_year: 2018,
+        year_precision: "exact",
+        variant: "bergvarme",
+        role: "primar",
+        known_issues: [],
+      },
+      {
+        part_key: "varmedistribution",
+        replaced_year: 2010,
+        year_precision: "exact",
+        variant: "radiatorer",
+        known_issues: [],
+      },
       row("varmvattenberedare", 2018),
       row("fonster", 2010),
       row("fasad", 2010),
@@ -67,13 +79,27 @@ describe("pickNextPartAction priority", () => {
 describe("verify_parts auto-complete", () => {
   it("markeras klar automatiskt när alla delar är verifierade", () => {
     const parts = buildPropertyPartViews(2010, [
-      { ...row("tak", 2010), material: "tegel" },
+      { ...row("tak", 2010), variant: "tegel" },
       row("fasad", 2010),
       row("fonster", 2010),
       row("dranering", 2010),
       row("grund", 2010, "original"),
       row("vatrum", 2010),
-      row("uppvarmning", 2010),
+      {
+        part_key: "varmekalla",
+        replaced_year: 2010,
+        year_precision: "exact",
+        variant: "bergvarme",
+        role: "primar",
+        known_issues: [],
+      },
+      {
+        part_key: "varmedistribution",
+        replaced_year: 2010,
+        year_precision: "exact",
+        variant: "radiatorer",
+        known_issues: [],
+      },
       row("varmvattenberedare", 2010),
       row("ventilation", 2010),
       row("el", 2010),
@@ -95,7 +121,7 @@ describe("verify_parts auto-complete", () => {
 
   it("är öppen när någon del saknar verifiering", () => {
     const parts = buildPropertyPartViews(2010, [
-      { ...row("tak", 2010), material: "tegel" },
+      { ...row("tak", 2010), variant: "tegel" },
     ]);
     const todos = buildPropertyTodos({
       ownershipStatus: "ager",

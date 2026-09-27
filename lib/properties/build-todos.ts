@@ -121,7 +121,22 @@ export type TodoStateRow = {
 function firstUnverifiedPart(
   parts: PropertyPartView[],
 ): PropertyPartView | null {
-  const relevant = parts.filter((p) => !p.notApplicable);
+  const relevant = parts.filter((p) => {
+    if (!p.countsTowardCompleteness) return false;
+    if (
+      p.key === "varmekalla" &&
+      p.role === "komplement" &&
+      parts.some(
+        (x) =>
+          x.key === "varmekalla" &&
+          !x.notApplicable &&
+          (x.role === "primar" || x.role == null),
+      )
+    ) {
+      return false;
+    }
+    return true;
+  });
   for (const key of PART_NEXT_STEP_PRIORITY) {
     const part = relevant.find(
       (p) => p.key === key && p.source !== "verified",
@@ -146,7 +161,7 @@ export function buildPropertyTodos(input: {
   const month = input.month ?? new Date().getMonth() + 1;
   const items: PropertyTodoItem[] = [];
 
-  const relevant = input.parts.filter((p) => !p.notApplicable);
+  const relevant = input.parts.filter((p) => p.countsTowardCompleteness);
   const verifiedCount = relevant.filter((p) => p.source === "verified")
     .length;
   const totalParts = relevant.length;

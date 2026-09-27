@@ -72,6 +72,7 @@ export async function seedPartsForBuilding(
     building_id: buildingId,
     part_key,
     not_applicable: false,
+    role: part_key === "varmekalla" ? ("primar" as const) : null,
   }));
 
   const { error } = await supabase.from("property_parts").insert(rows);

@@ -1,9 +1,10 @@
 /**
- * Livslängder och guide-länkar för husdelar.
- * Justera här centralt – används av statuslogik och UI.
+ * Livslängder, varianter och guide-länkar för husdelar.
  */
 
 import type { PropertyPartKey } from "@/lib/properties/parts-catalog";
+
+/* ---------- Tak ---------- */
 
 export const ROOF_MATERIALS = [
   "tegel",
@@ -27,7 +28,6 @@ export const ROOF_MATERIAL_LABELS: Record<RoofMaterial, string> = {
   okand: "Vet ej",
 };
 
-/** Taklivslängd per material. null = okänt material. */
 export const ROOF_LIFESPAN_YEARS: Record<RoofMaterial, number | null> = {
   tegel: 60,
   betong: 45,
@@ -48,7 +48,156 @@ export const ROOF_KNOWN_ISSUES = [
 
 export type RoofKnownIssue = (typeof ROOF_KNOWN_ISSUES)[number]["key"];
 
-/** Schablonlivslängd per del (tak styrs av material). */
+/* ---------- Värmekälla ---------- */
+
+export const HEAT_SOURCE_VARIANTS = [
+  "bergvarme",
+  "jordvarme",
+  "sjovarme",
+  "luft_vatten",
+  "franluft",
+  "luft_luft",
+  "fjarrvarme",
+  "elpanna",
+  "direktel",
+  "olja",
+  "gas",
+  "ved",
+  "pellets",
+  "briketter",
+  "kamin",
+  "solfangare",
+  "okand",
+] as const;
+
+export type HeatSourceVariant = (typeof HEAT_SOURCE_VARIANTS)[number];
+
+export const HEAT_SOURCE_LABELS: Record<HeatSourceVariant, string> = {
+  bergvarme: "Bergvärme",
+  jordvarme: "Jordvärme",
+  sjovarme: "Sjövärme",
+  luft_vatten: "Luft/vatten-värmepump",
+  franluft: "Frånluftsvärmepump",
+  luft_luft: "Luft/luft-värmepump",
+  fjarrvarme: "Fjärrvärme",
+  elpanna: "Elpanna (vattenburen)",
+  direktel: "Direktverkande el",
+  olja: "Olja",
+  gas: "Gas",
+  ved: "Ved",
+  pellets: "Pellets",
+  briketter: "Briketter",
+  kamin: "Kamin/kakelugn",
+  solfangare: "Solfångare",
+  okand: "Vet ej",
+};
+
+export const HEAT_SOURCE_LIFESPAN_YEARS: Record<
+  HeatSourceVariant,
+  number | null
+> = {
+  bergvarme: 18,
+  jordvarme: 18,
+  sjovarme: 18,
+  luft_vatten: 15,
+  franluft: 15,
+  luft_luft: 12,
+  fjarrvarme: 22,
+  elpanna: 22,
+  direktel: 30,
+  olja: 28,
+  gas: 22,
+  ved: 25,
+  pellets: 25,
+  briketter: 25,
+  kamin: null,
+  solfangare: 22,
+  okand: null,
+};
+
+/** Panelnotiser per värmekälla-variant. */
+export const HEAT_SOURCE_NOTES: Partial<Record<HeatSourceVariant, string>> = {
+  bergvarme:
+    "Borrhålet/kollektorn håller 50+ år – det är oftast bara pumpen som behöver bytas.",
+  jordvarme:
+    "Borrhålet/kollektorn håller 50+ år – det är oftast bara pumpen som behöver bytas.",
+  sjovarme:
+    "Borrhålet/kollektorn håller 50+ år – det är oftast bara pumpen som behöver bytas.",
+  olja:
+    "Kontrollera oljecisternen – läckage kan ge saneringskrav och påverka försäkringen.",
+  elpanna:
+    "Hög driftkostnad. En värmepump kan ofta sänka elförbrukningen kraftigt.",
+  direktel:
+    "Hög driftkostnad. En värmepump kan ofta sänka elförbrukningen kraftigt.",
+  ved: "Kräver sotning och brandskyddskontroll.",
+  pellets: "Kräver sotning och brandskyddskontroll.",
+  briketter: "Kräver sotning och brandskyddskontroll.",
+  kamin: "Kräver sotning och brandskyddskontroll.",
+};
+
+/** Värmekällor som brukar kräva vattenburen distribution. */
+export const HEAT_SOURCES_NEED_WATER_DIST: readonly HeatSourceVariant[] = [
+  "bergvarme",
+  "jordvarme",
+  "sjovarme",
+  "luft_vatten",
+  "franluft",
+  "fjarrvarme",
+  "elpanna",
+  "olja",
+  "gas",
+  "pellets",
+  "ved",
+  "briketter",
+] as const;
+
+/** Värmepumpar där VVB kan vara integrerad. */
+export const HEAT_PUMP_VARIANTS: readonly HeatSourceVariant[] = [
+  "bergvarme",
+  "jordvarme",
+  "sjovarme",
+  "luft_vatten",
+  "franluft",
+] as const;
+
+/* ---------- Värmedistribution ---------- */
+
+export const HEAT_DIST_VARIANTS = [
+  "radiatorer",
+  "golvvarme_vatten",
+  "golvvarme_el",
+  "direktel_element",
+  "luftburen",
+  "okand",
+] as const;
+
+export type HeatDistVariant = (typeof HEAT_DIST_VARIANTS)[number];
+
+export const HEAT_DIST_LABELS: Record<HeatDistVariant, string> = {
+  radiatorer: "Vattenburna radiatorer",
+  golvvarme_vatten: "Vattenburen golvvärme",
+  golvvarme_el: "Elgolvvärme",
+  direktel_element: "Direktel-element",
+  luftburen: "Luftburen",
+  okand: "Vet ej",
+};
+
+export const HEAT_DIST_LIFESPAN_YEARS: Record<HeatDistVariant, number | null> = {
+  radiatorer: 50,
+  golvvarme_vatten: 50,
+  golvvarme_el: 28,
+  direktel_element: 30,
+  luftburen: null,
+  okand: null,
+};
+
+export const WATER_DIST_VARIANTS: readonly HeatDistVariant[] = [
+  "radiatorer",
+  "golvvarme_vatten",
+] as const;
+
+/* ---------- Schablon per del (variant styr där det finns) ---------- */
+
 export const PART_LIFESPAN_YEARS: Record<PropertyPartKey, number> = {
   tak: 40,
   fasad: 40,
@@ -56,7 +205,8 @@ export const PART_LIFESPAN_YEARS: Record<PropertyPartKey, number> = {
   dranering: 40,
   grund: 100,
   vatrum: 25,
-  uppvarmning: 20,
+  varmekalla: 18,
+  varmedistribution: 50,
   varmvattenberedare: 15,
   ventilation: 30,
   el: 45,
@@ -77,7 +227,8 @@ export const PART_GUIDE_HREF: Record<PropertyPartKey, string> = {
   dranering: "/guider/dranering",
   grund: "/guider/grund",
   vatrum: "/guider/vatrum",
-  uppvarmning: "/guider/uppvarmning",
+  varmekalla: "/guider/uppvarmning",
+  varmedistribution: "/guider/uppvarmning",
   varmvattenberedare: "/guider/varmvattenberedare",
   ventilation: "/guider/ventilation",
   el: "/guider/el",
@@ -91,7 +242,6 @@ export const PART_GUIDE_HREF: Record<PropertyPartKey, string> = {
   avfuktare: "/guider/avfuktare",
 };
 
-/** Bestämd form för löptext (“När byttes taket?”). */
 export const PART_LABEL_DEFINITE: Record<PropertyPartKey, string> = {
   tak: "taket",
   fasad: "fasaden",
@@ -99,7 +249,8 @@ export const PART_LABEL_DEFINITE: Record<PropertyPartKey, string> = {
   dranering: "dräneringen",
   grund: "grunden",
   vatrum: "tätskiktet",
-  uppvarmning: "uppvärmningen",
+  varmekalla: "värmekällan",
+  varmedistribution: "värmedistributionen",
   varmvattenberedare: "varmvattenberedaren",
   ventilation: "ventilationen",
   el: "elen",
@@ -113,10 +264,6 @@ export const PART_LABEL_DEFINITE: Record<PropertyPartKey, string> = {
   avfuktare: "avfuktaren",
 };
 
-/**
- * Prioritet för Nästa steg (konsekvensordning).
- * Valfria katalogdelar som saknas på byggnaden ingår inte förrän de lagts till.
- */
 export const PART_NEXT_STEP_PRIORITY: readonly PropertyPartKey[] = [
   "tak",
   "vatrum",
@@ -124,8 +271,9 @@ export const PART_NEXT_STEP_PRIORITY: readonly PropertyPartKey[] = [
   "enskilt_avlopp",
   "va",
   "el",
-  "uppvarmning",
+  "varmekalla",
   "varmvattenberedare",
+  "varmedistribution",
   "skorsten",
   "avfuktare",
   "egen_brunn",
@@ -138,7 +286,6 @@ export const PART_NEXT_STEP_PRIORITY: readonly PropertyPartKey[] = [
   "grund",
 ] as const;
 
-/** Lägre = värre (används vid underhåll bland verifierade). */
 export const PART_STATUS_PRIORITY: Record<
   "action" | "soon" | "likely" | "unknown" | "assumed_ok" | "ok",
   number
@@ -159,13 +306,44 @@ export function isRoofMaterial(value: string): value is RoofMaterial {
   return (ROOF_MATERIALS as readonly string[]).includes(value);
 }
 
+export function isHeatSourceVariant(value: string): value is HeatSourceVariant {
+  return (HEAT_SOURCE_VARIANTS as readonly string[]).includes(value);
+}
+
+export function isHeatDistVariant(value: string): value is HeatDistVariant {
+  return (HEAT_DIST_VARIANTS as readonly string[]).includes(value);
+}
+
 export function lifespanForPart(
   key: PropertyPartKey,
-  material: string | null | undefined,
+  variant: string | null | undefined,
 ): number | null {
   if (key === "tak") {
-    if (!material || !isRoofMaterial(material)) return null;
-    return ROOF_LIFESPAN_YEARS[material];
+    if (!variant || !isRoofMaterial(variant)) return null;
+    return ROOF_LIFESPAN_YEARS[variant];
+  }
+  if (key === "varmekalla") {
+    if (!variant || !isHeatSourceVariant(variant)) return null;
+    return HEAT_SOURCE_LIFESPAN_YEARS[variant];
+  }
+  if (key === "varmedistribution") {
+    if (!variant || !isHeatDistVariant(variant)) return null;
+    return HEAT_DIST_LIFESPAN_YEARS[variant];
   }
   return PART_LIFESPAN_YEARS[key];
+}
+
+export function heatSourceNeedsWaterDist(variant: string | null): boolean {
+  return (
+    !!variant &&
+    (HEAT_SOURCES_NEED_WATER_DIST as readonly string[]).includes(variant)
+  );
+}
+
+export function buildingHasHeatPump(
+  variants: readonly (string | null | undefined)[],
+): boolean {
+  return variants.some(
+    (v) => v && (HEAT_PUMP_VARIANTS as readonly string[]).includes(v),
+  );
 }

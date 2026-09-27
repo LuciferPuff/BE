@@ -14,10 +14,17 @@ import type {
   PropertyPartView,
 } from "@/lib/properties/build-property-parts";
 import {
+  HEAT_DIST_LABELS,
+  HEAT_DIST_VARIANTS,
+  HEAT_SOURCE_LABELS,
+  HEAT_SOURCE_NOTES,
+  HEAT_SOURCE_VARIANTS,
   lifespanForPart,
   ROOF_KNOWN_ISSUES,
   ROOF_MATERIAL_LABELS,
   ROOF_MATERIALS,
+  type HeatDistVariant,
+  type HeatSourceVariant,
   type RoofMaterial,
 } from "@/lib/properties/component-lifespans";
 import { addablePartOptions } from "@/lib/properties/parts-catalog";
@@ -71,6 +78,9 @@ export function PropertyPartsSection({
   const openedFromQuery = useRef<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const active = findPart(buildings, activeId);
+  const activeBuilding = active
+    ? buildings.find((b) => b.id === active.buildingId) ?? null
+    : null;
   const titleId = useId();
 
   useEffect(() => {
@@ -165,17 +175,26 @@ export function PropertyPartsSection({
               />
             ) : (
               <>
+                {activeBuilding?.heatCompatibilityWarning &&
+                active.key === "varmekalla" ? (
+                  <p className="profile-part-warning" role="status">
+                    {activeBuilding.heatCompatibilityWarning}
+                  </p>
+                ) : null}
                 {active.warning ? (
                   <p className="profile-part-warning" role="status">
                     {active.warning}
                   </p>
+                ) : null}
+                {active.note ? (
+                  <p className="analyse-form-help">{active.note}</p>
                 ) : null}
                 {active.prompt ? (
                   <p className="profile-dashboard-text">{active.prompt}</p>
                 ) : null}
                 <p className="profile-dashboard-text">{active.summary}</p>
                 <p className="profile-dashboard-text">
-                  {active.lifespanYears != null
+                  {active.lifespanYears != null && !active.integrated
                     ? `Normal livslängd ca ${active.lifespanYears} år. `
                     : null}
                   {active.ifWaiting}
@@ -193,6 +212,7 @@ export function PropertyPartsSection({
                     propertyId={propertyId}
                     part={active}
                     buildYear={active.buildYear}
+                    hasHeatPump={activeBuilding?.hasHeatPump ?? false}
                     onDone={closeSheet}
                   />
                 ) : (
@@ -428,11 +448,13 @@ function PartVerifyForm({
   propertyId,
   part,
   buildYear,
+  hasHeatPump,
   onDone,
 }: {
   propertyId: string;
   part: PropertyPartView;
   buildYear: number | null;
+  hasHeatPump: boolean;
   onDone: () => void;
 }) {
   const router = useRouter();
@@ -449,18 +471,42 @@ function PartVerifyForm({
           ? "exact"
           : "exact",
   );
-  const [material, setMaterial] = useState<RoofMaterial | "">(
-    part.material &&
-      (ROOF_MATERIALS as readonly string[]).includes(part.material)
-      ? (part.material as RoofMaterial)
+  const [roofMaterial, setRoofMaterial] = useState<RoofMaterial | "">(
+    part.variant &&
+      (ROOF_MATERIALS as readonly string[]).includes(part.variant)
+      ? (part.variant as RoofMaterial)
       : "",
   );
+  const [heatSource, setHeatSource] = useState<HeatSourceVariant | "">(
+    part.variant && isHeatSourcePick(part.variant)
+      ? part.variant
+      : "",
+  );
+  const [heatDist, setHeatDist] = useState<HeatDistVariant | "">(
+    part.variant && isHeatDistPick(part.variant) ? part.variant : "",
+  );
+  const [role, setRole] = useState<"primar" | "komplement">(
+    part.role === "komplement" ? "komplement" : "primar",
+  );
+  const [integrated, setIntegrated] = useState(part.integrated);
 
   const now = new Date().getFullYear();
+  const activeVariant =
+    part.key === "tak"
+      ? roofMaterial
+      : part.key === "varmekalla"
+        ? heatSource
+        : part.key === "varmedistribution"
+          ? heatDist
+          : null;
   const materialLifespan =
-    part.key === "tak" && material
-      ? lifespanForPart("tak", material)
+    activeVariant
+      ? lifespanForPart(part.key, activeVariant)
       : part.lifespanYears;
+  const heatNote =
+    heatSource && HEAT_SOURCE_NOTES[heatSource]
+      ? HEAT_SOURCE_NOTES[heatSource]
+      : null;
 
   async function runSave(fd: FormData) {
     setPending(true);
@@ -502,6 +548,8 @@ function PartVerifyForm({
     }
   }
 
+  const skipAgeForIntegrated = part.key === "varmvattenberedare" && integrated;
+
   return (
     <div className="profile-part-verify">
       <form
@@ -514,7 +562,7 @@ function PartVerifyForm({
         <input type="hidden" name="property_id" value={propertyId} />
         <input type="hidden" name="part_id" value={part.id} />
 
-        {part.allowMultiple ? (
+        {part.allowMultiple && part.key !== "varmekalla" ? (
           <label className="profile-part-field">
             <span>Namn</span>
             <input
@@ -537,10 +585,10 @@ function PartVerifyForm({
                 <label key={key} className="profile-part-choice">
                   <input
                     type="radio"
-                    name="material"
+                    name="variant"
                     value={key}
-                    checked={material === key}
-                    onChange={() => setMaterial(key)}
+                    checked={roofMaterial === key}
+                    onChange={() => setRoofMaterial(key)}
                     disabled={pending}
                     required
                   />
@@ -552,7 +600,7 @@ function PartVerifyForm({
               <p className="analyse-form-help">
                 Riktvärde för livslängd: ca {materialLifespan} år.
               </p>
-            ) : material === "okand" || !material ? (
+            ) : roofMaterial === "okand" || !roofMaterial ? (
               <p className="analyse-form-help">
                 Välj material för att få rätt livslängdsriktvärde.
               </p>
@@ -560,84 +608,188 @@ function PartVerifyForm({
           </fieldset>
         ) : null}
 
-        <fieldset className="profile-part-fieldset">
-          <legend>När byttes / renoverades delen?</legend>
-          <div className="profile-part-choice-list">
-            {(
-              [
-                ["exact", "Exakt år"],
-                ["decade", "Årtionde"],
-                ["original", "Original från byggår"],
-                ["unknown", "Vet ej"],
-              ] as const
-            ).map(([value, label]) => (
-              <label key={value} className="profile-part-choice">
-                <input
-                  type="radio"
-                  name="year_precision"
-                  value={value}
-                  checked={precision === value}
-                  onChange={() => setPrecision(value)}
-                  disabled={pending}
-                />
-                <span>{label}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
-        {precision === "exact" ? (
-          <label className="profile-part-field">
-            <span>År</span>
-            <input
-              type="text"
-              name="replaced_year"
-              className="analyse-form-input"
-              inputMode="numeric"
-              pattern="[0-9]{4}"
-              defaultValue={
-                part.yearPrecision === "exact" && part.replacedYear != null
-                  ? String(part.replacedYear)
-                  : ""
-              }
-              placeholder="t.ex. 2012"
-              disabled={pending}
-              autoComplete="off"
-            />
-          </label>
+        {part.key === "varmekalla" ? (
+          <>
+            <fieldset className="profile-part-fieldset">
+              <legend>Värmekälla</legend>
+              <div className="profile-part-choice-list">
+                {HEAT_SOURCE_VARIANTS.map((key) => (
+                  <label key={key} className="profile-part-choice">
+                    <input
+                      type="radio"
+                      name="variant"
+                      value={key}
+                      checked={heatSource === key}
+                      onChange={() => setHeatSource(key)}
+                      disabled={pending}
+                      required
+                    />
+                    <span>{HEAT_SOURCE_LABELS[key]}</span>
+                  </label>
+                ))}
+              </div>
+              {heatNote ? (
+                <p className="analyse-form-help">{heatNote}</p>
+              ) : null}
+              {materialLifespan != null ? (
+                <p className="analyse-form-help">
+                  Riktvärde för livslängd: ca {materialLifespan} år.
+                </p>
+              ) : null}
+            </fieldset>
+            <fieldset className="profile-part-fieldset">
+              <legend>Roll</legend>
+              <div className="profile-part-choice-list">
+                {(
+                  [
+                    ["primar", "Primär"],
+                    ["komplement", "Komplement"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <label key={value} className="profile-part-choice">
+                    <input
+                      type="radio"
+                      name="role"
+                      value={value}
+                      checked={role === value}
+                      onChange={() => setRole(value)}
+                      disabled={pending}
+                    />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </>
         ) : null}
 
-        {precision === "decade" ? (
-          <label className="profile-part-field">
-            <span>Årtionde</span>
-            <select
-              name="decade"
-              className="analyse-form-input"
-              defaultValue={
-                part.yearPrecision === "decade" && part.replacedYear != null
-                  ? String(Math.floor(part.replacedYear / 10) * 10)
-                  : ""
-              }
-              disabled={pending}
-              required
-            >
-              <option value="">Välj årtionde</option>
-              {decadeOptions(now).map((y) => (
-                <option key={y} value={y}>
-                  {y}-tal
-                </option>
+        {part.key === "varmedistribution" ? (
+          <fieldset className="profile-part-fieldset">
+            <legend>Värmedistribution</legend>
+            <div className="profile-part-choice-list">
+              {HEAT_DIST_VARIANTS.map((key) => (
+                <label key={key} className="profile-part-choice">
+                  <input
+                    type="radio"
+                    name="variant"
+                    value={key}
+                    checked={heatDist === key}
+                    onChange={() => setHeatDist(key)}
+                    disabled={pending}
+                    required
+                  />
+                  <span>{HEAT_DIST_LABELS[key]}</span>
+                </label>
               ))}
-            </select>
+            </div>
+            {materialLifespan != null ? (
+              <p className="analyse-form-help">
+                Riktvärde för livslängd: ca {materialLifespan} år.
+              </p>
+            ) : null}
+          </fieldset>
+        ) : null}
+
+        {part.key === "varmvattenberedare" && hasHeatPump ? (
+          <label className="profile-part-choice">
+            <input
+              type="checkbox"
+              name="integrated"
+              value="1"
+              checked={integrated}
+              onChange={(e) => setIntegrated(e.target.checked)}
+              disabled={pending}
+            />
+            <span>Integrerad i värmepumpen</span>
           </label>
         ) : null}
 
-        {precision === "original" ? (
+        {!skipAgeForIntegrated ? (
+          <>
+            <fieldset className="profile-part-fieldset">
+              <legend>När byttes / renoverades delen?</legend>
+              <div className="profile-part-choice-list">
+                {(
+                  [
+                    ["exact", "Exakt år"],
+                    ["decade", "Årtionde"],
+                    ["original", "Original från byggår"],
+                    ["unknown", "Vet ej"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <label key={value} className="profile-part-choice">
+                    <input
+                      type="radio"
+                      name="year_precision"
+                      value={value}
+                      checked={precision === value}
+                      onChange={() => setPrecision(value)}
+                      disabled={pending}
+                    />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            {precision === "exact" ? (
+              <label className="profile-part-field">
+                <span>År</span>
+                <input
+                  type="text"
+                  name="replaced_year"
+                  className="analyse-form-input"
+                  inputMode="numeric"
+                  pattern="[0-9]{4}"
+                  defaultValue={
+                    part.yearPrecision === "exact" && part.replacedYear != null
+                      ? String(part.replacedYear)
+                      : ""
+                  }
+                  placeholder="t.ex. 2012"
+                  disabled={pending}
+                  autoComplete="off"
+                />
+              </label>
+            ) : null}
+
+            {precision === "decade" ? (
+              <label className="profile-part-field">
+                <span>Årtionde</span>
+                <select
+                  name="decade"
+                  className="analyse-form-input"
+                  defaultValue={
+                    part.yearPrecision === "decade" && part.replacedYear != null
+                      ? String(Math.floor(part.replacedYear / 10) * 10)
+                      : ""
+                  }
+                  disabled={pending}
+                  required
+                >
+                  <option value="">Välj årtionde</option>
+                  {decadeOptions(now).map((y) => (
+                    <option key={y} value={y}>
+                      {y}-tal
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
+            {precision === "original" ? (
+              <p className="analyse-form-help">
+                {buildYear != null
+                  ? `Räknas som original från byggnadens byggår ${buildYear}.`
+                  : "Ange byggår på byggnaden först."}
+              </p>
+            ) : null}
+          </>
+        ) : (
           <p className="analyse-form-help">
-            {buildYear != null
-              ? `Räknas som original från byggnadens byggår ${buildYear}.`
-              : "Ange byggår på byggnaden först."}
+            Integrerad beredare har ingen egen ålder – den ingår i värmepumpen.
           </p>
-        ) : null}
+        )}
 
         {part.key === "tak" ? (
           <fieldset className="profile-part-fieldset">
@@ -671,7 +823,7 @@ function PartVerifyForm({
       </form>
 
       {part.source === "verified" ||
-      part.material ||
+      part.variant ||
       part.knownIssues.length > 0 ? (
         <form
           className="profile-part-clear-form"
@@ -683,8 +835,17 @@ function PartVerifyForm({
           <input type="hidden" name="property_id" value={propertyId} />
           <input type="hidden" name="part_id" value={part.id} />
           <input type="hidden" name="clear" value="1" />
-          {part.key === "tak" && material ? (
-            <input type="hidden" name="material" value={material} />
+          {part.key === "tak" && roofMaterial ? (
+            <input type="hidden" name="variant" value={roofMaterial} />
+          ) : null}
+          {part.key === "varmekalla" && heatSource ? (
+            <>
+              <input type="hidden" name="variant" value={heatSource} />
+              <input type="hidden" name="role" value={role} />
+            </>
+          ) : null}
+          {part.key === "varmedistribution" && heatDist ? (
+            <input type="hidden" name="variant" value={heatDist} />
           ) : null}
           <button type="submit" className="profile-part-clear" disabled={pending}>
             Rensa till antagen
@@ -710,4 +871,12 @@ function PartVerifyForm({
       ) : null}
     </div>
   );
+}
+
+function isHeatSourcePick(value: string): value is HeatSourceVariant {
+  return (HEAT_SOURCE_VARIANTS as readonly string[]).includes(value);
+}
+
+function isHeatDistPick(value: string): value is HeatDistVariant {
+  return (HEAT_DIST_VARIANTS as readonly string[]).includes(value);
 }

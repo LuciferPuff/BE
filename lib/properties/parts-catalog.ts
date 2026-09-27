@@ -1,7 +1,5 @@
 /**
  * Katalog över husdelar och byggnadstyper för fastighetsdashboarden.
- * Livslängder: se component-lifespans.ts
- *
  * Seed = BUILDING_DEFAULT_PARTS. Övriga katalogdelar läggs till av användaren.
  */
 
@@ -17,7 +15,8 @@ export const PROPERTY_PART_KEYS = [
   "dranering",
   "grund",
   "vatrum",
-  "uppvarmning",
+  "varmekalla",
+  "varmedistribution",
   "varmvattenberedare",
   "ventilation",
   "el",
@@ -36,15 +35,10 @@ export type PropertyPartKey = (typeof PROPERTY_PART_KEYS)[number];
 export type PropertyPartDefinition = {
   key: PropertyPartKey;
   label: string;
-  /** Fallback-livslängd (tak styrs av material). */
   lifespanYears: number;
   summary: string;
   ifWaiting: string;
   guideHref: string;
-  /**
-   * Flera instanser per byggnad.
-   * Extra tak = tillbyggnad som egen byggnad, inte multi här.
-   */
   allowMultiple: boolean;
 };
 
@@ -111,13 +105,23 @@ export const PROPERTY_PARTS: readonly PropertyPartDefinition[] = [
     allowMultiple: true,
   },
   {
-    key: "uppvarmning",
-    label: "Uppvärmning",
-    lifespanYears: PART_LIFESPAN_YEARS.uppvarmning,
+    key: "varmekalla",
+    label: "Värmekälla",
+    lifespanYears: PART_LIFESPAN_YEARS.varmekalla,
     summary:
-      "Värmepump, panna, kamin eller fjärrvärme – ålder påverkar driftkostnad och haveririsk.",
+      "Värmepump, panna, fjärrvärme eller kamin – typ och ålder styr driftkostnad och haveririsk.",
     ifWaiting: "Ett åldrat system kan gå sönder abrupt och bli en stor engångskostnad.",
-    guideHref: PART_GUIDE_HREF.uppvarmning,
+    guideHref: PART_GUIDE_HREF.varmekalla,
+    allowMultiple: true,
+  },
+  {
+    key: "varmedistribution",
+    label: "Värmedistribution",
+    lifespanYears: PART_LIFESPAN_YEARS.varmedistribution,
+    summary:
+      "Hur värmen fördelas i huset – radiatorer, golvvärme eller luft.",
+    ifWaiting: "Felaktig eller åldrad distribution ger ojämn värme och högre kostnader.",
+    guideHref: PART_GUIDE_HREF.varmedistribution,
     allowMultiple: true,
   },
   {
@@ -125,7 +129,7 @@ export const PROPERTY_PARTS: readonly PropertyPartDefinition[] = [
     label: "Varmvattenberedare",
     lifespanYears: PART_LIFESPAN_YEARS.varmvattenberedare,
     summary:
-      "Beredare åldras och kan läcka. Byte är ofta en planerbar kostnad.",
+      "Beredare åldras och kan läcka. Kan vara integrerad i värmepumpen.",
     ifWaiting: "En havererad beredare ger både vattenstopp och risk för vattenskada.",
     guideHref: PART_GUIDE_HREF.varmvattenberedare,
     allowMultiple: false,
@@ -252,7 +256,7 @@ export const BUILDING_TYPE_LABELS: Record<BuildingType, string> = {
   gaststuga: "Gäststuga",
 };
 
-/** Standarddelar som seedas när en byggnad skapas (övriga läggs till manuellt). */
+/** Standarddelar som seedas när en byggnad skapas. */
 export const BUILDING_DEFAULT_PARTS: Record<
   BuildingType,
   readonly PropertyPartKey[]
@@ -264,7 +268,8 @@ export const BUILDING_DEFAULT_PARTS: Record<
     "dranering",
     "grund",
     "vatrum",
-    "uppvarmning",
+    "varmekalla",
+    "varmedistribution",
     "varmvattenberedare",
     "ventilation",
     "el",
@@ -272,15 +277,7 @@ export const BUILDING_DEFAULT_PARTS: Record<
   ],
   tillbyggnad: ["tak", "fasad", "fonster", "el", "va"],
   garage: ["tak", "fasad", "el", "grund"],
-  attefall: [
-    "tak",
-    "fasad",
-    "fonster",
-    "el",
-    "va",
-    "uppvarmning",
-    "ventilation",
-  ],
+  attefall: ["tak", "fasad", "fonster", "el", "va", "ventilation"],
   uthus: ["tak", "fasad", "el"],
   gaststuga: [
     "tak",
@@ -288,11 +285,12 @@ export const BUILDING_DEFAULT_PARTS: Record<
     "fonster",
     "el",
     "va",
-    "uppvarmning",
     "ventilation",
     "vatrum",
   ],
 };
+
+export type PartRole = "primar" | "komplement";
 
 export function isPropertyPartKey(value: string): value is PropertyPartKey {
   return (PROPERTY_PART_KEYS as readonly string[]).includes(value);
@@ -300,6 +298,10 @@ export function isPropertyPartKey(value: string): value is PropertyPartKey {
 
 export function isBuildingType(value: string): value is BuildingType {
   return (BUILDING_TYPES as readonly string[]).includes(value);
+}
+
+export function isPartRole(value: string): value is PartRole {
+  return value === "primar" || value === "komplement";
 }
 
 export function getPartDefinition(
