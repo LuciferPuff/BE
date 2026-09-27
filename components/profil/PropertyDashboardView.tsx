@@ -16,7 +16,7 @@ import {
 
 type Props = {
   property: PropertyDashboard;
-  openPartKey?: string | null;
+  openPartId?: string | null;
 };
 
 function formatDate(iso: string): string {
@@ -63,7 +63,7 @@ function resolveNextStepHref(
 
 export function PropertyDashboardView({
   property,
-  openPartKey = null,
+  openPartId = null,
 }: Props) {
   const canEdit = property.role === "agare" || property.role === "medlem";
   const canOwnStatus = property.role === "agare";
@@ -212,10 +212,9 @@ export function PropertyDashboardView({
 
           <PropertyPartsSection
             propertyId={property.id}
-            parts={property.parts}
+            buildings={property.buildings}
             canEdit={canEdit}
-            constructionYear={property.construction_year}
-            initialPartKey={openPartKey}
+            initialPartId={openPartId}
           />
 
           <section

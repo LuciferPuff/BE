@@ -1,7 +1,9 @@
 import {
-  buildPropertyPartViews,
+  buildPropertyBuildingViews,
   computeProfileCompleteness,
+  flattenBuildingParts,
   pickNextPartAction,
+  type PropertyBuildingView,
   type PropertyPartView,
 } from "@/lib/properties/build-property-parts";
 import {
@@ -78,6 +80,7 @@ export type PropertyDashboard = {
   memberCount: number;
   created_at: string;
   analyses: DashboardLinkedAnalysis[];
+  buildings: PropertyBuildingView[];
   parts: PropertyPartView[];
   completeness: PropertyCompleteness;
   nextPart: PropertyPartView | null;
@@ -144,9 +147,21 @@ export async function getPropertyDashboard(
     console.error("[profil] dashboard analyses:", analysesError.message);
   }
 
+  const { data: buildingRows, error: buildingsError } = await supabase
+    .from("property_buildings")
+    .select("id, type, name, build_year")
+    .eq("property_id", propertyId)
+    .order("created_at", { ascending: true });
+
+  if (buildingsError) {
+    console.error("[profil] dashboard buildings:", buildingsError.message);
+  }
+
   const { data: partRows, error: partsError } = await supabase
     .from("property_parts")
-    .select("part_key, replaced_year, year_precision, material, known_issues")
+    .select(
+      "id, building_id, part_key, name, not_applicable, replaced_year, year_precision, material, known_issues",
+    )
     .eq("property_id", propertyId);
 
   if (partsError) {
@@ -203,10 +218,20 @@ export async function getPropertyDashboard(
 
   const ownership_status = parseOwnershipStatus(property.ownership_status);
 
-  const parts = buildPropertyPartViews(
-    construction_year,
+  const buildings = buildPropertyBuildingViews(
+    (buildingRows ?? []).map((b) => ({
+      id: b.id as string,
+      type: b.type as string,
+      name: b.name as string,
+      build_year:
+        b.build_year != null ? Number(b.build_year) : null,
+    })),
     (partRows ?? []).map((r) => ({
+      id: r.id as string,
+      building_id: r.building_id as string,
       part_key: r.part_key as string,
+      name: (r.name as string | null) ?? null,
+      not_applicable: Boolean(r.not_applicable),
       replaced_year:
         r.replaced_year != null ? Number(r.replaced_year) : null,
       year_precision: (r.year_precision as string | null) ?? null,
@@ -217,13 +242,9 @@ export async function getPropertyDashboard(
     })),
   );
 
-  const completeness = computeProfileCompleteness({
-    hasKommun: Boolean((property.kommun as string | null)?.trim()),
-    hasPropertyType: Boolean(property.property_type),
-    hasConstructionYear: construction_year != null,
-    hasLivingArea: living_area_sqm != null && Number.isFinite(living_area_sqm),
-    parts,
-  });
+  const parts = flattenBuildingParts(buildings);
+
+  const completeness = computeProfileCompleteness({ parts });
 
   const analysesList = (analyses ?? []).map((a) => ({
     id: a.id as string,
@@ -316,6 +337,7 @@ export async function getPropertyDashboard(
     memberCount: memberCount ?? 1,
     created_at: property.created_at as string,
     analyses: analysesList,
+    buildings,
     parts,
     completeness,
     nextPart,

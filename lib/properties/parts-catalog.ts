@@ -1,5 +1,5 @@
 /**
- * Katalog över husdelar för fastighetsdashboarden.
+ * Katalog över husdelar och byggnadstyper för fastighetsdashboarden.
  * Livslängder: se component-lifespans.ts
  */
 
@@ -16,6 +16,7 @@ export const PROPERTY_PART_KEYS = [
   "grund",
   "badrum",
   "uppvarmning",
+  "varmvattenberedare",
   "ventilation",
   "el",
   "va",
@@ -31,6 +32,8 @@ export type PropertyPartDefinition = {
   summary: string;
   ifWaiting: string;
   guideHref: string;
+  /** Flera instanser per byggnad tillåtna (t.ex. flera badrum). */
+  allowMultiple: boolean;
 };
 
 export const PROPERTY_PARTS: readonly PropertyPartDefinition[] = [
@@ -43,6 +46,7 @@ export const PROPERTY_PARTS: readonly PropertyPartDefinition[] = [
     ifWaiting:
       "Fuktskador i bjälklag och isolering blir dyrare ju längre du väntar.",
     guideHref: PART_GUIDE_HREF.tak,
+    allowMultiple: true,
   },
   {
     key: "fasad",
@@ -52,6 +56,7 @@ export const PROPERTY_PARTS: readonly PropertyPartDefinition[] = [
       "Fasaden skyddar stommen. Puts, trä och tegel har olika underhållsbehov.",
     ifWaiting: "Eftersatt fasad leder ofta till fukt och röta i konstruktionen.",
     guideHref: PART_GUIDE_HREF.fasad,
+    allowMultiple: false,
   },
   {
     key: "fonster",
@@ -61,6 +66,7 @@ export const PROPERTY_PARTS: readonly PropertyPartDefinition[] = [
       "Fönster påverkar energi, komfort och fuktrisk kring karm och bleck.",
     ifWaiting: "Otäta fönster ger drag, högre uppvärmningskostnad och kondensrisk.",
     guideHref: PART_GUIDE_HREF.fonster,
+    allowMultiple: false,
   },
   {
     key: "dranering",
@@ -70,6 +76,7 @@ export const PROPERTY_PARTS: readonly PropertyPartDefinition[] = [
       "Dränering håller grunden torr. Livslängden beror på material och markförhållanden.",
     ifWaiting: "Dålig dränering syns ofta som fukt i källare eller krypgrund.",
     guideHref: PART_GUIDE_HREF.dranering,
+    allowMultiple: false,
   },
   {
     key: "grund",
@@ -79,6 +86,7 @@ export const PROPERTY_PARTS: readonly PropertyPartDefinition[] = [
       "Grunden bär huset. Problem syns som sprickor, sättningar eller fukt.",
     ifWaiting: "Grundskador är bland de dyraste att åtgärda i efterhand.",
     guideHref: PART_GUIDE_HREF.grund,
+    allowMultiple: false,
   },
   {
     key: "badrum",
@@ -88,6 +96,7 @@ export const PROPERTY_PARTS: readonly PropertyPartDefinition[] = [
       "Tätskikt i våtrum har begränsad livslängd. Ålder är en viktig risksignal.",
     ifWaiting: "Ett läckande tätskikt kan ge omfattande vattenskador.",
     guideHref: PART_GUIDE_HREF.badrum,
+    allowMultiple: true,
   },
   {
     key: "uppvarmning",
@@ -97,6 +106,17 @@ export const PROPERTY_PARTS: readonly PropertyPartDefinition[] = [
       "Värmepump, panna eller fjärrvärmecentral – ålder påverkar driftkostnad och haveririsk.",
     ifWaiting: "Ett åldrat system kan gå sönder abrupt och bli en stor engångskostnad.",
     guideHref: PART_GUIDE_HREF.uppvarmning,
+    allowMultiple: true,
+  },
+  {
+    key: "varmvattenberedare",
+    label: "Varmvattenberedare",
+    lifespanYears: PART_LIFESPAN_YEARS.varmvattenberedare,
+    summary:
+      "Beredare åldras och kan läcka. Byte är ofta en planerbar kostnad.",
+    ifWaiting: "En havererad beredare ger både vattenstopp och risk för vattenskada.",
+    guideHref: PART_GUIDE_HREF.varmvattenberedare,
+    allowMultiple: true,
   },
   {
     key: "ventilation",
@@ -106,6 +126,7 @@ export const PROPERTY_PARTS: readonly PropertyPartDefinition[] = [
       "Rätt ventilation skyddar mot fukt och dålig luft. Systemet behöver underhåll.",
     ifWaiting: "Bristfällig ventilation ger fukt, lukt och sämre inomhusklimat.",
     guideHref: PART_GUIDE_HREF.ventilation,
+    allowMultiple: false,
   },
   {
     key: "el",
@@ -115,24 +136,96 @@ export const PROPERTY_PARTS: readonly PropertyPartDefinition[] = [
       "Elanläggningens ålder och standard påverkar brandsäkerhet och försäkring.",
     ifWaiting: "Gammal el kan kräva stamrenovering innan andra arbeten.",
     guideHref: PART_GUIDE_HREF.el,
+    allowMultiple: false,
   },
   {
     key: "va",
     label: "Vatten & avlopp",
     lifespanYears: PART_LIFESPAN_YEARS.va,
     summary:
-      "Ledningar och beredare åldras. Stopp och läckage blir vanligare med åldern.",
+      "Ledningar åldras. Stopp och läckage blir vanligare med åldern.",
     ifWaiting: "Ett rörbrott inomhus kan ge stora följdskador.",
     guideHref: PART_GUIDE_HREF.va,
+    allowMultiple: false,
   },
 ] as const;
 
+export const BUILDING_TYPES = [
+  "huvudbyggnad",
+  "tillbyggnad",
+  "garage",
+  "attefall",
+  "uthus",
+  "gaststuga",
+] as const;
+
+export type BuildingType = (typeof BUILDING_TYPES)[number];
+
+export const BUILDING_TYPE_LABELS: Record<BuildingType, string> = {
+  huvudbyggnad: "Huvudbyggnad",
+  tillbyggnad: "Tillbyggnad",
+  garage: "Garage",
+  attefall: "Attefallshus",
+  uthus: "Uthus",
+  gaststuga: "Gäststuga",
+};
+
+/** Standarddelar som seedas när en byggnad skapas. */
+export const BUILDING_DEFAULT_PARTS: Record<
+  BuildingType,
+  readonly PropertyPartKey[]
+> = {
+  huvudbyggnad: [
+    "tak",
+    "fasad",
+    "fonster",
+    "dranering",
+    "grund",
+    "badrum",
+    "uppvarmning",
+    "varmvattenberedare",
+    "ventilation",
+    "el",
+    "va",
+  ],
+  tillbyggnad: ["tak", "fasad", "fonster", "el", "va"],
+  garage: ["tak", "fasad", "el", "grund"],
+  attefall: [
+    "tak",
+    "fasad",
+    "fonster",
+    "el",
+    "va",
+    "uppvarmning",
+    "ventilation",
+  ],
+  uthus: ["tak", "fasad", "el"],
+  gaststuga: [
+    "tak",
+    "fasad",
+    "fonster",
+    "el",
+    "va",
+    "uppvarmning",
+    "ventilation",
+    "badrum",
+  ],
+};
+
 export function isPropertyPartKey(value: string): value is PropertyPartKey {
   return (PROPERTY_PART_KEYS as readonly string[]).includes(value);
+}
+
+export function isBuildingType(value: string): value is BuildingType {
+  return (BUILDING_TYPES as readonly string[]).includes(value);
 }
 
 export function getPartDefinition(
   key: string,
 ): PropertyPartDefinition | undefined {
   return PROPERTY_PARTS.find((p) => p.key === key);
+}
+
+export function partAllowsMultiple(key: PropertyPartKey): boolean {
+  return getPartDefinition(key)?.allowMultiple ?? false;
 }

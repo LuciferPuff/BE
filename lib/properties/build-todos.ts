@@ -121,10 +121,12 @@ export type TodoStateRow = {
 function firstUnverifiedPart(
   parts: PropertyPartView[],
 ): PropertyPartView | null {
-  const byKey = new Map(parts.map((p) => [p.key, p]));
+  const relevant = parts.filter((p) => !p.notApplicable);
   for (const key of PART_NEXT_STEP_PRIORITY) {
-    const part = byKey.get(key);
-    if (part && part.source !== "verified") return part;
+    const part = relevant.find(
+      (p) => p.key === key && p.source !== "verified",
+    );
+    if (part) return part;
   }
   return null;
 }
@@ -144,9 +146,10 @@ export function buildPropertyTodos(input: {
   const month = input.month ?? new Date().getMonth() + 1;
   const items: PropertyTodoItem[] = [];
 
-  const verifiedCount = input.parts.filter((p) => p.source === "verified")
+  const relevant = input.parts.filter((p) => !p.notApplicable);
+  const verifiedCount = relevant.filter((p) => p.source === "verified")
     .length;
-  const totalParts = input.parts.length;
+  const totalParts = relevant.length;
   const allVerified = totalParts > 0 && verifiedCount === totalParts;
   const nextUnverified = firstUnverifiedPart(input.parts);
 
@@ -160,7 +163,7 @@ export function buildPropertyTodos(input: {
         : "Fyll i bytt år för husets delar.",
     priority: 5,
     href: nextUnverified
-      ? `/profil/${input.propertyId}?del=${nextUnverified.key}`
+      ? `/profil/${input.propertyId}?del=${nextUnverified.id}`
       : `#husets-delar`,
     completed: allVerified,
     kind: "auto",
@@ -269,7 +272,7 @@ export function pickNextStep(input: {
         input.nextPart.prompt ??
         `${input.nextPart.statusLabel}: ${input.nextPart.ageLabel}.`,
       ctaLabel: `Ange när ${definite} byttes`,
-      ctaHref: `?del=${input.nextPart.key}`,
+      ctaHref: `?del=${input.nextPart.id}`,
       tone: "warning",
       partKey: input.nextPart.key,
     };
@@ -281,7 +284,7 @@ export function pickNextStep(input: {
       title: `Planera ${definite}`,
       body: `${input.nextPart.statusLabel}: ${input.nextPart.ageLabel}.`,
       ctaLabel: `Öppna ${definite}`,
-      ctaHref: `?del=${input.nextPart.key}`,
+      ctaHref: `?del=${input.nextPart.id}`,
       tone: "warning",
       partKey: input.nextPart.key,
     };

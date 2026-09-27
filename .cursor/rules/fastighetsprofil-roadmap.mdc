@@ -10,6 +10,7 @@ alwaysApply: false
 - **Fas B** — husdelar, antagen/verifierad ålder, sidopanel, komplett-%, nästa steg
 - **Fas C** — statusstyrd Nästa steg, "Jag köpte huset", Att göra (bocka av + anteckning)
 - **Fas D** — dokumentuppladdning (signed URLs), tidslinje med events, Meddela mig på teasers
+- **Husdelar A+B modell** — `property_buildings`, multi-instans, "finns inte", byggår per byggnad (UI för komplementbyggnader kommer)
 
 ## Fas E — Ekonomi + premium-teaser
 - Schablon 1/5/10 år
@@ -20,7 +21,12 @@ alwaysApply: false
 - Dela via roller (UI)
 - Offert-CTA sparsamt
 
+## Backlog
+- **Komplementbyggnader UI** — skapa/redigera garage, attefall m.m. (datamodell klar)
+- **Egna delar (Fas C)** — endast namn/anteckning/dokument, utan status/livslängd
+
 ## Principer
 - Antaget vs verifierat synligt
 - Max 2–3 "Detta kommer"-boxar per sida
 - Ett tydligt nästa steg per besök
+- Katalogstyrda delar (inte fritext i status)

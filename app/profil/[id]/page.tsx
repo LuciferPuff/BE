@@ -7,7 +7,6 @@ import { SiteFooter } from "@/components/home/SiteFooter";
 import { SiteHeader } from "@/components/home/SiteHeader";
 import { getSessionUser } from "@/lib/auth/get-session-user";
 import { getPropertyDashboard } from "@/lib/properties/get-property-dashboard";
-import { isPropertyPartKey } from "@/lib/properties/parts-catalog";
 import { getSiteUrl } from "@/lib/site";
 
 const base = getSiteUrl();
@@ -43,8 +42,7 @@ export default async function PropertyDashboardPage({
     notFound();
   }
 
-  const openPartKey =
-    del && isPropertyPartKey(del) ? del : null;
+  const openPartId = del?.trim() || null;
 
   return (
     <main className="home my-analyses-page">
@@ -61,7 +59,7 @@ export default async function PropertyDashboardPage({
       <div className="home-container my-analyses-content profile-dashboard-content">
         <PropertyDashboardView
           property={property}
-          openPartKey={openPartKey}
+          openPartId={openPartId}
         />
       </div>
       <SiteFooter />

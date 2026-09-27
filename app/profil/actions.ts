@@ -16,7 +16,15 @@ import {
   isEventType,
   sanitizeFileName,
 } from "@/lib/properties/document-labels";
-import { isPropertyPartKey } from "@/lib/properties/parts-catalog";
+import {
+  getPartDefinition,
+  isPropertyPartKey,
+  partAllowsMultiple,
+} from "@/lib/properties/parts-catalog";
+import {
+  createBuildingWithDefaultParts,
+  syncHuvudbyggnadBuildYear,
+} from "@/lib/properties/ensure-buildings";
 import {
   isRoofMaterial,
   ROOF_KNOWN_ISSUES,
@@ -230,6 +238,17 @@ export async function createPropertyAction(
     };
   }
 
+  const buildingResult = await createBuildingWithDefaultParts(supabase, {
+    propertyId,
+    type: "huvudbyggnad",
+    name: "Huvudbyggnad",
+    buildYear: parsed.construction_year,
+  });
+  if (buildingResult.error) {
+    console.error("[profil] create huvudbyggnad:", buildingResult.error);
+    // Fastigheten finns – användaren kan fortsätta; seed kan fixas manuellt
+  }
+
   revalidatePath("/profil");
   revalidatePath(`/profil/${propertyId}`);
   redirect(`/profil/${propertyId}`);
@@ -284,6 +303,15 @@ export async function updatePropertyAction(
     return {
       error: "Du har inte behörighet att ändra den här fastigheten.",
     };
+  }
+
+  const syncError = await syncHuvudbyggnadBuildYear(
+    supabase,
+    propertyId,
+    parsed.construction_year,
+  );
+  if (syncError) {
+    console.error("[profil] sync year after property update:", syncError);
   }
 
   revalidatePath("/profil");
@@ -532,12 +560,13 @@ export async function updatePropertyPartAction(
 ): Promise<UpdatePropertyPartState> {
   const user = await getSessionUser();
   const propertyId = optionalText(formData, "property_id");
-  const partKey = optionalText(formData, "part_key");
+  const partId = optionalText(formData, "part_id");
   const clear = optionalText(formData, "clear") === "1";
   const precisionRaw = optionalText(formData, "year_precision");
   const yearRaw = optionalText(formData, "replaced_year");
   const decadeRaw = optionalText(formData, "decade");
   const materialRaw = optionalText(formData, "material");
+  const nameRaw = optionalText(formData, "name");
   const knownIssues = formData
     .getAll("known_issues")
     .filter((v): v is string => typeof v === "string" && v.length > 0);
@@ -549,10 +578,24 @@ export async function updatePropertyPartAction(
         : "/logga-in?next=/profil",
     );
   }
-  if (!propertyId) {
-    return { error: "Saknar fastighet." };
+  if (!propertyId || !partId) {
+    return { error: "Saknar husdel." };
   }
-  if (!partKey || !isPropertyPartKey(partKey)) {
+
+  const supabase = await createAuthClient();
+  const { data: existing, error: readError } = await supabase
+    .from("property_parts")
+    .select("id, part_key, building_id, name")
+    .eq("id", partId)
+    .eq("property_id", propertyId)
+    .maybeSingle();
+
+  if (readError || !existing) {
+    return { error: "Husdelen hittades inte." };
+  }
+
+  const partKey = existing.part_key as string;
+  if (!isPropertyPartKey(partKey)) {
     return { error: "Ogiltig husdel." };
   }
 
@@ -575,22 +618,26 @@ export async function updatePropertyPartAction(
     }
   }
 
-  const supabase = await createAuthClient();
+  const name =
+    nameRaw != null && nameRaw.trim()
+      ? nameRaw.trim().slice(0, 80)
+      : (existing.name as string | null);
 
   if (clear || precisionRaw === "unknown") {
-    const { error } = await supabase.from("property_parts").upsert(
-      {
-        property_id: propertyId,
-        part_key: partKey,
+    const { error } = await supabase
+      .from("property_parts")
+      .update({
         replaced_year: null,
         year_precision: null,
         material: partKey === "tak" ? material : null,
         known_issues,
+        name,
+        not_applicable: false,
         updated_by: user.id,
         updated_at: new Date().toISOString(),
-      },
-      { onConflict: "property_id,part_key" },
-    );
+      })
+      .eq("id", partId)
+      .eq("property_id", propertyId);
     if (error) {
       console.error("[profil] property_parts:", error.message, error.code);
       return { error: "Kunde inte spara. Försök igen." };
@@ -606,17 +653,15 @@ export async function updatePropertyPartAction(
   const minYear = 1850;
 
   if (precisionRaw === "original") {
-    const { data: property } = await supabase
-      .from("properties")
-      .select("construction_year")
-      .eq("id", propertyId)
+    const { data: building } = await supabase
+      .from("property_buildings")
+      .select("build_year")
+      .eq("id", existing.building_id as string)
       .maybeSingle();
     const buildYear =
-      property?.construction_year != null
-        ? Number(property.construction_year)
-        : null;
+      building?.build_year != null ? Number(building.build_year) : null;
     if (buildYear == null || !Number.isFinite(buildYear)) {
-      return { error: "Ange byggår på fastigheten först." };
+      return { error: "Ange byggår på byggnaden först." };
     }
     year_precision = "original";
     replaced_year = buildYear;
@@ -633,7 +678,7 @@ export async function updatePropertyPartAction(
       return { error: "Ogiltigt årtionde." };
     }
     year_precision = "decade";
-    replaced_year = decadeStart + 5; // mitt i årtiondet
+    replaced_year = decadeStart + 5;
   } else if (precisionRaw === "exact" || !precisionRaw) {
     if (!yearRaw) {
       return { error: "Ange år då delen byttes eller renoverades." };
@@ -648,19 +693,20 @@ export async function updatePropertyPartAction(
     return { error: "Välj hur du vet åldern." };
   }
 
-  const { error } = await supabase.from("property_parts").upsert(
-    {
-      property_id: propertyId,
-      part_key: partKey,
+  const { error } = await supabase
+    .from("property_parts")
+    .update({
       replaced_year,
       year_precision,
       material: partKey === "tak" ? material : null,
       known_issues,
+      name,
+      not_applicable: false,
       updated_by: user.id,
       updated_at: new Date().toISOString(),
-    },
-    { onConflict: "property_id,part_key" },
-  );
+    })
+    .eq("id", partId)
+    .eq("property_id", propertyId);
 
   if (error) {
     console.error("[profil] property_parts:", error.message, error.code);
@@ -669,6 +715,128 @@ export async function updatePropertyPartAction(
 
   revalidatePath(`/profil/${propertyId}`);
   revalidatePath("/profil");
+  return { ok: true };
+}
+
+/** Markera del som finns inte / återställ. */
+export async function setPartNotApplicableAction(
+  _prev: UpdatePropertyPartState,
+  formData: FormData,
+): Promise<UpdatePropertyPartState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  const partId = optionalText(formData, "part_id");
+  const notApplicable = optionalText(formData, "not_applicable") === "1";
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId || !partId) {
+    return { error: "Saknar husdel." };
+  }
+
+  const supabase = await createAuthClient();
+  const patch = notApplicable
+    ? {
+        not_applicable: true,
+        replaced_year: null,
+        year_precision: null,
+        material: null,
+        known_issues: [] as string[],
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
+      }
+    : {
+        not_applicable: false,
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
+      };
+
+  const { error } = await supabase
+    .from("property_parts")
+    .update(patch)
+    .eq("id", partId)
+    .eq("property_id", propertyId);
+
+  if (error) {
+    console.error("[profil] part N/A:", error.message, error.code);
+    return { error: "Kunde inte uppdatera delen." };
+  }
+
+  revalidatePath(`/profil/${propertyId}`);
+  return { ok: true };
+}
+
+/** Lägg till en extra delinstans (allow_multiple) på en byggnad. */
+export async function addPropertyPartAction(
+  _prev: UpdatePropertyPartState,
+  formData: FormData,
+): Promise<UpdatePropertyPartState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  const buildingId = optionalText(formData, "building_id");
+  const partKey = optionalText(formData, "part_key");
+  const nameRaw = optionalText(formData, "name");
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId || !buildingId) {
+    return { error: "Saknar byggnad." };
+  }
+  if (!partKey || !isPropertyPartKey(partKey)) {
+    return { error: "Ogiltig husdel." };
+  }
+  if (!partAllowsMultiple(partKey)) {
+    return { error: "Den här delen kan bara finnas en gång per byggnad." };
+  }
+
+  const supabase = await createAuthClient();
+  const { data: building } = await supabase
+    .from("property_buildings")
+    .select("id")
+    .eq("id", buildingId)
+    .eq("property_id", propertyId)
+    .maybeSingle();
+  if (!building) {
+    return { error: "Byggnaden hittades inte." };
+  }
+
+  const { count } = await supabase
+    .from("property_parts")
+    .select("id", { count: "exact", head: true })
+    .eq("building_id", buildingId)
+    .eq("part_key", partKey);
+
+  const nextIndex = (count ?? 0) + 1;
+  const def = getPartDefinition(partKey);
+  const finalName =
+    nameRaw?.trim().slice(0, 80) ||
+    (nextIndex > 1 && def ? `${def.label} ${nextIndex}` : null);
+
+  const { error } = await supabase.from("property_parts").insert({
+    property_id: propertyId,
+    building_id: buildingId,
+    part_key: partKey,
+    name: finalName,
+    not_applicable: false,
+    updated_by: user.id,
+  });
+
+  if (error) {
+    console.error("[profil] add part:", error.message, error.code);
+    return { error: "Kunde inte lägga till delen." };
+  }
+
+  revalidatePath(`/profil/${propertyId}`);
   return { ok: true };
 }
 

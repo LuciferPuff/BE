@@ -6,19 +6,18 @@ import {
   pickNextPartAction,
 } from "@/lib/properties/build-property-parts";
 import { buildPropertyTodos } from "@/lib/properties/build-todos";
-import type { PropertyPartRow } from "@/lib/properties/build-property-parts";
 
 function row(
   key: string,
   year: number | null,
   precision: string | null = year != null ? "exact" : null,
-): PropertyPartRow {
+) {
   return {
     part_key: key,
     replaced_year: year,
     year_precision: precision,
     material: key === "tak" ? "tegel" : null,
-    known_issues: [],
+    known_issues: [] as string[],
   };
 }
 
@@ -52,6 +51,7 @@ describe("pickNextPartAction priority", () => {
       row("va", 2010),
       row("el", 2010),
       row("uppvarmning", 2018),
+      row("varmvattenberedare", 2018),
       row("fonster", 2010),
       row("fasad", 2010),
       row("ventilation", 2015),
@@ -74,6 +74,7 @@ describe("verify_parts auto-complete", () => {
       row("grund", 2010, "original"),
       row("badrum", 2010),
       row("uppvarmning", 2010),
+      row("varmvattenberedare", 2010),
       row("ventilation", 2010),
       row("el", 2010),
       row("va", 2010),

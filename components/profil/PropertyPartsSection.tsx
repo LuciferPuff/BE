@@ -5,10 +5,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 
 import {
+  addPropertyPartAction,
+  setPartNotApplicableAction,
   updatePropertyPartAction,
   type UpdatePropertyPartState,
 } from "@/app/profil/actions";
-import type { PropertyPartView } from "@/lib/properties/build-property-parts";
+import type {
+  PropertyBuildingView,
+  PropertyPartView,
+} from "@/lib/properties/build-property-parts";
 import {
   lifespanForPart,
   ROOF_KNOWN_ISSUES,
@@ -16,14 +21,16 @@ import {
   ROOF_MATERIALS,
   type RoofMaterial,
 } from "@/lib/properties/component-lifespans";
+import {
+  PROPERTY_PARTS,
+} from "@/lib/properties/parts-catalog";
 
 type Props = {
   propertyId: string;
-  parts: PropertyPartView[];
+  buildings: PropertyBuildingView[];
   canEdit: boolean;
-  constructionYear: number | null;
-  /** Öppna panelen för denna del (t.ex. gammal ?del=-länk). */
-  initialPartKey?: string | null;
+  /** Öppna panelen för denna del-id eller legacy part_key. */
+  initialPartId?: string | null;
 };
 
 const initialState: UpdatePropertyPartState = {};
@@ -36,44 +43,60 @@ function decadeOptions(maxYear: number): number[] {
   return out;
 }
 
+function findPart(
+  buildings: PropertyBuildingView[],
+  idOrKey: string | null | undefined,
+): PropertyPartView | null {
+  if (!idOrKey) return null;
+  for (const b of buildings) {
+    const byId = b.parts.find((p) => p.id === idOrKey);
+    if (byId) return byId;
+  }
+  for (const b of buildings) {
+    const byKey = b.parts.find((p) => p.key === idOrKey);
+    if (byKey) return byKey;
+  }
+  return null;
+}
+
 export function PropertyPartsSection({
   propertyId,
-  parts,
+  buildings,
   canEdit,
-  constructionYear,
-  initialPartKey = null,
+  initialPartId = null,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const openedFromQuery = useRef<string | null>(null);
-  const [activeKey, setActiveKey] = useState<string | null>(null);
-  const active = parts.find((p) => p.key === activeKey) ?? null;
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const active = findPart(buildings, activeId);
   const titleId = useId();
 
   useEffect(() => {
-    if (!initialPartKey) return;
-    if (openedFromQuery.current === initialPartKey) return;
-    if (!parts.some((p) => p.key === initialPartKey)) return;
-    openedFromQuery.current = initialPartKey;
-    setActiveKey(initialPartKey);
-  }, [initialPartKey, parts]);
+    if (!initialPartId) return;
+    if (openedFromQuery.current === initialPartId) return;
+    const match = findPart(buildings, initialPartId);
+    if (!match) return;
+    openedFromQuery.current = initialPartId;
+    setActiveId(match.id);
+  }, [initialPartId, buildings]);
 
   function closeSheet() {
-    setActiveKey(null);
-    if (initialPartKey) {
+    setActiveId(null);
+    if (initialPartId) {
       router.replace(pathname, { scroll: false });
     }
   }
 
   useEffect(() => {
-    if (!activeKey) return;
+    if (!activeId) return;
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") closeSheet();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeKey, initialPartKey, pathname]);
+  }, [activeId, initialPartId, pathname]);
 
   return (
     <section
@@ -85,30 +108,22 @@ export function PropertyPartsSection({
         Husets delar
       </h2>
       <p className="profile-dashboard-text">
-        Heldragen färg = verifierat. Dämpat = antaget från byggår. Klicka på en
-        del för att ange när den byttes.
+        Heldragen färg = verifierat. Dämpat = antaget från byggnadens byggår.
+        Markera &quot;Finns inte&quot; om delen saknas.
       </p>
-      <ul className="profile-parts-grid">
-        {parts.map((part) => (
-          <li key={part.key}>
-            <button
-              type="button"
-              className={`profile-part-tile profile-part-tile--${part.tone} profile-part-tile--${part.emphasis}${
-                part.source === "verified" ? " profile-part-tile--verified" : ""
-              }`}
-              onClick={() => setActiveKey(part.key)}
-            >
-              <span className="profile-part-tile-status">
-                {part.source === "verified" ? "✓ " : null}
-                {part.statusLabel}
-              </span>
-              <span className="profile-part-tile-label">{part.label}</span>
-              <span className="profile-part-tile-age">{part.ageLabel}</span>
-              <span className="profile-part-tile-action">{part.actionLabel}</span>
-            </button>
-          </li>
+
+      <div className="profile-buildings">
+        {buildings.map((building) => (
+          <BuildingBlock
+            key={building.id}
+            propertyId={propertyId}
+            building={building}
+            canEdit={canEdit}
+            defaultOpen={building.type === "huvudbyggnad"}
+            onOpenPart={setActiveId}
+          />
         ))}
-      </ul>
+      </div>
 
       {active ? (
         <div
@@ -139,40 +154,52 @@ export function PropertyPartsSection({
             >
               {active.statusLabel}
             </p>
-            {active.warning ? (
-              <p className="profile-part-warning" role="status">
-                {active.warning}
-              </p>
-            ) : null}
-            {active.prompt ? (
-              <p className="profile-dashboard-text">{active.prompt}</p>
-            ) : null}
-            <p className="profile-dashboard-text">{active.summary}</p>
-            <p className="profile-dashboard-text">
-              {active.lifespanYears != null
-                ? `Normal livslängd ca ${active.lifespanYears} år. `
-                : null}
-              {active.ifWaiting}
-            </p>
-            {active.guideHref ? (
-              <p>
-                <Link href={active.guideHref} className="profile-edit-link">
-                  Läs mer
-                </Link>
-              </p>
-            ) : null}
 
-            {canEdit ? (
-              <PartVerifyForm
+            {active.notApplicable ? (
+              <NotApplicablePanel
                 propertyId={propertyId}
                 part={active}
-                constructionYear={constructionYear}
+                canEdit={canEdit}
                 onDone={closeSheet}
               />
             ) : (
-              <p className="analyse-form-help">
-                Endast ägare eller medlem kan uppdatera husdelar.
-              </p>
+              <>
+                {active.warning ? (
+                  <p className="profile-part-warning" role="status">
+                    {active.warning}
+                  </p>
+                ) : null}
+                {active.prompt ? (
+                  <p className="profile-dashboard-text">{active.prompt}</p>
+                ) : null}
+                <p className="profile-dashboard-text">{active.summary}</p>
+                <p className="profile-dashboard-text">
+                  {active.lifespanYears != null
+                    ? `Normal livslängd ca ${active.lifespanYears} år. `
+                    : null}
+                  {active.ifWaiting}
+                </p>
+                {active.guideHref ? (
+                  <p>
+                    <Link href={active.guideHref} className="profile-edit-link">
+                      Läs mer
+                    </Link>
+                  </p>
+                ) : null}
+
+                {canEdit ? (
+                  <PartVerifyForm
+                    propertyId={propertyId}
+                    part={active}
+                    buildYear={active.buildYear}
+                    onDone={closeSheet}
+                  />
+                ) : (
+                  <p className="analyse-form-help">
+                    Endast ägare eller medlem kan uppdatera husdelar.
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -181,19 +208,204 @@ export function PropertyPartsSection({
   );
 }
 
-function PartVerifyForm({
+function BuildingBlock({
+  propertyId,
+  building,
+  canEdit,
+  defaultOpen,
+  onOpenPart,
+}: {
+  propertyId: string;
+  building: PropertyBuildingView;
+  canEdit: boolean;
+  defaultOpen: boolean;
+  onOpenPart: (id: string) => void;
+}) {
+  const yearLabel =
+    building.buildYear != null ? ` · Byggår ${building.buildYear}` : "";
+
+  return (
+    <details className="profile-building" open={defaultOpen}>
+      <summary className="profile-building-summary">
+        <span className="profile-building-name">
+          {building.name}
+          {yearLabel}
+        </span>
+        <span className="profile-building-meta">
+          {building.verifiedCount}/{building.relevantCount} verifierade
+          {building.type !== "huvudbyggnad"
+            ? ` · ${building.collapsedSummary}`
+            : null}
+        </span>
+      </summary>
+
+      <ul className="profile-parts-grid">
+        {building.parts.map((part) => (
+          <li key={part.id}>
+            <button
+              type="button"
+              className={`profile-part-tile profile-part-tile--${part.tone} profile-part-tile--${part.emphasis}${
+                part.source === "verified" ? " profile-part-tile--verified" : ""
+              }`}
+              onClick={() => onOpenPart(part.id)}
+            >
+              <span className="profile-part-tile-status">
+                {part.source === "verified" ? "✓ " : null}
+                {part.statusLabel}
+              </span>
+              <span className="profile-part-tile-label">{part.label}</span>
+              <span className="profile-part-tile-age">{part.ageLabel}</span>
+              <span className="profile-part-tile-action">{part.actionLabel}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      {canEdit ? (
+        <AddPartForm propertyId={propertyId} buildingId={building.id} />
+      ) : null}
+    </details>
+  );
+}
+
+function AddPartForm({
+  propertyId,
+  buildingId,
+}: {
+  propertyId: string;
+  buildingId: string;
+}) {
+  const router = useRouter();
+  const [state, formAction, pending] = useActionState(
+    addPropertyPartAction,
+    initialState,
+  );
+  const multiParts = PROPERTY_PARTS.filter((p) => p.allowMultiple);
+
+  useEffect(() => {
+    if (state.ok) router.refresh();
+  }, [state.ok, router]);
+
+  return (
+    <form action={formAction} className="profile-part-add">
+      <input type="hidden" name="property_id" value={propertyId} />
+      <input type="hidden" name="building_id" value={buildingId} />
+      <label className="profile-part-field">
+        <span>Lägg till del</span>
+        <select
+          name="part_key"
+          className="analyse-form-input"
+          required
+          disabled={pending}
+          defaultValue=""
+        >
+          <option value="" disabled>
+            Välj typ…
+          </option>
+          {multiParts.map((p) => (
+            <option key={p.key} value={p.key}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="profile-part-field">
+        <span>Namn (valfritt)</span>
+        <input
+          type="text"
+          name="name"
+          className="analyse-form-input"
+          maxLength={80}
+          disabled={pending}
+          placeholder="t.ex. Övre badrum"
+        />
+      </label>
+      <button
+        type="submit"
+        className="home-btn home-btn-ghost"
+        disabled={pending}
+      >
+        {pending ? "Lägger till…" : "Lägg till"}
+      </button>
+      {state.error ? (
+        <p className="profile-ownership-error" role="alert">
+          {state.error}
+        </p>
+      ) : null}
+    </form>
+  );
+}
+
+function NotApplicablePanel({
   propertyId,
   part,
-  constructionYear,
+  canEdit,
   onDone,
 }: {
   propertyId: string;
   part: PropertyPartView;
-  constructionYear: number | null;
+  canEdit: boolean;
   onDone: () => void;
 }) {
+  const router = useRouter();
+  const [state, formAction, pending] = useActionState(
+    setPartNotApplicableAction,
+    initialState,
+  );
+
+  useEffect(() => {
+    if (state.ok) {
+      router.refresh();
+      onDone();
+    }
+  }, [state.ok]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div className="profile-part-verify">
+      <p className="profile-dashboard-text">
+        Den här delen är markerad som ej relevant för byggnaden.
+      </p>
+      {canEdit ? (
+        <form action={formAction}>
+          <input type="hidden" name="property_id" value={propertyId} />
+          <input type="hidden" name="part_id" value={part.id} />
+          <input type="hidden" name="not_applicable" value="0" />
+          <button
+            type="submit"
+            className="home-btn home-btn-primary"
+            disabled={pending}
+          >
+            {pending ? "Sparar…" : "Återställ – delen finns"}
+          </button>
+        </form>
+      ) : null}
+      {state.error ? (
+        <p className="profile-ownership-error" role="alert">
+          {state.error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function PartVerifyForm({
+  propertyId,
+  part,
+  buildYear,
+  onDone,
+}: {
+  propertyId: string;
+  part: PropertyPartView;
+  buildYear: number | null;
+  onDone: () => void;
+}) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(
     updatePropertyPartAction,
+    initialState,
+  );
+  const [naState, naAction, naPending] = useActionState(
+    setPartNotApplicableAction,
     initialState,
   );
   const [precision, setPrecision] = useState<
@@ -221,14 +433,32 @@ function PartVerifyForm({
       : part.lifespanYears;
 
   useEffect(() => {
-    if (state.ok) onDone();
-  }, [state.ok]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (state.ok || naState.ok) {
+      router.refresh();
+      onDone();
+    }
+  }, [state.ok, naState.ok]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="profile-part-verify">
       <form action={formAction} className="profile-part-verify-stack">
         <input type="hidden" name="property_id" value={propertyId} />
-        <input type="hidden" name="part_key" value={part.key} />
+        <input type="hidden" name="part_id" value={part.id} />
+
+        {part.allowMultiple ? (
+          <label className="profile-part-field">
+            <span>Namn</span>
+            <input
+              type="text"
+              name="name"
+              className="analyse-form-input"
+              maxLength={80}
+              defaultValue={part.name ?? ""}
+              placeholder={part.catalogLabel}
+              disabled={pending}
+            />
+          </label>
+        ) : null}
 
         {part.key === "tak" ? (
           <fieldset className="profile-part-fieldset">
@@ -334,9 +564,9 @@ function PartVerifyForm({
 
         {precision === "original" ? (
           <p className="analyse-form-help">
-            {constructionYear != null
-              ? `Räknas som original från byggår ${constructionYear}.`
-              : "Ange byggår på fastigheten först."}
+            {buildYear != null
+              ? `Räknas som original från byggnadens byggår ${buildYear}.`
+              : "Ange byggår på byggnaden först."}
           </p>
         ) : null}
 
@@ -364,17 +594,19 @@ function PartVerifyForm({
           <button
             type="submit"
             className="home-btn home-btn-primary"
-            disabled={pending}
+            disabled={pending || naPending}
           >
             {pending ? "Sparar…" : "Spara"}
           </button>
         </div>
       </form>
 
-      {part.source === "verified" || part.material || part.knownIssues.length > 0 ? (
+      {part.source === "verified" ||
+      part.material ||
+      part.knownIssues.length > 0 ? (
         <form action={formAction} className="profile-part-clear-form">
           <input type="hidden" name="property_id" value={propertyId} />
-          <input type="hidden" name="part_key" value={part.key} />
+          <input type="hidden" name="part_id" value={part.id} />
           <input type="hidden" name="clear" value="1" />
           {part.key === "tak" && material ? (
             <input type="hidden" name="material" value={material} />
@@ -382,16 +614,29 @@ function PartVerifyForm({
           <button
             type="submit"
             className="profile-part-clear"
-            disabled={pending}
+            disabled={pending || naPending}
           >
             Rensa till antagen
           </button>
         </form>
       ) : null}
 
-      {state.error ? (
+      <form action={naAction} className="profile-part-clear-form">
+        <input type="hidden" name="property_id" value={propertyId} />
+        <input type="hidden" name="part_id" value={part.id} />
+        <input type="hidden" name="not_applicable" value="1" />
+        <button
+          type="submit"
+          className="profile-part-clear"
+          disabled={pending || naPending}
+        >
+          Finns inte / ej relevant
+        </button>
+      </form>
+
+      {state.error || naState.error ? (
         <p className="profile-ownership-error" role="alert">
-          {state.error}
+          {state.error || naState.error}
         </p>
       ) : null}
     </div>
