@@ -22,10 +22,10 @@ function row(
 }
 
 describe("pickNextPartAction priority", () => {
-  it("väljer första overifierade i konsekvensordning (tak före badrum)", () => {
+  it("väljer första overifierade i konsekvensordning (tak före våtrum)", () => {
     const parts = buildPropertyPartViews(1980, [
       row("fasad", null),
-      row("badrum", null),
+      row("vatrum", null),
       // tak saknar material → unknown, overifierad
     ]);
     // Without tak row, tak is still in catalog as unknown/assumed
@@ -33,20 +33,20 @@ describe("pickNextPartAction priority", () => {
     assert.equal(next?.key, "tak");
   });
 
-  it("hoppar verifierad tak och tar badrum", () => {
+  it("hoppar verifierad tak och tar våtrum", () => {
     const parts = buildPropertyPartViews(1980, [
       { ...row("tak", 2015), material: "tegel" },
-      row("badrum", null),
+      row("vatrum", null),
       row("dranering", null),
     ]);
     const next = pickNextPartAction(parts);
-    assert.equal(next?.key, "badrum");
+    assert.equal(next?.key, "vatrum");
   });
 
   it("när allt verifierat: snart/action i prioritet", () => {
     const parts = buildPropertyPartViews(1970, [
       { ...row("tak", 1972), material: "papp" }, // gammalt papp → action
-      row("badrum", 2020),
+      row("vatrum", 2020),
       row("dranering", 2015),
       row("va", 2010),
       row("el", 2010),
@@ -72,7 +72,7 @@ describe("verify_parts auto-complete", () => {
       row("fonster", 2010),
       row("dranering", 2010),
       row("grund", 2010, "original"),
-      row("badrum", 2010),
+      row("vatrum", 2010),
       row("uppvarmning", 2010),
       row("varmvattenberedare", 2010),
       row("ventilation", 2010),

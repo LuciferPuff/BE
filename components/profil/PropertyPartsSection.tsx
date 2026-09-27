@@ -22,7 +22,7 @@ import {
   type RoofMaterial,
 } from "@/lib/properties/component-lifespans";
 import {
-  PROPERTY_PARTS,
+  addablePartOptions,
 } from "@/lib/properties/parts-catalog";
 
 type Props = {
@@ -262,7 +262,11 @@ function BuildingBlock({
       </ul>
 
       {canEdit ? (
-        <AddPartForm propertyId={propertyId} buildingId={building.id} />
+        <AddPartForm
+          propertyId={propertyId}
+          buildingId={building.id}
+          existingKeys={building.parts.map((p) => p.key)}
+        />
       ) : null}
     </details>
   );
@@ -271,20 +275,24 @@ function BuildingBlock({
 function AddPartForm({
   propertyId,
   buildingId,
+  existingKeys,
 }: {
   propertyId: string;
   buildingId: string;
+  existingKeys: string[];
 }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(
     addPropertyPartAction,
     initialState,
   );
-  const multiParts = PROPERTY_PARTS.filter((p) => p.allowMultiple);
+  const options = addablePartOptions(existingKeys);
 
   useEffect(() => {
     if (state.ok) router.refresh();
   }, [state.ok, router]);
+
+  if (options.length === 0) return null;
 
   return (
     <form action={formAction} className="profile-part-add">
@@ -302,9 +310,10 @@ function AddPartForm({
           <option value="" disabled>
             Välj typ…
           </option>
-          {multiParts.map((p) => (
+          {options.map((p) => (
             <option key={p.key} value={p.key}>
               {p.label}
+              {p.allowMultiple ? " (fler)" : ""}
             </option>
           ))}
         </select>
@@ -322,7 +331,7 @@ function AddPartForm({
       </label>
       <button
         type="submit"
-        className="home-btn home-btn-ghost"
+        className="home-btn home-btn-primary profile-part-add-btn"
         disabled={pending}
       >
         {pending ? "Lägger till…" : "Lägg till"}

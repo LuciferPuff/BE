@@ -1800,6 +1800,11 @@ main.content-page {
   min-width: 8rem;
 }
 
+.profile-part-add-btn {
+  flex-shrink: 0;
+  align-self: flex-end;
+}
+
 .profile-parts-grid {
   list-style: none;
   margin: 1rem 0 0;

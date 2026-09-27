@@ -24,9 +24,11 @@ alwaysApply: false
 ## Backlog
 - **Komplementbyggnader UI** — skapa/redigera garage, attefall m.m. (datamodell klar)
 - **Egna delar (Fas C)** — endast namn/anteckning/dokument, utan status/livslängd
+- **Återkommande kontroller** — inte husdelar: sotning, radonmätning, vattenprov, service, avloppsbesiktning. Intervall (inte ålder), kopplade till del (t.ex. skorsten → sotning var 3:e år). Stark återkomstmotor — bygg senare.
 
 ## Principer
 - Antaget vs verifierat synligt
 - Max 2–3 "Detta kommer"-boxar per sida
 - Ett tydligt nästa steg per besök
 - Katalogstyrda delar (inte fritext i status)
+- Extra tak = tillbyggnad som byggnad, inte multi på tak

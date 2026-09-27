@@ -1,6 +1,8 @@
 /**
  * Katalog över husdelar och byggnadstyper för fastighetsdashboarden.
  * Livslängder: se component-lifespans.ts
+ *
+ * Seed = BUILDING_DEFAULT_PARTS. Övriga katalogdelar läggs till av användaren.
  */
 
 import {
@@ -14,12 +16,19 @@ export const PROPERTY_PART_KEYS = [
   "fonster",
   "dranering",
   "grund",
-  "badrum",
+  "vatrum",
   "uppvarmning",
   "varmvattenberedare",
   "ventilation",
   "el",
   "va",
+  "skorsten",
+  "kok",
+  "altan",
+  "solceller",
+  "enskilt_avlopp",
+  "egen_brunn",
+  "avfuktare",
 ] as const;
 
 export type PropertyPartKey = (typeof PROPERTY_PART_KEYS)[number];
@@ -32,7 +41,10 @@ export type PropertyPartDefinition = {
   summary: string;
   ifWaiting: string;
   guideHref: string;
-  /** Flera instanser per byggnad tillåtna (t.ex. flera badrum). */
+  /**
+   * Flera instanser per byggnad.
+   * Extra tak = tillbyggnad som egen byggnad, inte multi här.
+   */
   allowMultiple: boolean;
 };
 
@@ -46,7 +58,7 @@ export const PROPERTY_PARTS: readonly PropertyPartDefinition[] = [
     ifWaiting:
       "Fuktskador i bjälklag och isolering blir dyrare ju längre du väntar.",
     guideHref: PART_GUIDE_HREF.tak,
-    allowMultiple: true,
+    allowMultiple: false,
   },
   {
     key: "fasad",
@@ -89,13 +101,13 @@ export const PROPERTY_PARTS: readonly PropertyPartDefinition[] = [
     allowMultiple: false,
   },
   {
-    key: "badrum",
-    label: "Badrum / tätskikt",
-    lifespanYears: PART_LIFESPAN_YEARS.badrum,
+    key: "vatrum",
+    label: "Våtrum",
+    lifespanYears: PART_LIFESPAN_YEARS.vatrum,
     summary:
-      "Tätskikt i våtrum har begränsad livslängd. Ålder är en viktig risksignal.",
+      "Tätskikt i våtrum (badrum, tvättstuga, WC) har begränsad livslängd. Namnge rummet för flera våtrum.",
     ifWaiting: "Ett läckande tätskikt kan ge omfattande vattenskador.",
-    guideHref: PART_GUIDE_HREF.badrum,
+    guideHref: PART_GUIDE_HREF.vatrum,
     allowMultiple: true,
   },
   {
@@ -103,7 +115,7 @@ export const PROPERTY_PARTS: readonly PropertyPartDefinition[] = [
     label: "Uppvärmning",
     lifespanYears: PART_LIFESPAN_YEARS.uppvarmning,
     summary:
-      "Värmepump, panna eller fjärrvärmecentral – ålder påverkar driftkostnad och haveririsk.",
+      "Värmepump, panna, kamin eller fjärrvärme – ålder påverkar driftkostnad och haveririsk.",
     ifWaiting: "Ett åldrat system kan gå sönder abrupt och bli en stor engångskostnad.",
     guideHref: PART_GUIDE_HREF.uppvarmning,
     allowMultiple: true,
@@ -116,7 +128,7 @@ export const PROPERTY_PARTS: readonly PropertyPartDefinition[] = [
       "Beredare åldras och kan läcka. Byte är ofta en planerbar kostnad.",
     ifWaiting: "En havererad beredare ger både vattenstopp och risk för vattenskada.",
     guideHref: PART_GUIDE_HREF.varmvattenberedare,
-    allowMultiple: true,
+    allowMultiple: false,
   },
   {
     key: "ventilation",
@@ -148,6 +160,76 @@ export const PROPERTY_PARTS: readonly PropertyPartDefinition[] = [
     guideHref: PART_GUIDE_HREF.va,
     allowMultiple: false,
   },
+  {
+    key: "skorsten",
+    label: "Skorsten / eldstad",
+    lifespanYears: PART_LIFESPAN_YEARS.skorsten,
+    summary:
+      "Beslag och insatser åldras. Sotning och brandskyddskontroll är lagkrav.",
+    ifWaiting: "Eftersatt skorsten ökar brandrisken och kan stoppa försäkring.",
+    guideHref: PART_GUIDE_HREF.skorsten,
+    allowMultiple: true,
+  },
+  {
+    key: "kok",
+    label: "Kök",
+    lifespanYears: PART_LIFESPAN_YEARS.kok,
+    summary:
+      "Kök renoveras ofta. Vattenskador från diskmaskin och rör är vanliga risker.",
+    ifWaiting: "Ett gammalt kök med dolda läckor kan bli dyrt att åtgärda i efterhand.",
+    guideHref: PART_GUIDE_HREF.kok,
+    allowMultiple: false,
+  },
+  {
+    key: "altan",
+    label: "Altan / trädäck / balkong",
+    lifespanYears: PART_LIFESPAN_YEARS.altan,
+    summary:
+      "Trä och fästen åldras. Bygglov och bärighet kan bli aktuellt vid byte.",
+    ifWaiting: "Röta i bärande delar gör altanen osäker att använda.",
+    guideHref: PART_GUIDE_HREF.altan,
+    allowMultiple: true,
+  },
+  {
+    key: "solceller",
+    label: "Solceller",
+    lifespanYears: PART_LIFESPAN_YEARS.solceller,
+    summary:
+      "Paneler håller länge; växelriktaren byts oftare. Påverkar el och ekonomi.",
+    ifWaiting: "En trasig växelriktare stoppar produktionen tills den byts.",
+    guideHref: PART_GUIDE_HREF.solceller,
+    allowMultiple: false,
+  },
+  {
+    key: "enskilt_avlopp",
+    label: "Enskilt avlopp",
+    lifespanYears: PART_LIFESPAN_YEARS.enskilt_avlopp,
+    summary:
+      "Slamavskiljare och infiltration har begränsad livslängd. Kommunen kan kräva uppgradering.",
+    ifWaiting: "Ett underkänt system kan bli en stor engångskostnad (ofta 100–200 tkr).",
+    guideHref: PART_GUIDE_HREF.enskilt_avlopp,
+    allowMultiple: false,
+  },
+  {
+    key: "egen_brunn",
+    label: "Egen brunn",
+    lifespanYears: PART_LIFESPAN_YEARS.egen_brunn,
+    summary:
+      "Pump och brunn behöver underhåll. Vattenprov rekommenderas regelbundet.",
+    ifWaiting: "En trasig pump ger vattenstopp; dålig vattenkvalitet upptäcks sent utan prov.",
+    guideHref: PART_GUIDE_HREF.egen_brunn,
+    allowMultiple: false,
+  },
+  {
+    key: "avfuktare",
+    label: "Avfuktare (krypgrund)",
+    lifespanYears: PART_LIFESPAN_YEARS.avfuktare,
+    summary:
+      "Avfuktare i krypgrund går ofta sönder tyst. Hög risk för mögel om den stannar.",
+    ifWaiting: "Utan fungerande avfuktning kan mögel sprida sig utan synliga tecken.",
+    guideHref: PART_GUIDE_HREF.avfuktare,
+    allowMultiple: false,
+  },
 ] as const;
 
 export const BUILDING_TYPES = [
@@ -170,7 +252,7 @@ export const BUILDING_TYPE_LABELS: Record<BuildingType, string> = {
   gaststuga: "Gäststuga",
 };
 
-/** Standarddelar som seedas när en byggnad skapas. */
+/** Standarddelar som seedas när en byggnad skapas (övriga läggs till manuellt). */
 export const BUILDING_DEFAULT_PARTS: Record<
   BuildingType,
   readonly PropertyPartKey[]
@@ -181,7 +263,7 @@ export const BUILDING_DEFAULT_PARTS: Record<
     "fonster",
     "dranering",
     "grund",
-    "badrum",
+    "vatrum",
     "uppvarmning",
     "varmvattenberedare",
     "ventilation",
@@ -208,7 +290,7 @@ export const BUILDING_DEFAULT_PARTS: Record<
     "va",
     "uppvarmning",
     "ventilation",
-    "badrum",
+    "vatrum",
   ],
 };
 
@@ -228,4 +310,14 @@ export function getPartDefinition(
 
 export function partAllowsMultiple(key: PropertyPartKey): boolean {
   return getPartDefinition(key)?.allowMultiple ?? false;
+}
+
+/** Delar som kan läggas till: multi alltid, övriga om de saknas på byggnaden. */
+export function addablePartOptions(
+  existingKeys: readonly string[],
+): PropertyPartDefinition[] {
+  const present = new Set(existingKeys);
+  return PROPERTY_PARTS.filter(
+    (p) => p.allowMultiple || !present.has(p.key),
+  );
 }

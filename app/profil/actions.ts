@@ -771,7 +771,7 @@ export async function setPartNotApplicableAction(
   return { ok: true };
 }
 
-/** Lägg till en extra delinstans (allow_multiple) på en byggnad. */
+/** Lägg till del på en byggnad (multi eller saknad katalogdel). */
 export async function addPropertyPartAction(
   _prev: UpdatePropertyPartState,
   formData: FormData,
@@ -795,9 +795,6 @@ export async function addPropertyPartAction(
   if (!partKey || !isPropertyPartKey(partKey)) {
     return { error: "Ogiltig husdel." };
   }
-  if (!partAllowsMultiple(partKey)) {
-    return { error: "Den här delen kan bara finnas en gång per byggnad." };
-  }
 
   const supabase = await createAuthClient();
   const { data: building } = await supabase
@@ -810,17 +807,29 @@ export async function addPropertyPartAction(
     return { error: "Byggnaden hittades inte." };
   }
 
-  const { count } = await supabase
+  const { data: existingRows, error: existingError } = await supabase
     .from("property_parts")
-    .select("id", { count: "exact", head: true })
+    .select("id")
     .eq("building_id", buildingId)
     .eq("part_key", partKey);
 
-  const nextIndex = (count ?? 0) + 1;
+  if (existingError) {
+    console.error("[profil] add part read:", existingError.message);
+    return { error: "Kunde inte lägga till delen." };
+  }
+
+  const count = existingRows?.length ?? 0;
+  if (!partAllowsMultiple(partKey) && count > 0) {
+    return { error: "Den här delen finns redan på byggnaden." };
+  }
+
+  const nextIndex = count + 1;
   const def = getPartDefinition(partKey);
   const finalName =
     nameRaw?.trim().slice(0, 80) ||
-    (nextIndex > 1 && def ? `${def.label} ${nextIndex}` : null);
+    (partAllowsMultiple(partKey) && nextIndex > 1 && def
+      ? `${def.label} ${nextIndex}`
+      : null);
 
   const { error } = await supabase.from("property_parts").insert({
     property_id: propertyId,

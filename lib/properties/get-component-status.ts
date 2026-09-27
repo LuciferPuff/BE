@@ -189,7 +189,7 @@ export function getComponentStatus(
   if (input.buildYear != null && lifespanYears != null) {
     const ageYears = Math.max(0, now - input.buildYear);
     if (ageYears > lifespanYears * LIKELY_REPLACED_RATIO) {
-      if (input.key === "badrum") {
+      if (input.key === "vatrum") {
         return {
           status: "unknown",
           source: "unknown",
@@ -245,7 +245,7 @@ export function getComponentStatus(
     };
   }
 
-  if (input.key === "badrum") {
+  if (input.key === "vatrum") {
     return {
       status: "unknown",
       source: "unknown",
