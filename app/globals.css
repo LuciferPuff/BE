@@ -2150,9 +2150,9 @@ main.content-page {
 }
 
 .profile-part-snooze {
-  margin-top: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(27, 46, 60, 0.12);
+  margin: 0 0 1.25rem;
+  padding: 0.85rem 0 1rem;
+  border-bottom: 1px solid rgba(27, 46, 60, 0.12);
 }
 
 .profile-part-snooze-actions {
@@ -2162,11 +2162,30 @@ main.content-page {
   margin-top: 0.75rem;
 }
 
-.profile-part-snooze-actions .home-btn {
-  width: auto;
-  margin-top: 0;
-  padding: 0.55rem 0.9rem;
+.profile-part-snooze-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 0.95rem;
+  border-radius: var(--radius);
+  border: 1px solid rgba(27, 46, 60, 0.28);
+  background: #fff;
+  color: var(--color-primary);
+  font-family: var(--font-sans);
   font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.profile-part-snooze-btn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  background: rgba(27, 46, 60, 0.04);
+}
+
+.profile-part-snooze-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .link-analysis-panel {

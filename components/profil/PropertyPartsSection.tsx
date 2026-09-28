@@ -674,6 +674,17 @@ function PartVerifyForm({
 
   return (
     <div className="profile-part-verify">
+      {canShowSnooze(part) ? (
+        <PartSnoozeForm
+          propertyId={propertyId}
+          part={part}
+          pending={pending}
+          setPending={setPending}
+          setError={setError}
+          onDone={onDone}
+        />
+      ) : null}
+
       <form
         className="profile-part-verify-stack"
         onSubmit={(e) => {
@@ -1140,17 +1151,6 @@ function PartVerifyForm({
         />
       ) : null}
 
-      {canShowSnooze(part) ? (
-        <PartSnoozeForm
-          propertyId={propertyId}
-          part={part}
-          pending={pending}
-          setPending={setPending}
-          setError={setError}
-          onDone={onDone}
-        />
-      ) : null}
-
       {part.source === "verified" ||
       part.variant ||
       part.knownIssues.length > 0 ? (
@@ -1295,7 +1295,7 @@ function PartSnoozeForm({
           <button
             key={years}
             type="button"
-            className="home-btn home-btn-ghost"
+            className="profile-part-snooze-btn"
             disabled={pending}
             onClick={() => {
               const fd = new FormData();
