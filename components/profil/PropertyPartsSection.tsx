@@ -7,6 +7,7 @@ import { startTransition, useEffect, useId, useRef, useState } from "react";
 import {
   addPropertyPartAction,
   deletePropertyPartAction,
+  setPartCheckedAction,
   setPartNotApplicableAction,
   updatePropertyPartAction,
 } from "@/app/profil/actions";
@@ -1118,6 +1119,17 @@ function PartVerifyForm({
         </div>
       </form>
 
+      {part.checkIntervalYears != null && part.checkLabel ? (
+        <PartCheckForm
+          propertyId={propertyId}
+          part={part}
+          pending={pending}
+          setPending={setPending}
+          setError={setError}
+          onDone={onDone}
+        />
+      ) : null}
+
       {part.source === "verified" ||
       part.variant ||
       part.knownIssues.length > 0 ? (
@@ -1189,6 +1201,124 @@ function PartVerifyForm({
         <p className="profile-ownership-error" role="alert">
           {error}
         </p>
+      ) : null}
+    </div>
+  );
+}
+
+function PartCheckForm({
+  propertyId,
+  part,
+  pending,
+  setPending,
+  setError,
+  onDone,
+}: {
+  propertyId: string;
+  part: PropertyPartView;
+  pending: boolean;
+  setPending: (v: boolean) => void;
+  setError: (v: string | null) => void;
+  onDone: () => void;
+}) {
+  const router = useRouter();
+  const today = new Date().toISOString().slice(0, 10);
+  const interval = part.checkIntervalYears!;
+  const label = part.checkLabel!;
+
+  async function runCheck(fd: FormData) {
+    setPending(true);
+    setError(null);
+    try {
+      const result = await setPartCheckedAction({}, fd);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      onDone();
+      refreshInBackground(router);
+    } catch {
+      setError("Kunde inte spara kontrollen.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="profile-part-check">
+      <h4 className="profile-part-check-title">{label}</h4>
+      <p className="analyse-form-help">
+        Markera som OK efter besiktning/service. Gäller i {interval}{" "}
+        {interval === 1 ? "år" : "år"} – sedan behöver du förnya.
+      </p>
+      {part.checkedUntil ? (
+        <p className="analyse-form-help">
+          Nuvarande: giltig t.o.m. {part.checkedUntil}
+          {part.checkNote ? ` · ${part.checkNote}` : null}
+        </p>
+      ) : null}
+      <form
+        className="profile-part-verify-stack"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void runCheck(new FormData(e.currentTarget));
+        }}
+      >
+        <input type="hidden" name="property_id" value={propertyId} />
+        <input type="hidden" name="part_id" value={part.id} />
+        <label className="profile-part-field">
+          <span>Datum för kontroll</span>
+          <input
+            type="date"
+            name="checked_at"
+            className="analyse-form-input"
+            defaultValue={part.checkedAt ?? today}
+            max={today}
+            disabled={pending}
+            required
+          />
+        </label>
+        <label className="profile-part-field">
+          <span>Anteckning (valfritt)</span>
+          <input
+            type="text"
+            name="check_note"
+            className="analyse-form-input"
+            maxLength={300}
+            defaultValue={part.checkNote ?? ""}
+            placeholder="t.ex. delvis bytt 2015, OK enligt besiktning"
+            disabled={pending}
+          />
+        </label>
+        <div className="profile-part-verify-actions">
+          <button
+            type="submit"
+            className="home-btn home-btn-primary"
+            disabled={pending}
+          >
+            {pending ? "Sparar…" : "Markera som kontrollerad"}
+          </button>
+        </div>
+      </form>
+      {part.checkedUntil ? (
+        <div className="profile-part-clear-form">
+          <button
+            type="button"
+            className="profile-part-clear"
+            disabled={pending}
+            onClick={() => {
+              void (async () => {
+                const fd = new FormData();
+                fd.set("property_id", propertyId);
+                fd.set("part_id", part.id);
+                fd.set("clear", "1");
+                await runCheck(fd);
+              })();
+            }}
+          >
+            Rensa kontroll
+          </button>
+        </div>
       ) : null}
     </div>
   );

@@ -242,6 +242,72 @@ describe("getComponentStatus", () => {
     assert.match(result.note ?? "", /aggregat/i);
   });
 
+  it("el med giltig kontroll → kontrollerad trots hög ålder", () => {
+    const result = getComponentStatus({
+      key: "el",
+      buildYear: 1978,
+      replacedYear: 1978,
+      yearPrecision: "original",
+      variant: null,
+      knownIssues: [],
+      checkedUntil: "2030-06-01",
+      checkNote: "Delvis bytt, OK enligt besiktning",
+      nowYear: 2026,
+      nowDate: "2026-09-28",
+    });
+    assert.equal(result.status, "ok");
+    assert.equal(result.source, "verified");
+    assert.match(result.ageLabel, /Elbesiktning/i);
+    assert.match(result.note ?? "", /Delvis bytt/i);
+  });
+
+  it("kontroll snart utgången → soon", () => {
+    const result = getComponentStatus({
+      key: "el",
+      buildYear: 1978,
+      replacedYear: null,
+      yearPrecision: null,
+      variant: null,
+      knownIssues: [],
+      checkedUntil: "2026-12-01",
+      nowYear: 2026,
+      nowDate: "2026-09-28",
+    });
+    assert.equal(result.status, "soon");
+    assert.match(result.statusLabel, /koll/i);
+  });
+
+  it("utgången kontroll faller tillbaka till ålder", () => {
+    const result = getComponentStatus({
+      key: "el",
+      buildYear: 1978,
+      replacedYear: 1978,
+      yearPrecision: "original",
+      variant: null,
+      knownIssues: [],
+      checkedUntil: "2020-01-01",
+      nowYear: 2026,
+      nowDate: "2026-09-28",
+    });
+    assert.ok(!/Elbesiktning/i.test(result.ageLabel));
+    assert.equal(result.status, "action");
+  });
+
+  it("känt problem slår kontroll-OK", () => {
+    const result = getComponentStatus({
+      key: "tak",
+      buildYear: 2010,
+      replacedYear: 2010,
+      yearPrecision: "exact",
+      variant: "tegel",
+      knownIssues: ["lackage"],
+      checkedUntil: "2030-01-01",
+      nowYear: 2026,
+      nowDate: "2026-09-28",
+    });
+    assert.equal(result.status, "action");
+  });
+
   it("antagen under 70 % → assumed_ok", () => {
     const result = getComponentStatus({
       key: "el",

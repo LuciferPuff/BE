@@ -2136,6 +2136,19 @@ main.content-page {
   color: #9b2c2c;
 }
 
+.profile-part-check {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(27, 46, 60, 0.12);
+}
+
+.profile-part-check-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
 .link-analysis-panel {
   margin-bottom: 1.75rem;
 }

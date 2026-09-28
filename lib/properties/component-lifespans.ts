@@ -449,6 +449,46 @@ export const PART_LABEL_DEFINITE: Record<PropertyPartKey, string> = {
   avfuktare: "avfuktaren",
 };
 
+/**
+ * Manuell kontroll-OK: intervall per del.
+ * Delar utan post får ingen kontrollknapp.
+ */
+export const PART_CHECK_CONFIG: Partial<
+  Record<PropertyPartKey, { intervalYears: number; label: string }>
+> = {
+  el: { intervalYears: 6, label: "Elbesiktning" },
+  skorsten: { intervalYears: 3, label: "Sotning / brandskydd" },
+  enskilt_avlopp: { intervalYears: 4, label: "Avloppsbesiktning" },
+  egen_brunn: { intervalYears: 2, label: "Vattenprov" },
+  ventilation: { intervalYears: 3, label: "Ventilationsservice" },
+  avfuktare: { intervalYears: 1, label: "Funktionskontroll" },
+  varmekalla: { intervalYears: 2, label: "Värmeservice" },
+  varmvattenberedare: { intervalYears: 2, label: "Kontroll" },
+  vatrum: { intervalYears: 5, label: "Fuktkontroll" },
+  tak: { intervalYears: 5, label: "Takkontroll" },
+  fasad: { intervalYears: 8, label: "Fasadkontroll" },
+  dranering: { intervalYears: 8, label: "Dräneringskontroll" },
+  grund: { intervalYears: 8, label: "Grundkontroll" },
+  va: { intervalYears: 5, label: "VA-kontroll" },
+  solceller: { intervalYears: 5, label: "Service" },
+};
+
+/** Snart-fönster innan checked_until (dagar). */
+export const CHECK_SOON_DAYS = 365;
+
+export function partCheckConfig(key: PropertyPartKey): {
+  intervalYears: number;
+  label: string;
+} | null {
+  return PART_CHECK_CONFIG[key] ?? null;
+}
+
+export function addYearsToDate(isoDate: string, years: number): string {
+  const d = new Date(`${isoDate}T12:00:00`);
+  d.setFullYear(d.getFullYear() + years);
+  return d.toISOString().slice(0, 10);
+}
+
 export const PART_NEXT_STEP_PRIORITY: readonly PropertyPartKey[] = [
   "tak",
   "vatrum",

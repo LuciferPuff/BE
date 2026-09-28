@@ -6,6 +6,7 @@ import {
 import {
   PART_NEXT_STEP_PRIORITY,
   PART_STATUS_PRIORITY,
+  partCheckConfig,
 } from "@/lib/properties/component-lifespans";
 import {
   BUILDING_DEFAULT_PARTS,
@@ -58,6 +59,11 @@ export type PropertyPartView = {
   /** @deprecated alias för variant (tak-UI under övergång) */
   material: string | null;
   knownIssues: string[];
+  checkedAt: string | null;
+  checkedUntil: string | null;
+  checkNote: string | null;
+  checkIntervalYears: number | null;
+  checkLabel: string | null;
   source: PartSource;
   tone: PartStatusTone;
   statusLabel: string;
@@ -106,6 +112,9 @@ export type PropertyPartRow = {
   known_issues?: string[] | null;
   role?: string | null;
   integrated?: boolean | null;
+  checked_at?: string | null;
+  checked_until?: string | null;
+  check_note?: string | null;
 };
 
 function parsePrecision(value: string | null | undefined): YearPrecision | null {
@@ -138,6 +147,10 @@ export function computePartView(
   const role: PartRole | null =
     row.role && isPartRole(row.role) ? row.role : null;
   const variant = (row.variant ?? row.material)?.trim() || null;
+  const checkCfg = partCheckConfig(def.key);
+  const checkedAt = row.checked_at?.trim() || null;
+  const checkedUntil = row.checked_until?.trim() || null;
+  const checkNote = row.check_note?.trim() || null;
 
   if (notApplicable) {
     return {
@@ -163,6 +176,11 @@ export function computePartView(
       variant: null,
       material: null,
       knownIssues: [],
+      checkedAt: null,
+      checkedUntil: null,
+      checkNote: null,
+      checkIntervalYears: checkCfg?.intervalYears ?? null,
+      checkLabel: checkCfg?.label ?? null,
       source: "not_applicable",
       tone: "not_applicable",
       statusLabel: "Finns inte",
@@ -200,6 +218,8 @@ export function computePartView(
     role,
     integrated,
     name,
+    checkedUntil,
+    checkNote,
   });
 
   const isIntegratedVvb = def.key === "varmvattenberedare" && integrated;
@@ -235,6 +255,11 @@ export function computePartView(
     variant,
     material: variant,
     knownIssues,
+    checkedAt,
+    checkedUntil,
+    checkNote,
+    checkIntervalYears: checkCfg?.intervalYears ?? null,
+    checkLabel: checkCfg?.label ?? null,
     source,
     tone: status.status,
     statusLabel: status.statusLabel,
@@ -450,6 +475,9 @@ export function buildPropertyPartViews(
     known_issues: r.known_issues,
     role: r.role ?? null,
     integrated: r.integrated ?? false,
+    checked_at: r.checked_at ?? null,
+    checked_until: r.checked_until ?? null,
+    check_note: r.check_note ?? null,
   }));
 
   const existing = new Set(fullRows.map((r) => r.part_key));
@@ -467,6 +495,9 @@ export function buildPropertyPartViews(
       known_issues: [],
       role: key === "varmekalla" ? "primar" : null,
       integrated: false,
+      checked_at: null,
+      checked_until: null,
+      check_note: null,
     });
   }
 

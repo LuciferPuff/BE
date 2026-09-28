@@ -29,12 +29,14 @@ import {
 import {
   FACADE_KNOWN_ISSUES,
   FOUNDATION_KNOWN_ISSUES,
+  addYearsToDate,
   isFacadeType,
   isFoundationType,
   isHeatDistVariant,
   isHeatSourceVariant,
   isRoofMaterial,
   isVentilationType,
+  partCheckConfig,
   ROOF_KNOWN_ISSUES,
   VENTILATION_KNOWN_ISSUES,
 } from "@/lib/properties/component-lifespans";
@@ -1059,6 +1061,9 @@ export async function setPartNotApplicableAction(
         variant: null,
         known_issues: [] as string[],
         integrated: false,
+        checked_at: null,
+        checked_until: null,
+        check_note: null,
         updated_by: user.id,
         updated_at: new Date().toISOString(),
       }
@@ -1077,6 +1082,101 @@ export async function setPartNotApplicableAction(
   if (error) {
     console.error("[profil] part N/A:", error.message, error.code);
     return { error: "Kunde inte uppdatera delen." };
+  }
+
+  revalidatePath(`/profil/${propertyId}`);
+  return { ok: true };
+}
+
+/** Markera del som kontrollerad/OK med giltighetstid. */
+export async function setPartCheckedAction(
+  _prev: UpdatePropertyPartState,
+  formData: FormData,
+): Promise<UpdatePropertyPartState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  const partId = optionalText(formData, "part_id");
+  const clear = optionalText(formData, "clear") === "1";
+  const checkedAtRaw = optionalText(formData, "checked_at");
+  const noteRaw = optionalText(formData, "check_note");
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId || !partId) {
+    return { error: "Saknar husdel." };
+  }
+
+  const supabase = await createAuthClient();
+  const { data: existing, error: readError } = await supabase
+    .from("property_parts")
+    .select("id, part_key")
+    .eq("id", partId)
+    .eq("property_id", propertyId)
+    .maybeSingle();
+
+  if (readError || !existing) {
+    return { error: "Husdelen hittades inte." };
+  }
+
+  const partKey = existing.part_key as string;
+  if (!isPropertyPartKey(partKey)) {
+    return { error: "Ogiltig husdel." };
+  }
+
+  const cfg = partCheckConfig(partKey);
+  if (!cfg) {
+    return { error: "Den här delen har ingen kontroll." };
+  }
+
+  if (clear) {
+    const { error } = await supabase
+      .from("property_parts")
+      .update({
+        checked_at: null,
+        checked_until: null,
+        check_note: null,
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", partId)
+      .eq("property_id", propertyId);
+    if (error) {
+      console.error("[profil] clear check:", error.message, error.code);
+      return { error: "Kunde inte rensa kontrollen." };
+    }
+    revalidatePath(`/profil/${propertyId}`);
+    return { ok: true };
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const checkedAt =
+    checkedAtRaw && /^\d{4}-\d{2}-\d{2}$/.test(checkedAtRaw)
+      ? checkedAtRaw
+      : today;
+  const checkedUntil = addYearsToDate(checkedAt, cfg.intervalYears);
+  const checkNote = noteRaw?.trim().slice(0, 300) || null;
+
+  const { error } = await supabase
+    .from("property_parts")
+    .update({
+      checked_at: checkedAt,
+      checked_until: checkedUntil,
+      check_note: checkNote,
+      not_applicable: false,
+      updated_by: user.id,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", partId)
+    .eq("property_id", propertyId);
+
+  if (error) {
+    console.error("[profil] set check:", error.message, error.code);
+    return { error: "Kunde inte spara kontrollen." };
   }
 
   revalidatePath(`/profil/${propertyId}`);

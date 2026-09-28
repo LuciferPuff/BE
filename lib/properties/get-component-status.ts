@@ -1,4 +1,5 @@
 import {
+  CHECK_SOON_DAYS,
   FACADE_NOTES,
   FACADE_TYPE_LABELS,
   FOUNDATION_NOTES,
@@ -17,6 +18,7 @@ import {
   isHeatSourceVariant,
   isVentilationType,
   lifespanForPart,
+  partCheckConfig,
   type HeatDistVariant,
   type HeatSourceVariant,
   type RoofMaterial,
@@ -47,7 +49,12 @@ export type ComponentInput = {
   integrated?: boolean;
   /** Fritext för t.ex. fasad "annat". */
   name?: string | null;
+  /** YYYY-MM-DD – manuell kontroll giltig t.o.m. */
+  checkedUntil?: string | null;
+  checkNote?: string | null;
   nowYear?: number;
+  /** För kontroll-giltighet; default idag. */
+  nowDate?: string | null;
 };
 
 export type ComponentStatusResult = {
@@ -129,6 +136,10 @@ export function getComponentStatus(
       note: null,
     };
   }
+
+  // Manuell kontroll-OK (elbesiktning m.m.) – slås av kända problem / eternit.
+  const checkResult = statusFromCheck(input, knownIssues, variant);
+  if (checkResult) return checkResult;
 
   // Tak utan variant: fråga först.
   if (input.key === "tak") {
@@ -668,6 +679,70 @@ export function getComponentStatus(
       prompt: null,
     }),
   );
+}
+
+function statusFromCheck(
+  input: ComponentInput,
+  knownIssues: string[],
+  variant: string | null,
+): ComponentStatusResult | null {
+  if (knownIssues.length > 0) return null;
+  if (
+    (input.key === "tak" || input.key === "fasad") &&
+    variant === "eternit"
+  ) {
+    return null;
+  }
+
+  const untilRaw = input.checkedUntil?.trim();
+  if (!untilRaw || !/^\d{4}-\d{2}-\d{2}$/.test(untilRaw)) return null;
+
+  const nowIso =
+    input.nowDate?.trim() && /^\d{4}-\d{2}-\d{2}$/.test(input.nowDate.trim())
+      ? input.nowDate.trim()
+      : new Date().toISOString().slice(0, 10);
+
+  const untilMs = Date.parse(`${untilRaw}T12:00:00`);
+  const nowMs = Date.parse(`${nowIso}T12:00:00`);
+  if (!Number.isFinite(untilMs) || !Number.isFinite(nowMs)) return null;
+
+  const daysLeft = Math.round((untilMs - nowMs) / 86_400_000);
+  if (daysLeft < 0) return null;
+
+  const cfg = partCheckConfig(input.key);
+  const checkLabel = cfg?.label ?? "Kontroll";
+  const untilLabel = untilRaw;
+  const note = input.checkNote?.trim() || null;
+
+  if (daysLeft <= CHECK_SOON_DAYS) {
+    return {
+      status: "soon",
+      source: "verified",
+      ageYears: null,
+      referenceYear: null,
+      lifespanYears: lifespanForPart(input.key, variant),
+      statusLabel: "Ny koll snart",
+      ageLabel: `${checkLabel} giltig t.o.m. ${untilLabel}`,
+      actionLabel: "Förnya kontroll →",
+      warning: null,
+      prompt: null,
+      note,
+    };
+  }
+
+  return {
+    status: "ok",
+    source: "verified",
+    ageYears: null,
+    referenceYear: null,
+    lifespanYears: lifespanForPart(input.key, variant),
+    statusLabel: "Kontrollerad",
+    ageLabel: `${checkLabel} giltig t.o.m. ${untilLabel}`,
+    actionLabel: "Uppdatera →",
+    warning: null,
+    prompt: null,
+    note,
+  };
 }
 
 function distAgeLabel(input: ComponentInput, fallback: string): string {
