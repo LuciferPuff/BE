@@ -27,7 +27,9 @@ import {
   syncHuvudbyggnadBuildYear,
 } from "@/lib/properties/ensure-buildings";
 import {
+  FACADE_KNOWN_ISSUES,
   FOUNDATION_KNOWN_ISSUES,
+  isFacadeType,
   isFoundationType,
   isHeatDistVariant,
   isHeatSourceVariant,
@@ -616,10 +618,15 @@ export async function updatePropertyPartAction(
         ? FOUNDATION_KNOWN_ISSUES.map((i) => i.key as string)
         : partKey === "ventilation"
           ? VENTILATION_KNOWN_ISSUES.map((i) => i.key as string)
-          : [],
+          : partKey === "fasad"
+            ? FACADE_KNOWN_ISSUES.map((i) => i.key as string)
+            : [],
   );
   const known_issues =
-    partKey === "tak" || partKey === "grund" || partKey === "ventilation"
+    partKey === "tak" ||
+    partKey === "grund" ||
+    partKey === "ventilation" ||
+    partKey === "fasad"
       ? knownIssues.filter((k) => allowedIssues.has(k)).slice(0, 10)
       : [];
 
@@ -644,6 +651,14 @@ export async function updatePropertyPartAction(
     if (!variantRaw || !isVentilationType(variantRaw)) {
       if (!clear && precisionRaw !== "unknown") {
         return { error: "Välj typ av ventilation." };
+      }
+    } else {
+      variant = variantRaw;
+    }
+  } else if (partKey === "fasad") {
+    if (!variantRaw || !isFacadeType(variantRaw)) {
+      if (!clear && precisionRaw !== "unknown") {
+        return { error: "Välj fasadmaterial." };
       }
     } else {
       variant = variantRaw;
@@ -674,10 +689,20 @@ export async function updatePropertyPartAction(
         : ((existing.role as string | null) ?? "primar");
   }
 
-  const name =
-    nameRaw != null && nameRaw.trim()
-      ? nameRaw.trim().slice(0, 80)
-      : (existing.name as string | null);
+  let name: string | null;
+  if (partKey === "fasad") {
+    if (variant === "annat") {
+      const raw = nameRaw?.trim().slice(0, 80) || null;
+      name = raw ?? ((existing.name as string | null) || null);
+    } else {
+      name = null;
+    }
+  } else {
+    name =
+      nameRaw != null && nameRaw.trim()
+        ? nameRaw.trim().slice(0, 80)
+        : (existing.name as string | null);
+  }
 
   const integratedValue =
     partKey === "varmvattenberedare" ? integrated : false;
@@ -692,6 +717,7 @@ export async function updatePropertyPartAction(
           partKey === "tak" ||
           partKey === "grund" ||
           partKey === "ventilation" ||
+          partKey === "fasad" ||
           partKey === "varmekalla" ||
           partKey === "varmedistribution"
             ? variant
@@ -859,6 +885,38 @@ export async function updatePropertyPartAction(
     return { ok: true };
   }
 
+  // Fasad: tillåt spara bara material (år optional)
+  if (
+    partKey === "fasad" &&
+    variant &&
+    !yearRaw &&
+    !decadeRaw &&
+    precisionRaw !== "original" &&
+    precisionRaw !== "decade" &&
+    precisionRaw !== "exact"
+  ) {
+    const { error } = await supabase
+      .from("property_parts")
+      .update({
+        replaced_year: null,
+        year_precision: null,
+        variant,
+        known_issues,
+        name,
+        not_applicable: false,
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", partId)
+      .eq("property_id", propertyId);
+    if (error) {
+      console.error("[profil] property_parts:", error.message, error.code);
+      return { error: "Kunde inte spara. Försök igen." };
+    }
+    revalidatePath(`/profil/${propertyId}`);
+    return { ok: true };
+  }
+
   // Distribution: tillåt spara bara variant
   if (
     partKey === "varmedistribution" &&
@@ -946,6 +1004,7 @@ export async function updatePropertyPartAction(
         partKey === "tak" ||
         partKey === "grund" ||
         partKey === "ventilation" ||
+        partKey === "fasad" ||
         partKey === "varmekalla" ||
         partKey === "varmedistribution"
           ? variant

@@ -15,6 +15,10 @@ import type {
   PropertyPartView,
 } from "@/lib/properties/build-property-parts";
 import {
+  FACADE_KNOWN_ISSUES,
+  FACADE_NOTES,
+  FACADE_TYPE_LABELS,
+  FACADE_TYPES,
   FOUNDATION_KNOWN_ISSUES,
   FOUNDATION_NOTES,
   FOUNDATION_TYPE_LABELS,
@@ -32,6 +36,7 @@ import {
   VENTILATION_NOTES,
   VENTILATION_TYPE_LABELS,
   VENTILATION_TYPES,
+  type FacadeType,
   type FoundationType,
   type HeatDistVariant,
   type HeatSourceVariant,
@@ -542,6 +547,9 @@ function PartVerifyForm({
   const [ventilationType, setVentilationType] = useState<VentilationType | "">(
     part.variant && isVentilationPick(part.variant) ? part.variant : "",
   );
+  const [facadeType, setFacadeType] = useState<FacadeType | "">(
+    part.variant && isFacadePick(part.variant) ? part.variant : "",
+  );
   const [role, setRole] = useState<"primar" | "komplement">(
     part.role === "komplement" ? "komplement" : "primar",
   );
@@ -555,11 +563,13 @@ function PartVerifyForm({
         ? foundationType
         : part.key === "ventilation"
           ? ventilationType
-          : part.key === "varmekalla"
-            ? heatSource
-            : part.key === "varmedistribution"
-              ? heatDist
-              : null;
+          : part.key === "fasad"
+            ? facadeType
+            : part.key === "varmekalla"
+              ? heatSource
+              : part.key === "varmedistribution"
+                ? heatDist
+                : null;
   const materialLifespan =
     activeVariant
       ? lifespanForPart(part.key, activeVariant)
@@ -575,6 +585,10 @@ function PartVerifyForm({
   const ventilationNote =
     ventilationType && VENTILATION_NOTES[ventilationType]
       ? VENTILATION_NOTES[ventilationType]
+      : null;
+  const facadeNote =
+    facadeType && FACADE_NOTES[facadeType]
+      ? FACADE_NOTES[facadeType]
       : null;
 
   async function runSave(fd: FormData) {
@@ -773,6 +787,58 @@ function PartVerifyForm({
             ) : ventilationType === "okand" || !ventilationType ? (
               <p className="analyse-form-help">
                 Välj typ för att få rätt underhållstips och livslängd.
+              </p>
+            ) : null}
+          </fieldset>
+        ) : null}
+
+        {part.key === "fasad" ? (
+          <fieldset className="profile-part-fieldset">
+            <legend>Fasadmaterial</legend>
+            <div className="profile-part-choice-list">
+              {FACADE_TYPES.map((key) => (
+                <label key={key} className="profile-part-choice">
+                  <input
+                    type="radio"
+                    name="variant"
+                    value={key}
+                    checked={facadeType === key}
+                    onChange={() => setFacadeType(key)}
+                    disabled={pending}
+                    required
+                  />
+                  <span>{FACADE_TYPE_LABELS[key]}</span>
+                </label>
+              ))}
+            </div>
+            {facadeType === "annat" ? (
+              <label className="profile-part-field">
+                <span>Ange material</span>
+                <input
+                  type="text"
+                  name="name"
+                  className="analyse-form-input"
+                  maxLength={80}
+                  defaultValue={part.name ?? ""}
+                  placeholder="t.ex. natursten, skiffer…"
+                  disabled={pending}
+                />
+              </label>
+            ) : null}
+            {facadeNote ? (
+              <p className="analyse-form-help">{facadeNote}</p>
+            ) : null}
+            {materialLifespan != null ? (
+              <p className="analyse-form-help">
+                Riktvärde för livslängd/underhåll: ca {materialLifespan} år.
+              </p>
+            ) : facadeType === "annat" ? (
+              <p className="analyse-form-help">
+                Ingen schablon – utgå från tillverkare eller besiktning.
+              </p>
+            ) : facadeType === "okand" || !facadeType ? (
+              <p className="analyse-form-help">
+                Välj material för att få rätt underhållstips och livslängd.
               </p>
             ) : null}
           </fieldset>
@@ -1021,6 +1087,26 @@ function PartVerifyForm({
           </fieldset>
         ) : null}
 
+        {part.key === "fasad" ? (
+          <fieldset className="profile-part-fieldset">
+            <legend>Kända problem</legend>
+            <div className="profile-part-choice-list">
+              {FACADE_KNOWN_ISSUES.map((issue) => (
+                <label key={issue.key} className="profile-part-choice">
+                  <input
+                    type="checkbox"
+                    name="known_issues"
+                    value={issue.key}
+                    defaultChecked={part.knownIssues.includes(issue.key)}
+                    disabled={pending}
+                  />
+                  <span>{issue.label}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
+
         <div className="profile-part-verify-actions">
           <button
             type="submit"
@@ -1053,6 +1139,14 @@ function PartVerifyForm({
           ) : null}
           {part.key === "ventilation" && ventilationType ? (
             <input type="hidden" name="variant" value={ventilationType} />
+          ) : null}
+          {part.key === "fasad" && facadeType ? (
+            <>
+              <input type="hidden" name="variant" value={facadeType} />
+              {facadeType === "annat" && part.name ? (
+                <input type="hidden" name="name" value={part.name} />
+              ) : null}
+            </>
           ) : null}
           {part.key === "varmekalla" && heatSource ? (
             <>
@@ -1114,4 +1208,8 @@ function isFoundationPick(value: string): value is FoundationType {
 
 function isVentilationPick(value: string): value is VentilationType {
   return (VENTILATION_TYPES as readonly string[]).includes(value);
+}
+
+function isFacadePick(value: string): value is FacadeType {
+  return (FACADE_TYPES as readonly string[]).includes(value);
 }

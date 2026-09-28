@@ -131,7 +131,10 @@ export function computePartView(
   const notApplicable = Boolean(row.not_applicable);
   const integrated = Boolean(row.integrated);
   const name = row.name?.trim() || null;
-  const label = displayLabel(def.label, name);
+  const label =
+    def.key === "fasad" && name
+      ? `${def.label} (${name})`
+      : displayLabel(def.label, name);
   const role: PartRole | null =
     row.role && isPartRole(row.role) ? row.role : null;
   const variant = (row.variant ?? row.material)?.trim() || null;
@@ -196,6 +199,7 @@ export function computePartView(
     knownIssues,
     role,
     integrated,
+    name,
   });
 
   const isIntegratedVvb = def.key === "varmvattenberedare" && integrated;

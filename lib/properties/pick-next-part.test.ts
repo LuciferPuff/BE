@@ -23,7 +23,9 @@ function row(
           ? "platta_pa_mark"
           : key === "ventilation"
             ? "ftx"
-            : null,
+            : key === "fasad"
+              ? "tra"
+              : null,
     known_issues: [] as string[],
   };
 }

@@ -59,7 +59,7 @@ export const PROPERTY_PARTS: readonly PropertyPartDefinition[] = [
     label: "Fasad",
     lifespanYears: PART_LIFESPAN_YEARS.fasad,
     summary:
-      "Fasaden skyddar stommen. Puts, trä och tegel har olika underhållsbehov.",
+      "Materialet styr underhållet – träpanel målas om ofta, tegel är underhållssnålt, eternit kräver behörig hantering.",
     ifWaiting: "Eftersatt fasad leder ofta till fukt och röta i konstruktionen.",
     guideHref: PART_GUIDE_HREF.fasad,
     allowMultiple: false,

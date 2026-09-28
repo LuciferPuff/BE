@@ -1,4 +1,6 @@
 import {
+  FACADE_NOTES,
+  FACADE_TYPE_LABELS,
   FOUNDATION_NOTES,
   FOUNDATION_TYPE_LABELS,
   HEAT_DIST_LABELS,
@@ -9,6 +11,7 @@ import {
   WATER_DIST_VARIANTS,
   buildingHasHeatPump,
   heatSourceNeedsWaterDist,
+  isFacadeType,
   isFoundationType,
   isHeatDistVariant,
   isHeatSourceVariant,
@@ -37,11 +40,13 @@ export type ComponentInput = {
   buildYear: number | null;
   replacedYear: number | null;
   yearPrecision: YearPrecision | null;
-  /** Takmaterial / grundtyp / ventilation / värmevariant. */
+  /** Takmaterial / grundtyp / ventilation / fasad / värmevariant. */
   variant: string | null;
   knownIssues: string[];
   role?: "primar" | "komplement" | null;
   integrated?: boolean;
+  /** Fritext för t.ex. fasad "annat". */
+  name?: string | null;
   nowYear?: number;
 };
 
@@ -244,6 +249,96 @@ export function getComponentStatus(
         actionLabel: "Bekräfta →",
         warning: null,
         prompt: null,
+        note,
+      };
+    }
+  }
+
+  // Fasad utan typ: fråga först.
+  if (input.key === "fasad") {
+    if (!variant || variant === "okand") {
+      return emptyNote({
+        status: "unknown",
+        source: "unknown",
+        ageYears: null,
+        referenceYear: null,
+        lifespanYears: null,
+        statusLabel: "Okänt",
+        ageLabel: "Material saknas",
+        actionLabel: "Ange material →",
+        warning: null,
+        prompt: "Vilket fasadmaterial har huset?",
+      });
+    }
+
+    const note = isFacadeType(variant)
+      ? (FACADE_NOTES[variant] ?? null)
+      : null;
+    const baseLabel = isFacadeType(variant)
+      ? FACADE_TYPE_LABELS[variant]
+      : variant;
+    const custom = input.name?.trim();
+    const label =
+      variant === "annat" && custom ? `${baseLabel} (${custom})` : baseLabel;
+
+    if (variant === "eternit") {
+      return emptyNote({
+        status: "action",
+        source:
+          input.yearPrecision === "original" || input.replacedYear != null
+            ? "verified"
+            : "assumed",
+        ageYears:
+          input.replacedYear != null
+            ? Math.max(0, now - input.replacedYear)
+            : input.buildYear != null
+              ? Math.max(0, now - input.buildYear)
+              : null,
+        referenceYear: input.replacedYear ?? input.buildYear,
+        lifespanYears,
+        statusLabel: "Åtgärda",
+        ageLabel: "Eternit (asbest)",
+        actionLabel:
+          input.replacedYear != null || input.yearPrecision === "original"
+            ? formatVerifiedAction(input.replacedYear ?? input.buildYear)
+            : "Ange år →",
+        warning: "Eternit kan innehålla asbest – hanteras av behörig firma.",
+        prompt: null,
+      });
+    }
+
+    // Annat: ingen schablonlivslängd
+    if (variant === "annat") {
+      if (input.replacedYear != null || input.yearPrecision === "original") {
+        const ref =
+          input.replacedYear ??
+          (input.yearPrecision === "original" ? input.buildYear : null);
+        const age = ref != null ? Math.max(0, now - ref) : null;
+        return {
+          status: "assumed_ok",
+          source: "verified",
+          ageYears: age,
+          referenceYear: ref,
+          lifespanYears: null,
+          statusLabel: "OK",
+          ageLabel: age != null ? `${label} · ${age} år` : label,
+          actionLabel: formatVerifiedAction(ref),
+          warning: null,
+          prompt: null,
+          note,
+        };
+      }
+      return {
+        status: "assumed_ok",
+        source: "assumed",
+        ageYears: null,
+        referenceYear: null,
+        lifespanYears: null,
+        statusLabel: "OK",
+        ageLabel: label,
+        actionLabel: custom ? "Bekräfta →" : "Ange material →",
+        warning: null,
+        prompt: custom ? null : "Vilket fasadmaterial är det?",
         note,
       };
     }
@@ -648,13 +743,39 @@ function withVentilationMeta(
   };
 }
 
+function withFasadMeta(
+  input: ComponentInput,
+  result: ComponentStatusResult,
+): ComponentStatusResult {
+  if (input.key !== "fasad" || !input.variant) return result;
+  if (!isFacadeType(input.variant) || input.variant === "okand") {
+    return result;
+  }
+  if (input.variant === "annat" || input.variant === "eternit") return result;
+  const label = FACADE_TYPE_LABELS[input.variant];
+  const note = FACADE_NOTES[input.variant] ?? null;
+  const ageLabel = result.ageLabel.includes(label)
+    ? result.ageLabel
+    : result.ageYears != null || result.ageLabel
+      ? `${label} · ${result.ageLabel}`
+      : label;
+  return {
+    ...result,
+    ageLabel,
+    note: result.note ?? note,
+  };
+}
+
 function decorateResult(
   input: ComponentInput,
   result: ComponentStatusResult,
 ): ComponentStatusResult {
-  return withVentilationMeta(
+  return withFasadMeta(
     input,
-    withGrundMeta(input, withDistLabel(input, result)),
+    withVentilationMeta(
+      input,
+      withGrundMeta(input, withDistLabel(input, result)),
+    ),
   );
 }
 

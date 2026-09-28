@@ -18,13 +18,56 @@ describe("getComponentStatus", () => {
       buildYear: 1970,
       replacedYear: 1975,
       yearPrecision: "exact",
-      variant: null,
+      variant: "tra",
       knownIssues: [],
       nowYear: 2026,
     });
     assert.equal(result.status, "action");
     assert.equal(result.source, "verified");
     assert.equal(result.statusLabel, "Åtgärda");
+  });
+
+  it("fasad utan material → unknown", () => {
+    const result = getComponentStatus({
+      key: "fasad",
+      buildYear: 1970,
+      replacedYear: null,
+      yearPrecision: null,
+      variant: null,
+      knownIssues: [],
+      nowYear: 2026,
+    });
+    assert.equal(result.status, "unknown");
+    assert.match(result.prompt ?? "", /fasadmaterial/i);
+  });
+
+  it("fasad eternit → action + asbestvarning", () => {
+    const result = getComponentStatus({
+      key: "fasad",
+      buildYear: 1970,
+      replacedYear: null,
+      yearPrecision: null,
+      variant: "eternit",
+      knownIssues: [],
+      nowYear: 2026,
+    });
+    assert.equal(result.status, "action");
+    assert.match(result.warning ?? "", /asbest/i);
+  });
+
+  it("fasad annat med fritext", () => {
+    const result = getComponentStatus({
+      key: "fasad",
+      buildYear: 1990,
+      replacedYear: null,
+      yearPrecision: null,
+      variant: "annat",
+      name: "natursten",
+      knownIssues: [],
+      nowYear: 2026,
+    });
+    assert.equal(result.lifespanYears, null);
+    assert.match(result.ageLabel, /natursten/i);
   });
 
   it("antagen ≥ 70 % → likely", () => {
@@ -331,7 +374,9 @@ function row(
           ? "platta_pa_mark"
           : key === "ventilation"
             ? "ftx"
-            : null,
+            : key === "fasad"
+              ? "tra"
+              : null,
     known_issues: [] as string[],
   };
 }

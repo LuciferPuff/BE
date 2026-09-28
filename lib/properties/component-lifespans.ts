@@ -171,6 +171,68 @@ export const VENTILATION_KNOWN_ISSUES = [
 export type VentilationKnownIssue =
   (typeof VENTILATION_KNOWN_ISSUES)[number]["key"];
 
+/* ---------- Fasad ---------- */
+
+export const FACADE_TYPES = [
+  "tra",
+  "puts",
+  "tegel",
+  "fibercement",
+  "plat",
+  "eternit",
+  "annat",
+  "okand",
+] as const;
+
+export type FacadeType = (typeof FACADE_TYPES)[number];
+
+export const FACADE_TYPE_LABELS: Record<FacadeType, string> = {
+  tra: "Träpanel",
+  puts: "Puts",
+  tegel: "Tegel",
+  fibercement: "Fibercement",
+  plat: "Plåt",
+  eternit: "Eternit / asbestskivor",
+  annat: "Annat",
+  okand: "Vet ej",
+};
+
+export const FACADE_LIFESPAN_YEARS: Record<FacadeType, number | null> = {
+  tra: 35,
+  puts: 40,
+  tegel: 100,
+  fibercement: 50,
+  plat: 45,
+  eternit: 40,
+  annat: null,
+  okand: null,
+};
+
+export const FACADE_NOTES: Partial<Record<FacadeType, string>> = {
+  tra: "Kräver mest underhåll – räkna med ommålning ungefär var 8–15 år. Håll koll på röta vid sockel och fönsterbleck.",
+  puts: "Sprickor och fukt är vanliga. Laga tidigt och måla om vid behov (ofta 15–25 år).",
+  tegel: "Underhållssnål. Omfogning brukar behövas ungefär var 25–40 år.",
+  fibercement:
+    "Relativt underhållssnål. Kontrollera skarvar och eventuellt ommålning enligt tillverkare.",
+  plat: "Lite löpande underhåll – håll koll på fogar, rost och anslutningar.",
+  eternit:
+    "Kan innehålla asbest. Lämna intakt tills behörig firma sanerar – slipa eller såga inte själv.",
+  annat:
+    "Ange materialet i fritext. Livslängd varierar – utgå från tillverkare eller besiktning.",
+};
+
+export const FACADE_KNOWN_ISSUES = [
+  { key: "flagande_farg", label: "Flagande / sliten färg" },
+  { key: "rota", label: "Röta" },
+  { key: "sprickor", label: "Sprickor" },
+  { key: "alger_mogel", label: "Alger / mögel" },
+  { key: "frostskador", label: "Frostskador" },
+  { key: "los_puts", label: "Lös puts" },
+  { key: "rost", label: "Rost" },
+] as const;
+
+export type FacadeKnownIssue = (typeof FACADE_KNOWN_ISSUES)[number]["key"];
+
 /* ---------- Värmekälla ---------- */
 
 export const HEAT_SOURCE_VARIANTS = [
@@ -396,6 +458,7 @@ export const PART_NEXT_STEP_PRIORITY: readonly PropertyPartKey[] = [
   "va",
   "el",
   "ventilation",
+  "fasad",
   "varmekalla",
   "varmvattenberedare",
   "varmedistribution",
@@ -405,7 +468,6 @@ export const PART_NEXT_STEP_PRIORITY: readonly PropertyPartKey[] = [
   "kok",
   "solceller",
   "fonster",
-  "fasad",
   "altan",
 ] as const;
 
@@ -437,6 +499,10 @@ export function isVentilationType(value: string): value is VentilationType {
   return (VENTILATION_TYPES as readonly string[]).includes(value);
 }
 
+export function isFacadeType(value: string): value is FacadeType {
+  return (FACADE_TYPES as readonly string[]).includes(value);
+}
+
 export function isHeatSourceVariant(value: string): value is HeatSourceVariant {
   return (HEAT_SOURCE_VARIANTS as readonly string[]).includes(value);
 }
@@ -460,6 +526,10 @@ export function lifespanForPart(
   if (key === "ventilation") {
     if (!variant || !isVentilationType(variant)) return null;
     return VENTILATION_LIFESPAN_YEARS[variant];
+  }
+  if (key === "fasad") {
+    if (!variant || !isFacadeType(variant)) return null;
+    return FACADE_LIFESPAN_YEARS[variant];
   }
   if (key === "varmekalla") {
     if (!variant || !isHeatSourceVariant(variant)) return null;
