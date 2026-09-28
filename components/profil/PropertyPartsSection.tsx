@@ -6,6 +6,7 @@ import { startTransition, useEffect, useId, useRef, useState } from "react";
 
 import {
   addPropertyPartAction,
+  deletePropertyPartAction,
   setPartNotApplicableAction,
   updatePropertyPartAction,
 } from "@/app/profil/actions";
@@ -404,36 +405,76 @@ function NotApplicablePanel({
         Den här delen är markerad som ej relevant för byggnaden.
       </p>
       {canEdit ? (
-        <button
-          type="button"
-          className="home-btn home-btn-primary"
-          disabled={pending}
-          onClick={() => {
-            void (async () => {
-              setPending(true);
-              setError(null);
-              try {
-                const fd = new FormData();
-                fd.set("property_id", propertyId);
-                fd.set("part_id", part.id);
-                fd.set("not_applicable", "0");
-                const result = await setPartNotApplicableAction({}, fd);
-                if (result.error) {
-                  setError(result.error);
+        <>
+          <button
+            type="button"
+            className="home-btn home-btn-primary"
+            disabled={pending}
+            onClick={() => {
+              void (async () => {
+                setPending(true);
+                setError(null);
+                try {
+                  const fd = new FormData();
+                  fd.set("property_id", propertyId);
+                  fd.set("part_id", part.id);
+                  fd.set("not_applicable", "0");
+                  const result = await setPartNotApplicableAction({}, fd);
+                  if (result.error) {
+                    setError(result.error);
+                    return;
+                  }
+                  onDone();
+                  refreshInBackground(router);
+                } catch {
+                  setError("Kunde inte uppdatera delen.");
+                } finally {
+                  setPending(false);
+                }
+              })();
+            }}
+          >
+            {pending ? "Sparar…" : "Återställ – delen finns"}
+          </button>
+          <div className="profile-part-clear-form">
+            <button
+              type="button"
+              className="profile-part-clear profile-part-clear--danger"
+              disabled={pending}
+              onClick={() => {
+                if (
+                  !window.confirm(
+                    `Ta bort ${part.label}? Du kan lägga till den igen senare.`,
+                  )
+                ) {
                   return;
                 }
-                onDone();
-                refreshInBackground(router);
-              } catch {
-                setError("Kunde inte uppdatera delen.");
-              } finally {
-                setPending(false);
-              }
-            })();
-          }}
-        >
-          {pending ? "Sparar…" : "Återställ – delen finns"}
-        </button>
+                void (async () => {
+                  setPending(true);
+                  setError(null);
+                  try {
+                    const fd = new FormData();
+                    fd.set("property_id", propertyId);
+                    fd.set("part_id", part.id);
+                    const result = await deletePropertyPartAction({}, fd);
+                    if (result.error) {
+                      setError(result.error);
+                      return;
+                    }
+                    onDone();
+                    refreshInBackground(router);
+                  } catch {
+                    setError("Kunde inte ta bort delen.");
+                  } finally {
+                    setPending(false);
+                  }
+                })();
+              }}
+            >
+              Ta bort delen
+            </button>
+          </div>
+        </>
       ) : null}
       {error ? (
         <p className="profile-ownership-error" role="alert">
@@ -543,6 +584,34 @@ function PartVerifyForm({
       refreshInBackground(router);
     } catch {
       setError("Kunde inte uppdatera delen.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function runDelete() {
+    if (
+      !window.confirm(
+        `Ta bort ${part.label}? Du kan lägga till den igen senare.`,
+      )
+    ) {
+      return;
+    }
+    setPending(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.set("property_id", propertyId);
+      fd.set("part_id", part.id);
+      const result = await deletePropertyPartAction({}, fd);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      onDone();
+      refreshInBackground(router);
+    } catch {
+      setError("Kunde inte ta bort delen.");
     } finally {
       setPending(false);
     }
@@ -861,6 +930,17 @@ function PartVerifyForm({
           onClick={() => void runNotApplicable()}
         >
           Finns inte / ej relevant
+        </button>
+      </div>
+
+      <div className="profile-part-clear-form">
+        <button
+          type="button"
+          className="profile-part-clear profile-part-clear--danger"
+          disabled={pending}
+          onClick={() => void runDelete()}
+        >
+          Ta bort delen
         </button>
       </div>
 

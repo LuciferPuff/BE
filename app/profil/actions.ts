@@ -930,6 +930,42 @@ export async function setPartNotApplicableAction(
   return { ok: true };
 }
 
+/** Ta bort en husdel helt. */
+export async function deletePropertyPartAction(
+  _prev: UpdatePropertyPartState,
+  formData: FormData,
+): Promise<UpdatePropertyPartState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  const partId = optionalText(formData, "part_id");
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId || !partId) {
+    return { error: "Saknar husdel." };
+  }
+
+  const supabase = await createAuthClient();
+  const { error } = await supabase
+    .from("property_parts")
+    .delete()
+    .eq("id", partId)
+    .eq("property_id", propertyId);
+
+  if (error) {
+    console.error("[profil] delete part:", error.message, error.code);
+    return { error: "Kunde inte ta bort delen." };
+  }
+
+  revalidatePath(`/profil/${propertyId}`);
+  return { ok: true };
+}
+
 /** Lägg till del på en byggnad (multi eller saknad katalogdel). */
 export async function addPropertyPartAction(
   _prev: UpdatePropertyPartState,

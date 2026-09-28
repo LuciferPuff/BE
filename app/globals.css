@@ -2132,6 +2132,10 @@ main.content-page {
   cursor: pointer;
 }
 
+.profile-part-clear--danger {
+  color: #9b2c2c;
+}
+
 .link-analysis-panel {
   margin-bottom: 1.75rem;
 }
