@@ -1492,6 +1492,49 @@ main.content-page {
   opacity: 0.6;
 }
 
+.profile-panel-skeleton {
+  min-height: 5.5rem;
+}
+
+.profile-panel-skeleton-line {
+  height: 0.7rem;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    rgba(27, 46, 60, 0.07) 0%,
+    rgba(27, 46, 60, 0.12) 50%,
+    rgba(27, 46, 60, 0.07) 100%
+  );
+  background-size: 200% 100%;
+  animation: profile-skeleton-shimmer 1.2s ease-in-out infinite;
+  margin-bottom: 0.65rem;
+}
+
+.profile-panel-skeleton-line--title {
+  width: 42%;
+  height: 0.95rem;
+}
+
+.profile-panel-skeleton-line--short {
+  width: 58%;
+  margin-bottom: 0;
+}
+
+.profile-panel-skeleton-line--hero {
+  width: min(18rem, 70%);
+  height: 1.35rem;
+  margin-bottom: 0.75rem;
+}
+
+@keyframes profile-skeleton-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
 .profile-timeline-item {
   display: flex;
   flex-direction: column;

@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import {
   buildPropertyBuildingViews,
   computeProfileCompleteness,
@@ -65,7 +67,8 @@ export type DashboardTimelineItem = {
   kind: "created" | "analysis" | "event" | "document";
 };
 
-export type PropertyDashboard = {
+/** Primär dashboard-data (above-the-fold). */
+export type PropertyDashboardCore = {
   id: string;
   address: string;
   designation: string | null;
@@ -78,10 +81,10 @@ export type PropertyDashboard = {
   purchase_date: string | null;
   ownership_status: OwnershipStatus;
   role: string;
+  /** 1 om okänt/ensam; >1 endast när vi vet att det finns flera medlemmar. */
   memberCount: number;
   created_at: string;
-  analyses: DashboardLinkedAnalysis[];
-  analysesHasMore: boolean;
+  hasAnalysis: boolean;
   buildings: PropertyBuildingView[];
   parts: PropertyPartView[];
   completeness: PropertyCompleteness;
@@ -89,6 +92,12 @@ export type PropertyDashboard = {
   todos: PropertyTodoItem[];
   nextStep: PropertyNextStep;
   interestedFeatures: string[];
+};
+
+/** Sekundär data (tidslinje, dokument, analyser-lista). */
+export type PropertyDashboardSecondary = {
+  analyses: DashboardLinkedAnalysis[];
+  analysesHasMore: boolean;
   documents: DashboardDocument[];
   documentsHasMore: boolean;
   documentFolderCounts: Record<string, number>;
@@ -97,6 +106,10 @@ export type PropertyDashboard = {
   timeline: DashboardTimelineItem[];
   timelineHasMore: boolean;
 };
+
+/** @deprecated Prefer Core + Secondary; kept for type compatibility. */
+export type PropertyDashboard = PropertyDashboardCore &
+  PropertyDashboardSecondary;
 
 /** Truncate a page fetch that requested limit+1 rows. */
 export function takePage<T>(rows: T[], pageSize = DASHBOARD_PAGE_SIZE): {
@@ -152,21 +165,47 @@ function parseOwnershipStatus(value: unknown): OwnershipStatus {
   return value === "ager" ? "ager" : "funderar";
 }
 
+function folderCountsFromDocs(
+  docs: { type: string }[],
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const doc of docs) {
+    counts[doc.type] = (counts[doc.type] ?? 0) + 1;
+  }
+  return counts;
+}
+
+function logDashboardTiming(
+  phase: string,
+  propertyId: string,
+  startedAt: number,
+  extra?: Record<string, number | boolean>,
+) {
+  const ms = Math.round(performance.now() - startedAt);
+  console.info(
+    `[profil] dashboard ${phase}`,
+    JSON.stringify({ propertyId, ms, ...extra }),
+  );
+}
+
 /**
- * En fastighet för dashboard. RLS + medlemskap krävs.
+ * Primär fastighetsdata för snabb first paint (nästa steg, todos, husdelar).
  */
-export async function getPropertyDashboard(
+export async function getPropertyDashboardCore(
   propertyId: string,
   userId: string,
-): Promise<PropertyDashboard | null> {
+): Promise<PropertyDashboardCore | null> {
+  const t0 = performance.now();
   const supabase = await createAuthClient();
 
+  const tMember = performance.now();
   const { data: membership, error: memberError } = await supabase
     .from("property_members")
     .select("role")
     .eq("property_id", propertyId)
     .eq("user_id", userId)
     .maybeSingle();
+  logDashboardTiming("membership", propertyId, tMember);
 
   if (memberError || !membership) {
     if (memberError) {
@@ -175,22 +214,22 @@ export async function getPropertyDashboard(
     return null;
   }
 
+  const tParallel = performance.now();
   const [
-    memberCountResult,
+    memberPeekResult,
     propertyResult,
-    analysesResult,
+    analysisExistsResult,
     buildingsResult,
     partsResult,
     todoResult,
     interestResult,
-    documentsResult,
-    documentTypesResult,
-    eventsResult,
   ] = await Promise.all([
+    // Räcker för showRole ( >1 ) utan exact count.
     supabase
       .from("property_members")
-      .select("id", { count: "exact", head: true })
-      .eq("property_id", propertyId),
+      .select("id")
+      .eq("property_id", propertyId)
+      .limit(2),
     supabase
       .from("properties")
       .select(
@@ -200,10 +239,9 @@ export async function getPropertyDashboard(
       .maybeSingle(),
     supabase
       .from("analyses")
-      .select("id, address, created_at")
+      .select("id")
       .eq("linked_property_id", propertyId)
-      .order("created_at", { ascending: false })
-      .limit(DASHBOARD_PAGE_SIZE + 1),
+      .limit(1),
     supabase
       .from("property_buildings")
       .select("id, type, name, build_year")
@@ -223,64 +261,37 @@ export async function getPropertyDashboard(
       .from("feature_interest")
       .select("feature")
       .eq("user_id", userId),
-    supabase
-      .from("property_documents")
-      .select("id, type, file_path, note, uploaded_at")
-      .eq("property_id", propertyId)
-      .order("uploaded_at", { ascending: false })
-      .limit(DASHBOARD_PAGE_SIZE + 1),
-    supabase
-      .from("property_documents")
-      .select("type")
-      .eq("property_id", propertyId),
-    supabase
-      .from("property_events")
-      .select("id, event_type, event_date, description, cost")
-      .eq("property_id", propertyId)
-      .order("event_date", { ascending: false })
-      .limit(DASHBOARD_PAGE_SIZE + 1),
   ]);
+  logDashboardTiming("core_parallel", propertyId, tParallel, {
+    queryCount: 7,
+  });
 
-  const memberCount = memberCountResult.count;
   const { data: property, error } = propertyResult;
-  const { data: analyses, error: analysesError } = analysesResult;
-  const { data: buildingRows, error: buildingsError } = buildingsResult;
-  const { data: partRows, error: partsError } = partsResult;
-  const { data: todoRows, error: todoError } = todoResult;
-  const { data: interestRows, error: interestError } = interestResult;
-  const { data: documentRows, error: documentsError } = documentsResult;
-  const { data: documentTypeRows, error: documentTypesError } =
-    documentTypesResult;
-  const { data: eventRows, error: eventsError } = eventsResult;
-
   if (error || !property) {
     if (error) console.error("[profil] dashboard property:", error.message);
     return null;
   }
 
-  if (analysesError) {
-    console.error("[profil] dashboard analyses:", analysesError.message);
+  if (memberPeekResult.error) {
+    console.error("[profil] member peek:", memberPeekResult.error.message);
   }
-  if (buildingsError) {
-    console.error("[profil] dashboard buildings:", buildingsError.message);
+  if (analysisExistsResult.error) {
+    console.error(
+      "[profil] analysis exists:",
+      analysisExistsResult.error.message,
+    );
   }
-  if (partsError) {
-    console.error("[profil] dashboard parts:", partsError.message);
+  if (buildingsResult.error) {
+    console.error("[profil] buildings:", buildingsResult.error.message);
   }
-  if (todoError) {
-    console.error("[profil] dashboard todos:", todoError.message);
+  if (partsResult.error) {
+    console.error("[profil] parts:", partsResult.error.message);
   }
-  if (interestError) {
-    console.error("[profil] feature_interest:", interestError.message);
+  if (todoResult.error) {
+    console.error("[profil] todos:", todoResult.error.message);
   }
-  if (documentsError) {
-    console.error("[profil] documents:", documentsError.message);
-  }
-  if (documentTypesError) {
-    console.error("[profil] document types:", documentTypesError.message);
-  }
-  if (eventsError) {
-    console.error("[profil] events:", eventsError.message);
+  if (interestResult.error) {
+    console.error("[profil] feature_interest:", interestResult.error.message);
   }
 
   const construction_year =
@@ -296,14 +307,13 @@ export async function getPropertyDashboard(
   const ownership_status = parseOwnershipStatus(property.ownership_status);
 
   const buildings = buildPropertyBuildingViews(
-    (buildingRows ?? []).map((b) => ({
+    (buildingsResult.data ?? []).map((b) => ({
       id: b.id as string,
       type: b.type as string,
       name: b.name as string,
-      build_year:
-        b.build_year != null ? Number(b.build_year) : null,
+      build_year: b.build_year != null ? Number(b.build_year) : null,
     })),
-    (partRows ?? []).map((r) => ({
+    (partsResult.data ?? []).map((r) => ({
       id: r.id as string,
       building_id: r.building_id as string,
       part_key: r.part_key as string,
@@ -326,24 +336,14 @@ export async function getPropertyDashboard(
   );
 
   const parts = flattenBuildingParts(buildings);
-
   const completeness = computeProfileCompleteness({ parts });
-
-  const analysesPage = takePage(
-    (analyses ?? []).map((a) => ({
-      id: a.id as string,
-      address: a.address as string,
-      created_at: a.created_at as string,
-    })),
-  );
-  const analysesList = analysesPage.items;
-
+  const hasAnalysis = (analysisExistsResult.data ?? []).length > 0;
   const nextPart = pickNextPartAction(parts);
   const todos = buildPropertyTodos({
     ownershipStatus: ownership_status,
-    hasAnalysis: analysesList.length > 0,
+    hasAnalysis,
     parts,
-    states: (todoRows ?? []).map((r) => ({
+    states: (todoResult.data ?? []).map((r) => ({
       task_key: r.task_key as string,
       completed_at: (r.completed_at as string | null) ?? null,
       note: (r.note as string | null) ?? null,
@@ -355,44 +355,14 @@ export async function getPropertyDashboard(
     ownershipStatus: ownership_status,
     constructionYear: construction_year,
     nextPart,
-    hasAnalysis: analysesList.length > 0,
+    hasAnalysis,
     openTodos: todos,
   });
 
-  const documentsPage = takePage(
-    (documentRows ?? []).map((d) => ({
-      id: d.id as string,
-      type: d.type as string,
-      file_path: d.file_path as string,
-      note: (d.note as string | null) ?? null,
-      uploaded_at: d.uploaded_at as string,
-    })),
-  );
-  const documents = documentsPage.items;
+  const memberPeek = memberPeekResult.data ?? [];
+  const memberCount = memberPeek.length > 1 ? memberPeek.length : 1;
 
-  const documentFolderCounts: Record<string, number> = {};
-  for (const row of documentTypeRows ?? []) {
-    const type = row.type as string;
-    documentFolderCounts[type] = (documentFolderCounts[type] ?? 0) + 1;
-  }
-
-  const eventsPage = takePage(
-    (eventRows ?? []).map((e) => ({
-      id: e.id as string,
-      event_type: e.event_type as string,
-      event_date: e.event_date as string,
-      description: (e.description as string | null) ?? null,
-      cost: e.cost != null ? Number(e.cost) : null,
-    })),
-  );
-  const events = eventsPage.items;
-
-  const timeline = buildDashboardTimeline({
-    createdAt: property.created_at as string,
-    analyses: analysesList,
-    events,
-    documents,
-  });
+  logDashboardTiming("core_total", propertyId, t0);
 
   return {
     id: property.id as string,
@@ -407,24 +377,150 @@ export async function getPropertyDashboard(
     purchase_date: (property.purchase_date as string | null) ?? null,
     ownership_status,
     role: membership.role as string,
-    memberCount: memberCount ?? 1,
+    memberCount,
     created_at: property.created_at as string,
-    analyses: analysesList,
-    analysesHasMore: analysesPage.hasMore,
+    hasAnalysis,
     buildings,
     parts,
     completeness,
     nextPart,
     todos,
     nextStep,
-    interestedFeatures: (interestRows ?? []).map((r) => r.feature as string),
-    documents,
+    interestedFeatures: (interestResult.data ?? []).map(
+      (r) => r.feature as string,
+    ),
+  };
+}
+
+/**
+ * Sekundär data: tidslinje, dokument, analyser-lista (Suspense).
+ * Wrapped in React cache so aside + analyses share one fetch per request.
+ */
+export const getPropertyDashboardSecondary = cache(
+  async function getPropertyDashboardSecondary(
+    propertyId: string,
+    userId: string,
+    createdAt: string,
+  ): Promise<PropertyDashboardSecondary | null> {
+  const t0 = performance.now();
+  const supabase = await createAuthClient();
+
+  const { data: membership, error: memberError } = await supabase
+    .from("property_members")
+    .select("role")
+    .eq("property_id", propertyId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (memberError || !membership) {
+    if (memberError) {
+      console.error("[profil] secondary member:", memberError.message);
+    }
+    return null;
+  }
+
+  const tParallel = performance.now();
+  const [analysesResult, documentsResult, eventsResult] = await Promise.all([
+    supabase
+      .from("analyses")
+      .select("id, address, created_at")
+      .eq("linked_property_id", propertyId)
+      .order("created_at", { ascending: false })
+      .limit(DASHBOARD_PAGE_SIZE + 1),
+    supabase
+      .from("property_documents")
+      .select("id, type, file_path, note, uploaded_at")
+      .eq("property_id", propertyId)
+      .order("uploaded_at", { ascending: false })
+      .limit(DASHBOARD_PAGE_SIZE + 1),
+    supabase
+      .from("property_events")
+      .select("id, event_type, event_date, description, cost")
+      .eq("property_id", propertyId)
+      .order("event_date", { ascending: false })
+      .limit(DASHBOARD_PAGE_SIZE + 1),
+  ]);
+  logDashboardTiming("secondary_parallel", propertyId, tParallel, {
+    queryCount: 3,
+  });
+
+  if (analysesResult.error) {
+    console.error("[profil] analyses:", analysesResult.error.message);
+  }
+  if (documentsResult.error) {
+    console.error("[profil] documents:", documentsResult.error.message);
+  }
+  if (eventsResult.error) {
+    console.error("[profil] events:", eventsResult.error.message);
+  }
+
+  const analysesPage = takePage(
+    (analysesResult.data ?? []).map((a) => ({
+      id: a.id as string,
+      address: a.address as string,
+      created_at: a.created_at as string,
+    })),
+  );
+
+  const documentsPage = takePage(
+    (documentsResult.data ?? []).map((d) => ({
+      id: d.id as string,
+      type: d.type as string,
+      file_path: d.file_path as string,
+      note: (d.note as string | null) ?? null,
+      uploaded_at: d.uploaded_at as string,
+    })),
+  );
+
+  let documentFolderCounts = folderCountsFromDocs(documentsPage.items);
+
+  // Exact folder counts only when page is truncated (avoids always-on type scan).
+  if (documentsPage.hasMore) {
+    const { data: typeRows, error: typeError } = await supabase
+      .from("property_documents")
+      .select("type")
+      .eq("property_id", propertyId);
+    if (typeError) {
+      console.error("[profil] document types:", typeError.message);
+    } else {
+      documentFolderCounts = folderCountsFromDocs(
+        (typeRows ?? []).map((r) => ({ type: r.type as string })),
+      );
+    }
+  }
+
+  const eventsPage = takePage(
+    (eventsResult.data ?? []).map((e) => ({
+      id: e.id as string,
+      event_type: e.event_type as string,
+      event_date: e.event_date as string,
+      description: (e.description as string | null) ?? null,
+      cost: e.cost != null ? Number(e.cost) : null,
+    })),
+  );
+
+  const timeline = buildDashboardTimeline({
+    createdAt,
+    analyses: analysesPage.items,
+    events: eventsPage.items,
+    documents: documentsPage.items,
+  });
+
+  logDashboardTiming("secondary_total", propertyId, t0);
+
+  return {
+    analyses: analysesPage.items,
+    analysesHasMore: analysesPage.hasMore,
+    documents: documentsPage.items,
     documentsHasMore: documentsPage.hasMore,
     documentFolderCounts,
-    events,
+    events: eventsPage.items,
     eventsHasMore: eventsPage.hasMore,
     timeline,
     timelineHasMore:
-      analysesPage.hasMore || documentsPage.hasMore || eventsPage.hasMore,
+      analysesPage.hasMore ||
+      documentsPage.hasMore ||
+      eventsPage.hasMore,
   };
-}
+  },
+);

@@ -1,26 +1,33 @@
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { MarkBoughtHouseButton } from "@/components/profil/MarkBoughtHouseButton";
 import { NotifyMeButton } from "@/components/profil/NotifyMeButton";
 import { NextStepCta } from "@/components/profil/NextStepCta";
 import { OwnershipStatusSwitch } from "@/components/profil/OwnershipStatusSwitch";
-import { PropertyAnalysesList } from "@/components/profil/PropertyAnalysesList";
-import { PropertyDocumentsSection } from "@/components/profil/PropertyDocumentsSection";
+import {
+  ProfileAsideSkeleton,
+  ProfilePanelSkeleton,
+} from "@/components/profil/ProfileDashboardSkeletons";
+import {
+  PropertyDashboardAnalyses,
+  PropertyDashboardAside,
+} from "@/components/profil/PropertyDashboardSecondary";
 import { PropertyPartsSection } from "@/components/profil/PropertyPartsSection";
-import { PropertyTimelineSection } from "@/components/profil/PropertyTimelineSection";
 import { PropertyTodoList } from "@/components/profil/PropertyTodoList";
-import type { PropertyDashboard } from "@/lib/properties/get-property-dashboard";
+import type { PropertyDashboardCore } from "@/lib/properties/get-property-dashboard";
 import {
   propertyRoleLabel,
   propertyTypeLabel,
 } from "@/lib/properties/labels";
 
 type Props = {
-  property: PropertyDashboard;
+  property: PropertyDashboardCore;
+  userId: string;
   openPartId?: string | null;
 };
 
-function metaBits(property: PropertyDashboard): string[] {
+function metaBits(property: PropertyDashboardCore): string[] {
   const bits: string[] = [];
   if (property.designation?.trim()) bits.push(property.designation.trim());
   if (property.construction_year != null) {
@@ -39,15 +46,14 @@ function metaBits(property: PropertyDashboard): string[] {
 }
 
 function resolveNextStepHref(
-  property: PropertyDashboard,
+  property: PropertyDashboardCore,
   ctaHref: string | undefined,
 ): string | null {
   if (!ctaHref) return null;
   if (ctaHref === "redigera") return `/profil/${property.id}/redigera`;
   if (ctaHref === "latest-analysis") {
-    return property.analyses[0]
-      ? `/mina-analyser/${property.analyses[0].id}`
-      : null;
+    // Full analyslista streamas separat; fallback till analysflödet.
+    return property.hasAnalysis ? "/mina-analyser" : "/analys";
   }
   if (ctaHref.startsWith("?")) return `/profil/${property.id}${ctaHref}`;
   if (ctaHref.startsWith("#")) return ctaHref;
@@ -56,6 +62,7 @@ function resolveNextStepHref(
 
 export function PropertyDashboardView({
   property,
+  userId,
   openPartId = null,
 }: Props) {
   const canEdit = property.role === "agare" || property.role === "medlem";
@@ -71,30 +78,7 @@ export function PropertyDashboardView({
     property.ownership_status === "funderar" &&
     (nextStep.showBoughtButton || !nextHref);
   const showRole = property.memberCount > 1;
-  const showAnalyses =
-    property.ownership_status === "funderar" ||
-    property.analyses.length > 0;
   const interested = new Set(property.interestedFeatures);
-
-  const analysesSection = showAnalyses ? (
-    <section
-      className="profile-dashboard-panel"
-      aria-labelledby="profile-analyses-heading"
-    >
-      <h2
-        id="profile-analyses-heading"
-        className="profile-dashboard-heading"
-      >
-        Analyser
-      </h2>
-      <PropertyAnalysesList
-        propertyId={property.id}
-        initialAnalyses={property.analyses}
-        initialHasMore={property.analysesHasMore}
-        canUnlink={canOwnStatus}
-      />
-    </section>
-  ) : null;
 
   return (
     <div className="profile-dashboard">
@@ -205,7 +189,18 @@ export function PropertyDashboardView({
             />
           </section>
 
-          {property.ownership_status === "funderar" ? analysesSection : null}
+          {property.ownership_status === "funderar" ? (
+            <Suspense fallback={<ProfilePanelSkeleton label="Laddar analyser" />}>
+              <PropertyDashboardAnalyses
+                propertyId={property.id}
+                userId={userId}
+                createdAt={property.created_at}
+                ownershipStatus={property.ownership_status}
+                role={property.role}
+                placement="primary"
+              />
+            </Suspense>
+          ) : null}
         </div>
 
         <aside className="profile-dashboard-aside">
@@ -238,33 +233,28 @@ export function PropertyDashboardView({
             </div>
           </section>
 
-          <PropertyTimelineSection
-            propertyId={property.id}
-            createdAt={property.created_at}
-            timeline={property.timeline}
-            initialOffsets={{
-              analyses: property.analyses.length,
-              documents: property.documents.length,
-              events: property.events.length,
-            }}
-            initialHasMore={property.timelineHasMore}
-            canEdit={canEdit}
-            canDelete={canOwnStatus}
-          />
-
-          <PropertyDocumentsSection
-            propertyId={property.id}
-            documents={property.documents}
-            documentsHasMore={property.documentsHasMore}
-            folderCounts={property.documentFolderCounts}
-            canEdit={canEdit}
-            canDelete={canOwnStatus}
-          />
+          <Suspense fallback={<ProfileAsideSkeleton />}>
+            <PropertyDashboardAside
+              propertyId={property.id}
+              userId={userId}
+              createdAt={property.created_at}
+              role={property.role}
+            />
+          </Suspense>
         </aside>
       </div>
 
-      {property.ownership_status === "ager" && analysesSection ? (
-        <div className="profile-dashboard-footer-block">{analysesSection}</div>
+      {property.ownership_status === "ager" ? (
+        <Suspense fallback={null}>
+          <PropertyDashboardAnalyses
+            propertyId={property.id}
+            userId={userId}
+            createdAt={property.created_at}
+            ownershipStatus={property.ownership_status}
+            role={property.role}
+            placement="footer"
+          />
+        </Suspense>
       ) : null}
     </div>
   );

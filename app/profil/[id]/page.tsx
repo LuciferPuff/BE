@@ -6,7 +6,7 @@ import { PropertyDashboardView } from "@/components/profil/PropertyDashboardView
 import { SiteFooter } from "@/components/home/SiteFooter";
 import { SiteHeader } from "@/components/home/SiteHeader";
 import { getSessionUser } from "@/lib/auth/get-session-user";
-import { getPropertyDashboard } from "@/lib/properties/get-property-dashboard";
+import { getPropertyDashboardCore } from "@/lib/properties/get-property-dashboard";
 import { getSiteUrl } from "@/lib/site";
 
 const base = getSiteUrl();
@@ -37,7 +37,7 @@ export default async function PropertyDashboardPage({
     redirect(`/logga-in?next=/profil/${id}`);
   }
 
-  const property = await getPropertyDashboard(id, user.id);
+  const property = await getPropertyDashboardCore(id, user.id);
   if (!property) {
     notFound();
   }
@@ -59,6 +59,7 @@ export default async function PropertyDashboardPage({
       <div className="home-container my-analyses-content profile-dashboard-content">
         <PropertyDashboardView
           property={property}
+          userId={user.id}
           openPartId={openPartId}
         />
       </div>
