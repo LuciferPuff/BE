@@ -48,6 +48,68 @@ export const ROOF_KNOWN_ISSUES = [
 
 export type RoofKnownIssue = (typeof ROOF_KNOWN_ISSUES)[number]["key"];
 
+/* ---------- Grund ---------- */
+
+export const FOUNDATION_TYPES = [
+  "platta_pa_mark",
+  "krypgrund",
+  "torpargrund",
+  "kallare",
+  "plintgrund",
+  "okand",
+] as const;
+
+export type FoundationType = (typeof FOUNDATION_TYPES)[number];
+
+export const FOUNDATION_TYPE_LABELS: Record<FoundationType, string> = {
+  platta_pa_mark: "Platta på mark",
+  krypgrund: "Krypgrund",
+  torpargrund: "Torpargrund",
+  kallare: "Källare",
+  plintgrund: "Plintgrund",
+  okand: "Vet ej",
+};
+
+/** Riktvärde för ägarens tidshorisont / när grunden brukar kräva koll. */
+export const FOUNDATION_LIFESPAN_YEARS: Record<
+  FoundationType,
+  number | null
+> = {
+  platta_pa_mark: 100,
+  krypgrund: 50,
+  torpargrund: 45,
+  kallare: 80,
+  plintgrund: 40,
+  okand: null,
+};
+
+export const FOUNDATION_NOTES: Partial<Record<FoundationType, string>> = {
+  platta_pa_mark:
+    "Underhållssnål. Håll koll på sprickor i plattan och eventuell radon.",
+  krypgrund:
+    "Kräver mer tillsyn än platta – fukt och mögel är vanliga. Avfuktare rekommenderas ofta.",
+  torpargrund:
+    "Öppen grund med hög fuktrisk. Kontrollera syll och ventilation regelbundet.",
+  kallare:
+    "Dränering och fuktisolering avgör skicket. Fuktskador syns ofta på väggarna.",
+  plintgrund:
+    "Kontrollera plintar och bärande trä regelbundet – särskilt vanligt på fritidshus.",
+};
+
+export const FOUNDATION_KNOWN_ISSUES = [
+  { key: "sprickor", label: "Sprickor" },
+  { key: "sattningar", label: "Sättningar" },
+  { key: "fukt", label: "Fukt" },
+  { key: "mogel", label: "Mögel / lukt" },
+  { key: "radon", label: "Radon" },
+  { key: "saknad_avfuktare", label: "Saknar avfuktare (krypgrund)" },
+  { key: "daalig_ventilation", label: "Dålig ventilation under huset" },
+  { key: "vatten_i_kallare", label: "Vatten i källare" },
+] as const;
+
+export type FoundationKnownIssue =
+  (typeof FOUNDATION_KNOWN_ISSUES)[number]["key"];
+
 /* ---------- Värmekälla ---------- */
 
 export const HEAT_SOURCE_VARIANTS = [
@@ -268,6 +330,7 @@ export const PART_NEXT_STEP_PRIORITY: readonly PropertyPartKey[] = [
   "tak",
   "vatrum",
   "dranering",
+  "grund",
   "enskilt_avlopp",
   "va",
   "el",
@@ -283,7 +346,6 @@ export const PART_NEXT_STEP_PRIORITY: readonly PropertyPartKey[] = [
   "fasad",
   "altan",
   "ventilation",
-  "grund",
 ] as const;
 
 export const PART_STATUS_PRIORITY: Record<
@@ -306,6 +368,10 @@ export function isRoofMaterial(value: string): value is RoofMaterial {
   return (ROOF_MATERIALS as readonly string[]).includes(value);
 }
 
+export function isFoundationType(value: string): value is FoundationType {
+  return (FOUNDATION_TYPES as readonly string[]).includes(value);
+}
+
 export function isHeatSourceVariant(value: string): value is HeatSourceVariant {
   return (HEAT_SOURCE_VARIANTS as readonly string[]).includes(value);
 }
@@ -321,6 +387,10 @@ export function lifespanForPart(
   if (key === "tak") {
     if (!variant || !isRoofMaterial(variant)) return null;
     return ROOF_LIFESPAN_YEARS[variant];
+  }
+  if (key === "grund") {
+    if (!variant || !isFoundationType(variant)) return null;
+    return FOUNDATION_LIFESPAN_YEARS[variant];
   }
   if (key === "varmekalla") {
     if (!variant || !isHeatSourceVariant(variant)) return null;

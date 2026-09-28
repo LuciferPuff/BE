@@ -1,10 +1,13 @@
 import {
+  FOUNDATION_NOTES,
+  FOUNDATION_TYPE_LABELS,
   HEAT_DIST_LABELS,
   HEAT_SOURCE_LABELS,
   HEAT_SOURCE_NOTES,
   WATER_DIST_VARIANTS,
   buildingHasHeatPump,
   heatSourceNeedsWaterDist,
+  isFoundationType,
   isHeatDistVariant,
   isHeatSourceVariant,
   lifespanForPart,
@@ -31,7 +34,7 @@ export type ComponentInput = {
   buildYear: number | null;
   replacedYear: number | null;
   yearPrecision: YearPrecision | null;
-  /** Takmaterial / värmevariant. */
+  /** Takmaterial / grundtyp / värmevariant. */
   variant: string | null;
   knownIssues: string[];
   role?: "primar" | "komplement" | null;
@@ -159,6 +162,24 @@ export function getComponentStatus(
             : "Ange år →",
         warning: "Eternit kan innehålla asbest – hanteras av behörig firma.",
         prompt: null,
+      });
+    }
+  }
+
+  // Grund utan typ: fråga först.
+  if (input.key === "grund") {
+    if (!variant || variant === "okand") {
+      return emptyNote({
+        status: "unknown",
+        source: "unknown",
+        ageYears: null,
+        referenceYear: null,
+        lifespanYears: null,
+        statusLabel: "Okänt",
+        ageLabel: "Typ saknas",
+        actionLabel: "Ange typ →",
+        warning: null,
+        prompt: "Vilken typ av grund har huset?",
       });
     }
   }
@@ -331,25 +352,28 @@ export function getComponentStatus(
     const age = ref != null ? Math.max(0, now - ref) : null;
     const verified =
       input.replacedYear != null || input.yearPrecision === "original";
-    return emptyNote({
-      status: "action",
-      source: verified ? "verified" : age != null ? "assumed" : "unknown",
-      ageYears: age,
-      referenceYear: ref,
-      lifespanYears,
-      statusLabel: "Åtgärda",
-      ageLabel:
-        age == null
-          ? "Känt problem"
-          : verified
-            ? `${age} år, verifierad`
-            : `ca ${age} år, antagen från byggår`,
-      actionLabel: verified
-        ? formatVerifiedAction(input.replacedYear ?? input.buildYear)
-        : "Ange år →",
-      warning: null,
-      prompt: null,
-    });
+    return decorateResult(
+      input,
+      emptyNote({
+        status: "action",
+        source: verified ? "verified" : age != null ? "assumed" : "unknown",
+        ageYears: age,
+        referenceYear: ref,
+        lifespanYears,
+        statusLabel: "Åtgärda",
+        ageLabel:
+          age == null
+            ? "Känt problem"
+            : verified
+              ? `${age} år, verifierad`
+              : `ca ${age} år, antagen från byggår`,
+        actionLabel: verified
+          ? formatVerifiedAction(input.replacedYear ?? input.buildYear)
+          : "Ange år →",
+        warning: null,
+        prompt: null,
+      }),
+    );
   }
 
   const isOriginal = input.yearPrecision === "original";
@@ -361,7 +385,7 @@ export function getComponentStatus(
 
   if (isOriginal && input.buildYear != null) {
     const ageYears = Math.max(0, now - input.buildYear);
-    return withDistLabel(
+    return decorateResult(
       input,
       buildVerified(
         ageYears,
@@ -374,7 +398,7 @@ export function getComponentStatus(
 
   if (hasExactOrDecade && input.replacedYear != null) {
     const ageYears = Math.max(0, now - input.replacedYear);
-    return withDistLabel(
+    return decorateResult(
       input,
       buildVerified(
         ageYears,
@@ -403,7 +427,7 @@ export function getComponentStatus(
           prompt: "Okänt – när lades tätskiktet?",
         });
       }
-      return withDistLabel(
+      return decorateResult(
         input,
         emptyNote({
           status: "unknown",
@@ -421,7 +445,7 @@ export function getComponentStatus(
     }
     const ratio = ageYears / lifespanYears;
     if (ratio >= ASSUMED_RATIO) {
-      return withDistLabel(
+      return decorateResult(
         input,
         emptyNote({
           status: "likely",
@@ -437,7 +461,7 @@ export function getComponentStatus(
         }),
       );
     }
-    return withDistLabel(
+    return decorateResult(
       input,
       emptyNote({
         status: "assumed_ok",
@@ -469,18 +493,21 @@ export function getComponentStatus(
     });
   }
 
-  return emptyNote({
-    status: "unknown",
-    source: "unknown",
-    ageYears: null,
-    referenceYear: null,
-    lifespanYears,
-    statusLabel: "Okänt",
-    ageLabel: "Ålder okänd",
-    actionLabel: "Ange år →",
-    warning: null,
-    prompt: null,
-  });
+  return decorateResult(
+    input,
+    emptyNote({
+      status: "unknown",
+      source: "unknown",
+      ageYears: null,
+      referenceYear: null,
+      lifespanYears,
+      statusLabel: "Okänt",
+      ageLabel: "Ålder okänd",
+      actionLabel: "Ange år →",
+      warning: null,
+      prompt: null,
+    }),
+  );
 }
 
 function distAgeLabel(input: ComponentInput, fallback: string): string {
@@ -509,6 +536,35 @@ function withDistLabel(
     return { ...result, ageLabel: `${label} · ${result.ageLabel}` };
   }
   return result;
+}
+
+function withGrundMeta(
+  input: ComponentInput,
+  result: ComponentStatusResult,
+): ComponentStatusResult {
+  if (input.key !== "grund" || !input.variant) return result;
+  if (!isFoundationType(input.variant) || input.variant === "okand") {
+    return result;
+  }
+  const label = FOUNDATION_TYPE_LABELS[input.variant];
+  const note = FOUNDATION_NOTES[input.variant] ?? null;
+  const ageLabel = result.ageLabel.includes(label)
+    ? result.ageLabel
+    : result.ageYears != null || result.ageLabel
+      ? `${label} · ${result.ageLabel}`
+      : label;
+  return {
+    ...result,
+    ageLabel,
+    note: result.note ?? note,
+  };
+}
+
+function decorateResult(
+  input: ComponentInput,
+  result: ComponentStatusResult,
+): ComponentStatusResult {
+  return withGrundMeta(input, withDistLabel(input, result));
 }
 
 function formatVerifiedAction(year: number | null | undefined): string {

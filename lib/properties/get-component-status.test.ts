@@ -117,12 +117,42 @@ describe("getComponentStatus", () => {
       buildYear: 2010,
       replacedYear: 2010,
       yearPrecision: "original",
-      variant: null,
+      variant: "platta_pa_mark",
       knownIssues: [],
       nowYear: 2026,
     });
     assert.equal(result.source, "verified");
     assert.equal(result.status, "ok");
+    assert.match(result.ageLabel, /Platta på mark/i);
+    assert.match(result.note ?? "", /Underhållssnål/i);
+  });
+
+  it("grund utan typ → unknown", () => {
+    const result = getComponentStatus({
+      key: "grund",
+      buildYear: 2010,
+      replacedYear: null,
+      yearPrecision: null,
+      variant: null,
+      knownIssues: [],
+      nowYear: 2026,
+    });
+    assert.equal(result.status, "unknown");
+    assert.match(result.prompt ?? "", /typ av grund/i);
+  });
+
+  it("krypgrund har kortare tillsynshorisont och tipstext", () => {
+    const result = getComponentStatus({
+      key: "grund",
+      buildYear: 1990,
+      replacedYear: 1990,
+      yearPrecision: "original",
+      variant: "krypgrund",
+      knownIssues: [],
+      nowYear: 2026,
+    });
+    assert.equal(result.lifespanYears, 50);
+    assert.match(result.note ?? "", /tillsyn/i);
   });
 
   it("antagen under 70 % → assumed_ok", () => {
@@ -250,7 +280,8 @@ function row(
     part_key: key,
     replaced_year: year,
     year_precision: precision,
-    variant: key === "tak" ? "tegel" : null,
+    variant:
+      key === "tak" ? "tegel" : key === "grund" ? "platta_pa_mark" : null,
     known_issues: [] as string[],
   };
 }

@@ -15,6 +15,10 @@ import type {
   PropertyPartView,
 } from "@/lib/properties/build-property-parts";
 import {
+  FOUNDATION_KNOWN_ISSUES,
+  FOUNDATION_NOTES,
+  FOUNDATION_TYPE_LABELS,
+  FOUNDATION_TYPES,
   HEAT_DIST_LABELS,
   HEAT_DIST_VARIANTS,
   HEAT_SOURCE_LABELS,
@@ -24,6 +28,7 @@ import {
   ROOF_KNOWN_ISSUES,
   ROOF_MATERIAL_LABELS,
   ROOF_MATERIALS,
+  type FoundationType,
   type HeatDistVariant,
   type HeatSourceVariant,
   type RoofMaterial,
@@ -526,6 +531,9 @@ function PartVerifyForm({
   const [heatDist, setHeatDist] = useState<HeatDistVariant | "">(
     part.variant && isHeatDistPick(part.variant) ? part.variant : "",
   );
+  const [foundationType, setFoundationType] = useState<FoundationType | "">(
+    part.variant && isFoundationPick(part.variant) ? part.variant : "",
+  );
   const [role, setRole] = useState<"primar" | "komplement">(
     part.role === "komplement" ? "komplement" : "primar",
   );
@@ -535,11 +543,13 @@ function PartVerifyForm({
   const activeVariant =
     part.key === "tak"
       ? roofMaterial
-      : part.key === "varmekalla"
-        ? heatSource
-        : part.key === "varmedistribution"
-          ? heatDist
-          : null;
+      : part.key === "grund"
+        ? foundationType
+        : part.key === "varmekalla"
+          ? heatSource
+          : part.key === "varmedistribution"
+            ? heatDist
+            : null;
   const materialLifespan =
     activeVariant
       ? lifespanForPart(part.key, activeVariant)
@@ -547,6 +557,10 @@ function PartVerifyForm({
   const heatNote =
     heatSource && HEAT_SOURCE_NOTES[heatSource]
       ? HEAT_SOURCE_NOTES[heatSource]
+      : null;
+  const foundationNote =
+    foundationType && FOUNDATION_NOTES[foundationType]
+      ? FOUNDATION_NOTES[foundationType]
       : null;
 
   async function runSave(fd: FormData) {
@@ -672,6 +686,40 @@ function PartVerifyForm({
             ) : roofMaterial === "okand" || !roofMaterial ? (
               <p className="analyse-form-help">
                 Välj material för att få rätt livslängdsriktvärde.
+              </p>
+            ) : null}
+          </fieldset>
+        ) : null}
+
+        {part.key === "grund" ? (
+          <fieldset className="profile-part-fieldset">
+            <legend>Typ av grund</legend>
+            <div className="profile-part-choice-list">
+              {FOUNDATION_TYPES.map((key) => (
+                <label key={key} className="profile-part-choice">
+                  <input
+                    type="radio"
+                    name="variant"
+                    value={key}
+                    checked={foundationType === key}
+                    onChange={() => setFoundationType(key)}
+                    disabled={pending}
+                    required
+                  />
+                  <span>{FOUNDATION_TYPE_LABELS[key]}</span>
+                </label>
+              ))}
+            </div>
+            {foundationNote ? (
+              <p className="analyse-form-help">{foundationNote}</p>
+            ) : null}
+            {materialLifespan != null ? (
+              <p className="analyse-form-help">
+                Riktvärde för tillsyn/livslängd: ca {materialLifespan} år.
+              </p>
+            ) : foundationType === "okand" || !foundationType ? (
+              <p className="analyse-form-help">
+                Välj typ för att få rätt riktvärde och tips.
               </p>
             ) : null}
           </fieldset>
@@ -880,6 +928,26 @@ function PartVerifyForm({
           </fieldset>
         ) : null}
 
+        {part.key === "grund" ? (
+          <fieldset className="profile-part-fieldset">
+            <legend>Kända problem</legend>
+            <div className="profile-part-choice-list">
+              {FOUNDATION_KNOWN_ISSUES.map((issue) => (
+                <label key={issue.key} className="profile-part-choice">
+                  <input
+                    type="checkbox"
+                    name="known_issues"
+                    value={issue.key}
+                    defaultChecked={part.knownIssues.includes(issue.key)}
+                    disabled={pending}
+                  />
+                  <span>{issue.label}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
+
         <div className="profile-part-verify-actions">
           <button
             type="submit"
@@ -906,6 +974,9 @@ function PartVerifyForm({
           <input type="hidden" name="clear" value="1" />
           {part.key === "tak" && roofMaterial ? (
             <input type="hidden" name="variant" value={roofMaterial} />
+          ) : null}
+          {part.key === "grund" && foundationType ? (
+            <input type="hidden" name="variant" value={foundationType} />
           ) : null}
           {part.key === "varmekalla" && heatSource ? (
             <>
@@ -959,4 +1030,8 @@ function isHeatSourcePick(value: string): value is HeatSourceVariant {
 
 function isHeatDistPick(value: string): value is HeatDistVariant {
   return (HEAT_DIST_VARIANTS as readonly string[]).includes(value);
+}
+
+function isFoundationPick(value: string): value is FoundationType {
+  return (FOUNDATION_TYPES as readonly string[]).includes(value);
 }

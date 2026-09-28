@@ -16,7 +16,8 @@ function row(
     part_key: key,
     replaced_year: year,
     year_precision: precision,
-    variant: key === "tak" ? "tegel" : null,
+    variant:
+      key === "tak" ? "tegel" : key === "grund" ? "platta_pa_mark" : null,
     known_issues: [] as string[],
   };
 }

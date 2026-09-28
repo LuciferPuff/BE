@@ -89,7 +89,7 @@ export const PROPERTY_PARTS: readonly PropertyPartDefinition[] = [
     label: "Grund",
     lifespanYears: PART_LIFESPAN_YEARS.grund,
     summary:
-      "Grunden bär huset. Problem syns som sprickor, sättningar eller fukt.",
+      "Typ av grund styr hur mycket tillsyn som behövs – platta på mark är underhållssnål, krypgrund kräver mer koll på fukt.",
     ifWaiting: "Grundskador är bland de dyraste att åtgärda i efterhand.",
     guideHref: PART_GUIDE_HREF.grund,
     allowMultiple: false,

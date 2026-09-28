@@ -27,6 +27,8 @@ import {
   syncHuvudbyggnadBuildYear,
 } from "@/lib/properties/ensure-buildings";
 import {
+  FOUNDATION_KNOWN_ISSUES,
+  isFoundationType,
   isHeatDistVariant,
   isHeatSourceVariant,
   isRoofMaterial,
@@ -606,10 +608,14 @@ export async function updatePropertyPartAction(
   }
 
   const allowedIssues = new Set(
-    ROOF_KNOWN_ISSUES.map((i) => i.key as string),
+    partKey === "tak"
+      ? ROOF_KNOWN_ISSUES.map((i) => i.key as string)
+      : partKey === "grund"
+        ? FOUNDATION_KNOWN_ISSUES.map((i) => i.key as string)
+        : [],
   );
   const known_issues =
-    partKey === "tak"
+    partKey === "tak" || partKey === "grund"
       ? knownIssues.filter((k) => allowedIssues.has(k)).slice(0, 10)
       : [];
 
@@ -618,6 +624,14 @@ export async function updatePropertyPartAction(
     if (!variantRaw || !isRoofMaterial(variantRaw)) {
       if (!clear) {
         return { error: "Välj takmaterial." };
+      }
+    } else {
+      variant = variantRaw;
+    }
+  } else if (partKey === "grund") {
+    if (!variantRaw || !isFoundationType(variantRaw)) {
+      if (!clear && precisionRaw !== "unknown") {
+        return { error: "Välj typ av grund." };
       }
     } else {
       variant = variantRaw;
@@ -664,6 +678,7 @@ export async function updatePropertyPartAction(
         year_precision: null,
         variant:
           partKey === "tak" ||
+          partKey === "grund" ||
           partKey === "varmekalla" ||
           partKey === "varmedistribution"
             ? variant
@@ -767,6 +782,38 @@ export async function updatePropertyPartAction(
     return { ok: true };
   }
 
+  // Grund: tillåt spara bara typ (år optional)
+  if (
+    partKey === "grund" &&
+    variant &&
+    !yearRaw &&
+    !decadeRaw &&
+    precisionRaw !== "original" &&
+    precisionRaw !== "decade" &&
+    precisionRaw !== "exact"
+  ) {
+    const { error } = await supabase
+      .from("property_parts")
+      .update({
+        replaced_year: null,
+        year_precision: null,
+        variant,
+        known_issues,
+        name,
+        not_applicable: false,
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", partId)
+      .eq("property_id", propertyId);
+    if (error) {
+      console.error("[profil] property_parts:", error.message, error.code);
+      return { error: "Kunde inte spara. Försök igen." };
+    }
+    revalidatePath(`/profil/${propertyId}`);
+    return { ok: true };
+  }
+
   // Distribution: tillåt spara bara variant
   if (
     partKey === "varmedistribution" &&
@@ -852,6 +899,7 @@ export async function updatePropertyPartAction(
       year_precision,
       variant:
         partKey === "tak" ||
+        partKey === "grund" ||
         partKey === "varmekalla" ||
         partKey === "varmedistribution"
           ? variant
