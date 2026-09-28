@@ -9,8 +9,10 @@ import {
   deletePropertyPartAction,
   setPartCheckedAction,
   setPartNotApplicableAction,
+  setPartSnoozedAction,
   updatePropertyPartAction,
 } from "@/app/profil/actions";
+import { isSnoozeActive } from "@/lib/properties/get-component-status";
 import type {
   PropertyBuildingView,
   PropertyPartView,
@@ -1130,6 +1132,17 @@ function PartVerifyForm({
         />
       ) : null}
 
+      {canShowSnooze(part) ? (
+        <PartSnoozeForm
+          propertyId={propertyId}
+          part={part}
+          pending={pending}
+          setPending={setPending}
+          setError={setError}
+          onDone={onDone}
+        />
+      ) : null}
+
       {part.source === "verified" ||
       part.variant ||
       part.knownIssues.length > 0 ? (
@@ -1201,6 +1214,110 @@ function PartVerifyForm({
         <p className="profile-ownership-error" role="alert">
           {error}
         </p>
+      ) : null}
+    </div>
+  );
+}
+
+function canShowSnooze(part: PropertyPartView): boolean {
+  if (
+    (part.key === "tak" || part.key === "fasad") &&
+    part.variant === "eternit"
+  ) {
+    return false;
+  }
+  if (isSnoozeActive(part.snoozedUntil)) return true;
+  return (
+    part.tone === "action" ||
+    part.tone === "soon" ||
+    part.tone === "likely"
+  );
+}
+
+function PartSnoozeForm({
+  propertyId,
+  part,
+  pending,
+  setPending,
+  setError,
+  onDone,
+}: {
+  propertyId: string;
+  part: PropertyPartView;
+  pending: boolean;
+  setPending: (v: boolean) => void;
+  setError: (v: string | null) => void;
+  onDone: () => void;
+}) {
+  const router = useRouter();
+  const active = isSnoozeActive(part.snoozedUntil);
+
+  async function runSnooze(fd: FormData) {
+    setPending(true);
+    setError(null);
+    try {
+      const result = await setPartSnoozedAction({}, fd);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      onDone();
+      refreshInBackground(router);
+    } catch {
+      setError("Kunde inte uppdatera uppskovet.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="profile-part-snooze">
+      <h4 className="profile-part-check-title">Skjut upp påminnelse</h4>
+      <p className="analyse-form-help">
+        Behovet finns kvar, men tilen slutar pocka. Vi påminner igen om 1–3 år
+        – tills du har en kalkylator eller är redo att agera.
+      </p>
+      {active && part.snoozedUntil ? (
+        <p className="analyse-form-help">
+          Uppskjuten t.o.m. {part.snoozedUntil.slice(0, 4)}.
+        </p>
+      ) : null}
+      <div className="profile-part-snooze-actions">
+        {([1, 2, 3] as const).map((years) => (
+          <button
+            key={years}
+            type="button"
+            className="home-btn home-btn-ghost"
+            disabled={pending}
+            onClick={() => {
+              const fd = new FormData();
+              fd.set("property_id", propertyId);
+              fd.set("part_id", part.id);
+              fd.set("snooze_years", String(years));
+              void runSnooze(fd);
+            }}
+          >
+            {years} {years === 1 ? "år" : "år"}
+          </button>
+        ))}
+      </div>
+      {active ? (
+        <div className="profile-part-clear-form">
+          <button
+            type="button"
+            className="profile-part-clear"
+            disabled={pending}
+            onClick={() => {
+              const fd = new FormData();
+              fd.set("property_id", propertyId);
+              fd.set("part_id", part.id);
+              fd.set("clear", "1");
+              void runSnooze(fd);
+            }}
+          >
+            Visa påminnelse igen
+          </button>
+        </div>
       ) : null}
     </div>
   );

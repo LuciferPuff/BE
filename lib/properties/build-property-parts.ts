@@ -1,6 +1,7 @@
 import {
   getComponentStatus,
   heatCompatibilityWarning,
+  isSnoozeActive,
   type YearPrecision,
 } from "@/lib/properties/get-component-status";
 import {
@@ -64,6 +65,7 @@ export type PropertyPartView = {
   checkNote: string | null;
   checkIntervalYears: number | null;
   checkLabel: string | null;
+  snoozedUntil: string | null;
   source: PartSource;
   tone: PartStatusTone;
   statusLabel: string;
@@ -115,6 +117,7 @@ export type PropertyPartRow = {
   checked_at?: string | null;
   checked_until?: string | null;
   check_note?: string | null;
+  snoozed_until?: string | null;
 };
 
 function parsePrecision(value: string | null | undefined): YearPrecision | null {
@@ -151,6 +154,7 @@ export function computePartView(
   const checkedAt = row.checked_at?.trim() || null;
   const checkedUntil = row.checked_until?.trim() || null;
   const checkNote = row.check_note?.trim() || null;
+  const snoozedUntil = row.snoozed_until?.trim() || null;
 
   if (notApplicable) {
     return {
@@ -181,6 +185,7 @@ export function computePartView(
       checkNote: null,
       checkIntervalYears: checkCfg?.intervalYears ?? null,
       checkLabel: checkCfg?.label ?? null,
+      snoozedUntil: null,
       source: "not_applicable",
       tone: "not_applicable",
       statusLabel: "Finns inte",
@@ -220,6 +225,7 @@ export function computePartView(
     name,
     checkedUntil,
     checkNote,
+    snoozedUntil,
   });
 
   const isIntegratedVvb = def.key === "varmvattenberedare" && integrated;
@@ -260,6 +266,7 @@ export function computePartView(
     checkNote,
     checkIntervalYears: checkCfg?.intervalYears ?? null,
     checkLabel: checkCfg?.label ?? null,
+    snoozedUntil,
     source,
     tone: status.status,
     statusLabel: status.statusLabel,
@@ -404,6 +411,7 @@ export function pickNextPartAction(
 
   const relevant = parts.filter((p) => {
     if (!p.countsTowardCompleteness) return false;
+    if (isSnoozeActive(p.snoozedUntil)) return false;
     if (
       p.key === "varmekalla" &&
       p.role === "komplement" &&
@@ -478,6 +486,7 @@ export function buildPropertyPartViews(
     checked_at: r.checked_at ?? null,
     checked_until: r.checked_until ?? null,
     check_note: r.check_note ?? null,
+    snoozed_until: r.snoozed_until ?? null,
   }));
 
   const existing = new Set(fullRows.map((r) => r.part_key));
@@ -498,6 +507,7 @@ export function buildPropertyPartViews(
       checked_at: null,
       checked_until: null,
       check_note: null,
+      snoozed_until: null,
     });
   }
 

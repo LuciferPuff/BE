@@ -1064,6 +1064,7 @@ export async function setPartNotApplicableAction(
         checked_at: null,
         checked_until: null,
         check_note: null,
+        snoozed_until: null,
         updated_by: user.id,
         updated_at: new Date().toISOString(),
       }
@@ -1167,6 +1168,7 @@ export async function setPartCheckedAction(
       checked_at: checkedAt,
       checked_until: checkedUntil,
       check_note: checkNote,
+      snoozed_until: null,
       not_applicable: false,
       updated_by: user.id,
       updated_at: new Date().toISOString(),
@@ -1177,6 +1179,101 @@ export async function setPartCheckedAction(
   if (error) {
     console.error("[profil] set check:", error.message, error.code);
     return { error: "Kunde inte spara kontrollen." };
+  }
+
+  revalidatePath(`/profil/${propertyId}`);
+  return { ok: true };
+}
+
+const SNOOZE_YEARS = [1, 2, 3] as const;
+
+/** Skjut upp påminnelse 1–3 år (behovet finns kvar, slutar pocka). */
+export async function setPartSnoozedAction(
+  _prev: UpdatePropertyPartState,
+  formData: FormData,
+): Promise<UpdatePropertyPartState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  const partId = optionalText(formData, "part_id");
+  const clear = optionalText(formData, "clear") === "1";
+  const yearsRaw = optionalText(formData, "snooze_years");
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId || !partId) {
+    return { error: "Saknar husdel." };
+  }
+
+  const supabase = await createAuthClient();
+  const { data: existing, error: readError } = await supabase
+    .from("property_parts")
+    .select("id, part_key, variant")
+    .eq("id", partId)
+    .eq("property_id", propertyId)
+    .maybeSingle();
+
+  if (readError || !existing) {
+    return { error: "Husdelen hittades inte." };
+  }
+
+  const partKey = existing.part_key as string;
+  if (!isPropertyPartKey(partKey)) {
+    return { error: "Ogiltig husdel." };
+  }
+
+  const variant = (existing.variant as string | null)?.trim() || null;
+  if (
+    (partKey === "tak" || partKey === "fasad") &&
+    variant === "eternit"
+  ) {
+    return { error: "Eternit kan inte skjutas upp – hanteras av behörig firma." };
+  }
+
+  if (clear) {
+    const { error } = await supabase
+      .from("property_parts")
+      .update({
+        snoozed_until: null,
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", partId)
+      .eq("property_id", propertyId);
+    if (error) {
+      console.error("[profil] clear snooze:", error.message, error.code);
+      return { error: "Kunde inte ta bort uppskovet." };
+    }
+    revalidatePath(`/profil/${propertyId}`);
+    return { ok: true };
+  }
+
+  const years = yearsRaw ? Number.parseInt(yearsRaw, 10) : NaN;
+  if (!(SNOOZE_YEARS as readonly number[]).includes(years)) {
+    return { error: "Välj 1, 2 eller 3 år." };
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const snoozedUntil = addYearsToDate(today, years);
+
+  const { error } = await supabase
+    .from("property_parts")
+    .update({
+      snoozed_until: snoozedUntil,
+      not_applicable: false,
+      updated_by: user.id,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", partId)
+    .eq("property_id", propertyId);
+
+  if (error) {
+    console.error("[profil] set snooze:", error.message, error.code);
+    return { error: "Kunde inte skjuta upp påminnelsen." };
   }
 
   revalidatePath(`/profil/${propertyId}`);

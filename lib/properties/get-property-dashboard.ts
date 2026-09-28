@@ -160,7 +160,7 @@ export async function getPropertyDashboard(
   const { data: partRows, error: partsError } = await supabase
     .from("property_parts")
     .select(
-      "id, building_id, part_key, name, not_applicable, replaced_year, year_precision, variant, known_issues, role, integrated, checked_at, checked_until, check_note",
+      "id, building_id, part_key, name, not_applicable, replaced_year, year_precision, variant, known_issues, role, integrated, checked_at, checked_until, check_note, snoozed_until",
     )
     .eq("property_id", propertyId);
 
@@ -244,6 +244,7 @@ export async function getPropertyDashboard(
       checked_at: (r.checked_at as string | null) ?? null,
       checked_until: (r.checked_until as string | null) ?? null,
       check_note: (r.check_note as string | null) ?? null,
+      snoozed_until: (r.snoozed_until as string | null) ?? null,
     })),
   );
 

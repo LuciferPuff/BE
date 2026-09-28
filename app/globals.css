@@ -2149,6 +2149,26 @@ main.content-page {
   color: var(--color-primary);
 }
 
+.profile-part-snooze {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(27, 46, 60, 0.12);
+}
+
+.profile-part-snooze-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.profile-part-snooze-actions .home-btn {
+  width: auto;
+  margin-top: 0;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.875rem;
+}
+
 .link-analysis-panel {
   margin-bottom: 1.75rem;
 }

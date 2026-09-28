@@ -308,6 +308,39 @@ describe("getComponentStatus", () => {
     assert.equal(result.status, "action");
   });
 
+  it("uppskjuten påminnelse dämpar action utan att sudda ålder", () => {
+    const result = getComponentStatus({
+      key: "fonster",
+      buildYear: 1978,
+      replacedYear: 1978,
+      yearPrecision: "original",
+      variant: null,
+      knownIssues: [],
+      snoozedUntil: "2028-09-28",
+      nowYear: 2026,
+      nowDate: "2026-09-28",
+    });
+    assert.equal(result.status, "assumed_ok");
+    assert.equal(result.statusLabel, "Uppskjuten");
+    assert.match(result.ageLabel, /48 år/);
+    assert.match(result.ageLabel, /2028/);
+  });
+
+  it("utgånget uppskov ger tillbaka action", () => {
+    const result = getComponentStatus({
+      key: "fonster",
+      buildYear: 1978,
+      replacedYear: 1978,
+      yearPrecision: "original",
+      variant: null,
+      knownIssues: [],
+      snoozedUntil: "2025-01-01",
+      nowYear: 2026,
+      nowDate: "2026-09-28",
+    });
+    assert.equal(result.status, "action");
+  });
+
   it("antagen under 70 % → assumed_ok", () => {
     const result = getComponentStatus({
       key: "el",

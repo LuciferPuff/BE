@@ -52,6 +52,8 @@ export type ComponentInput = {
   /** YYYY-MM-DD – manuell kontroll giltig t.o.m. */
   checkedUntil?: string | null;
   checkNote?: string | null;
+  /** YYYY-MM-DD – påminnelse uppskjuten t.o.m. */
+  snoozedUntil?: string | null;
   nowYear?: number;
   /** För kontroll-giltighet; default idag. */
   nowDate?: string | null;
@@ -114,6 +116,12 @@ function emptyNote(
  * Ren statusfunktion: antaget får aldrig samma etikett som verifierat.
  */
 export function getComponentStatus(
+  input: ComponentInput,
+): ComponentStatusResult {
+  return applySnooze(input, computeComponentStatus(input));
+}
+
+function computeComponentStatus(
   input: ComponentInput,
 ): ComponentStatusResult {
   const now = input.nowYear ?? new Date().getFullYear();
@@ -679,6 +687,72 @@ export function getComponentStatus(
       prompt: null,
     }),
   );
+}
+
+function parseIsoDate(value: string | null | undefined): string | null {
+  const raw = value?.trim();
+  if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+  return raw;
+}
+
+function daysBetween(fromIso: string, toIso: string): number | null {
+  const fromMs = Date.parse(`${fromIso}T12:00:00`);
+  const toMs = Date.parse(`${toIso}T12:00:00`);
+  if (!Number.isFinite(fromMs) || !Number.isFinite(toMs)) return null;
+  return Math.round((toMs - fromMs) / 86_400_000);
+}
+
+export function isSnoozeActive(
+  snoozedUntil: string | null | undefined,
+  nowDate?: string | null,
+): boolean {
+  const until = parseIsoDate(snoozedUntil);
+  if (!until) return false;
+  const now =
+    parseIsoDate(nowDate) ?? new Date().toISOString().slice(0, 10);
+  const days = daysBetween(now, until);
+  return days != null && days >= 0;
+}
+
+function applySnooze(
+  input: ComponentInput,
+  result: ComponentStatusResult,
+): ComponentStatusResult {
+  if (!isSnoozeActive(input.snoozedUntil, input.nowDate)) return result;
+
+  // Asbest: aldrig dämpa.
+  if (
+    (input.key === "tak" || input.key === "fasad") &&
+    input.variant === "eternit"
+  ) {
+    return result;
+  }
+
+  // Bara dämpa påminnelser – inte saknad data eller redan OK/kontroll.
+  if (
+    result.status !== "action" &&
+    result.status !== "soon" &&
+    result.status !== "likely"
+  ) {
+    return result;
+  }
+
+  const until = parseIsoDate(input.snoozedUntil)!;
+  const untilYear = until.slice(0, 4);
+  const ageBit =
+    result.ageYears != null ? `${result.ageYears} år · ` : "";
+
+  return {
+    ...result,
+    status: "assumed_ok",
+    statusLabel: "Uppskjuten",
+    ageLabel: `${ageBit}påminnelse ${untilYear}`,
+    actionLabel: "Ändra →",
+    warning: null,
+    prompt: null,
+    note:
+      "Du har skjutit upp påminnelsen. Behovet finns kvar – vi påminner igen senare.",
+  };
 }
 
 function statusFromCheck(
