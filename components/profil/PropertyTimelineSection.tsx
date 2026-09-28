@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import {
   createPropertyEventAction,
   deletePropertyEventAction,
+  loadMoreTimelineAction,
   type EventActionState,
 } from "@/app/profil/actions";
+import { ShowMoreButton } from "@/components/profil/ShowMoreButton";
 import type { DashboardTimelineItem } from "@/lib/properties/get-property-dashboard";
 import {
   EVENT_TYPES,
@@ -17,7 +19,10 @@ import {
 
 type Props = {
   propertyId: string;
+  createdAt: string;
   timeline: DashboardTimelineItem[];
+  initialOffsets: { analyses: number; documents: number; events: number };
+  initialHasMore: boolean;
   canEdit: boolean;
   canDelete: boolean;
 };
@@ -34,11 +39,18 @@ function formatDate(iso: string): string {
 
 export function PropertyTimelineSection({
   propertyId,
-  timeline,
+  createdAt,
+  timeline: initialTimeline,
+  initialOffsets,
+  initialHasMore,
   canEdit,
   canDelete,
 }: Props) {
   const router = useRouter();
+  const [timeline, setTimeline] = useState(initialTimeline);
+  const [offsets, setOffsets] = useState(initialOffsets);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [loadingMore, startLoadMore] = useTransition();
   const [state, formAction, pending] = useActionState(
     createPropertyEventAction,
     initial,
@@ -48,7 +60,37 @@ export function PropertyTimelineSection({
     if (state.ok) router.refresh();
   }, [state.ok, router]);
 
+  useEffect(() => {
+    setTimeline(initialTimeline);
+    setOffsets(initialOffsets);
+    setHasMore(initialHasMore);
+  }, [initialTimeline, initialOffsets, initialHasMore]);
+
   const today = new Date().toISOString().slice(0, 10);
+
+  function loadMore() {
+    startLoadMore(async () => {
+      const result = await loadMoreTimelineAction(
+        propertyId,
+        offsets,
+        timeline.map((item) => item.key),
+        createdAt,
+      );
+      if (result.error || !result.items) return;
+      setTimeline((prev) => {
+        const seen = new Set(prev.map((item) => item.key));
+        const merged = [
+          ...prev,
+          ...result.items!.filter((item) => !seen.has(item.key)),
+        ];
+        return merged.sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+        );
+      });
+      if (result.nextOffsets) setOffsets(result.nextOffsets);
+      setHasMore(Boolean(result.hasMore));
+    });
+  }
 
   return (
     <section
@@ -84,6 +126,13 @@ export function PropertyTimelineSection({
           ))
         )}
       </ol>
+      {hasMore ? (
+        <ShowMoreButton
+          onClick={loadMore}
+          pending={loadingMore}
+          label="Visa äldre"
+        />
+      ) : null}
 
       {canEdit ? (
         <form action={formAction} className="profile-event-form">

@@ -4,11 +4,11 @@ import { MarkBoughtHouseButton } from "@/components/profil/MarkBoughtHouseButton
 import { NotifyMeButton } from "@/components/profil/NotifyMeButton";
 import { NextStepCta } from "@/components/profil/NextStepCta";
 import { OwnershipStatusSwitch } from "@/components/profil/OwnershipStatusSwitch";
+import { PropertyAnalysesList } from "@/components/profil/PropertyAnalysesList";
 import { PropertyDocumentsSection } from "@/components/profil/PropertyDocumentsSection";
 import { PropertyPartsSection } from "@/components/profil/PropertyPartsSection";
 import { PropertyTimelineSection } from "@/components/profil/PropertyTimelineSection";
 import { PropertyTodoList } from "@/components/profil/PropertyTodoList";
-import { UnlinkAnalysisButton } from "@/components/mina-analyser/UnlinkAnalysisButton";
 import type { PropertyDashboard } from "@/lib/properties/get-property-dashboard";
 import {
   propertyRoleLabel,
@@ -19,14 +19,6 @@ type Props = {
   property: PropertyDashboard;
   openPartId?: string | null;
 };
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("sv-SE", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
 
 function metaBits(property: PropertyDashboard): string[] {
   const bits: string[] = [];
@@ -95,37 +87,12 @@ export function PropertyDashboardView({
       >
         Analyser
       </h2>
-      {property.analyses.length > 0 ? (
-        <ul className="profile-linked-list">
-          {property.analyses.map((analysis) => (
-            <li key={analysis.id} className="profile-linked-item">
-              <Link
-                href={`/mina-analyser/${analysis.id}`}
-                className="profile-linked-link"
-              >
-                <span>{analysis.address}</span>
-                <span className="profile-linked-date">
-                  {formatDate(analysis.created_at)}
-                </span>
-              </Link>
-              {canOwnStatus ? (
-                <UnlinkAnalysisButton
-                  analysisId={analysis.id}
-                  returnTo="profil"
-                  variant="inline"
-                />
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <div className="profile-dashboard-empty">
-          <p>Inga kopplade analyser ännu.</p>
-          <Link href="/analys" className="profile-edit-link">
-            Analysera det här huset
-          </Link>
-        </div>
-      )}
+      <PropertyAnalysesList
+        propertyId={property.id}
+        initialAnalyses={property.analyses}
+        initialHasMore={property.analysesHasMore}
+        canUnlink={canOwnStatus}
+      />
     </section>
   ) : null;
 
@@ -273,7 +240,14 @@ export function PropertyDashboardView({
 
           <PropertyTimelineSection
             propertyId={property.id}
+            createdAt={property.created_at}
             timeline={property.timeline}
+            initialOffsets={{
+              analyses: property.analyses.length,
+              documents: property.documents.length,
+              events: property.events.length,
+            }}
+            initialHasMore={property.timelineHasMore}
             canEdit={canEdit}
             canDelete={canOwnStatus}
           />
@@ -281,6 +255,8 @@ export function PropertyDashboardView({
           <PropertyDocumentsSection
             propertyId={property.id}
             documents={property.documents}
+            documentsHasMore={property.documentsHasMore}
+            folderCounts={property.documentFolderCounts}
             canEdit={canEdit}
             canDelete={canOwnStatus}
           />

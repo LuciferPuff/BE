@@ -17,6 +17,19 @@ import {
   sanitizeFileName,
 } from "@/lib/properties/document-labels";
 import {
+  MAX_DOCUMENTS_PER_PROPERTY,
+} from "@/lib/properties/dashboard-limits";
+import {
+  loadMoreAnalysesPage,
+  loadMoreDocumentsPage,
+  loadMoreTimelinePage,
+} from "@/lib/properties/load-dashboard-pages";
+import type {
+  DashboardDocument,
+  DashboardLinkedAnalysis,
+  DashboardTimelineItem,
+} from "@/lib/properties/get-property-dashboard";
+import {
   getPartDefinition,
   isPartRole,
   isPropertyPartKey,
@@ -1444,9 +1457,24 @@ export async function prepareDocumentUploadAction(
     return { error: "Filen får vara högst 50 MB." };
   }
 
+  const supabase = await createAuthClient();
+  const { count, error: countError } = await supabase
+    .from("property_documents")
+    .select("id", { count: "exact", head: true })
+    .eq("property_id", propertyId);
+
+  if (countError) {
+    console.error("[profil] document count:", countError.message);
+    return { error: "Kunde inte kontrollera dokumentkvot. Försök igen." };
+  }
+  if ((count ?? 0) >= MAX_DOCUMENTS_PER_PROPERTY) {
+    return {
+      error: `Du kan ha högst ${MAX_DOCUMENTS_PER_PROPERTY} dokument per fastighet. Ta bort något innan du laddar upp fler.`,
+    };
+  }
+
   const safe = sanitizeFileName(fileName);
   const path = `${propertyId}/${typeRaw}/${crypto.randomUUID()}-${safe}`;
-  const supabase = await createAuthClient();
 
   const { data, error } = await supabase.storage
     .from(DOC_BUCKET)
@@ -1768,3 +1796,73 @@ export async function deletePropertyEventAction(
 
 /** @deprecated Use PropertyFormState */
 export type CreatePropertyState = PropertyFormState;
+
+export type LoadMoreAnalysesResult = {
+  error?: string;
+  items?: DashboardLinkedAnalysis[];
+  hasMore?: boolean;
+};
+
+export async function loadMoreAnalysesAction(
+  propertyId: string,
+  offset: number,
+): Promise<LoadMoreAnalysesResult> {
+  const user = await getSessionUser();
+  if (!user) return { error: "Du måste vara inloggad." };
+  if (!propertyId || offset < 0) return { error: "Ogiltig begäran." };
+
+  const page = await loadMoreAnalysesPage(propertyId, user.id, offset);
+  if (!page) return { error: "Ingen åtkomst." };
+  return { items: page.items, hasMore: page.hasMore };
+}
+
+export type LoadMoreDocumentsResult = {
+  error?: string;
+  items?: DashboardDocument[];
+  hasMore?: boolean;
+};
+
+export async function loadMoreDocumentsAction(
+  propertyId: string,
+  offset: number,
+): Promise<LoadMoreDocumentsResult> {
+  const user = await getSessionUser();
+  if (!user) return { error: "Du måste vara inloggad." };
+  if (!propertyId || offset < 0) return { error: "Ogiltig begäran." };
+
+  const page = await loadMoreDocumentsPage(propertyId, user.id, offset);
+  if (!page) return { error: "Ingen åtkomst." };
+  return { items: page.items, hasMore: page.hasMore };
+}
+
+export type LoadMoreTimelineResult = {
+  error?: string;
+  items?: DashboardTimelineItem[];
+  hasMore?: boolean;
+  nextOffsets?: { analyses: number; documents: number; events: number };
+};
+
+export async function loadMoreTimelineAction(
+  propertyId: string,
+  offsets: { analyses: number; documents: number; events: number },
+  knownKeys: string[],
+  createdAt: string,
+): Promise<LoadMoreTimelineResult> {
+  const user = await getSessionUser();
+  if (!user) return { error: "Du måste vara inloggad." };
+  if (!propertyId || !createdAt) return { error: "Ogiltig begäran." };
+
+  const page = await loadMoreTimelinePage(
+    propertyId,
+    user.id,
+    offsets,
+    knownKeys,
+    createdAt,
+  );
+  if (!page) return { error: "Ingen åtkomst." };
+  return {
+    items: page.items,
+    hasMore: page.hasMore,
+    nextOffsets: page.nextOffsets,
+  };
+}

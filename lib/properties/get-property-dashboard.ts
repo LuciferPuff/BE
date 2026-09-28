@@ -16,6 +16,7 @@ import {
   documentTypeLabel,
   eventTypeLabel,
 } from "@/lib/properties/document-labels";
+import { DASHBOARD_PAGE_SIZE } from "@/lib/properties/dashboard-limits";
 import { createAuthClient } from "@/lib/supabase/auth-client";
 import type { OwnershipStatus } from "@/lib/properties/labels";
 
@@ -80,6 +81,7 @@ export type PropertyDashboard = {
   memberCount: number;
   created_at: string;
   analyses: DashboardLinkedAnalysis[];
+  analysesHasMore: boolean;
   buildings: PropertyBuildingView[];
   parts: PropertyPartView[];
   completeness: PropertyCompleteness;
@@ -88,9 +90,63 @@ export type PropertyDashboard = {
   nextStep: PropertyNextStep;
   interestedFeatures: string[];
   documents: DashboardDocument[];
+  documentsHasMore: boolean;
+  documentFolderCounts: Record<string, number>;
   events: DashboardEvent[];
+  eventsHasMore: boolean;
   timeline: DashboardTimelineItem[];
+  timelineHasMore: boolean;
 };
+
+/** Truncate a page fetch that requested limit+1 rows. */
+export function takePage<T>(rows: T[], pageSize = DASHBOARD_PAGE_SIZE): {
+  items: T[];
+  hasMore: boolean;
+} {
+  if (rows.length > pageSize) {
+    return { items: rows.slice(0, pageSize), hasMore: true };
+  }
+  return { items: rows, hasMore: false };
+}
+
+export function buildDashboardTimeline(input: {
+  createdAt: string;
+  analyses: DashboardLinkedAnalysis[];
+  events: DashboardEvent[];
+  documents: DashboardDocument[];
+}): DashboardTimelineItem[] {
+  return [
+    {
+      key: "created",
+      label: "Fastigheten lades till i Byggello",
+      date: input.createdAt,
+      kind: "created" as const,
+    },
+    ...input.analyses.map((a) => ({
+      key: `analysis-${a.id}`,
+      label: "AI-analys kopplad",
+      date: a.created_at,
+      href: `/mina-analyser/${a.id}`,
+      kind: "analysis" as const,
+    })),
+    ...input.events.map((e) => ({
+      key: `event-${e.id}`,
+      label: e.description?.trim()
+        ? `${eventTypeLabel(e.event_type)}: ${e.description.trim()}`
+        : eventTypeLabel(e.event_type),
+      date: e.event_date,
+      kind: "event" as const,
+    })),
+    ...input.documents.map((d) => ({
+      key: `doc-${d.id}`,
+      label: `Dokument: ${documentTypeLabel(d.type)} (${displayNameFromFilePath(d.file_path)})`,
+      date: d.uploaded_at,
+      kind: "document" as const,
+    })),
+  ].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  );
+}
 
 function parseOwnershipStatus(value: unknown): OwnershipStatus {
   return value === "ager" ? "ager" : "funderar";
@@ -128,6 +184,7 @@ export async function getPropertyDashboard(
     todoResult,
     interestResult,
     documentsResult,
+    documentTypesResult,
     eventsResult,
   ] = await Promise.all([
     supabase
@@ -145,7 +202,8 @@ export async function getPropertyDashboard(
       .from("analyses")
       .select("id, address, created_at")
       .eq("linked_property_id", propertyId)
-      .order("created_at", { ascending: false }),
+      .order("created_at", { ascending: false })
+      .limit(DASHBOARD_PAGE_SIZE + 1),
     supabase
       .from("property_buildings")
       .select("id, type, name, build_year")
@@ -169,12 +227,18 @@ export async function getPropertyDashboard(
       .from("property_documents")
       .select("id, type, file_path, note, uploaded_at")
       .eq("property_id", propertyId)
-      .order("uploaded_at", { ascending: false }),
+      .order("uploaded_at", { ascending: false })
+      .limit(DASHBOARD_PAGE_SIZE + 1),
+    supabase
+      .from("property_documents")
+      .select("type")
+      .eq("property_id", propertyId),
     supabase
       .from("property_events")
       .select("id, event_type, event_date, description, cost")
       .eq("property_id", propertyId)
-      .order("event_date", { ascending: false }),
+      .order("event_date", { ascending: false })
+      .limit(DASHBOARD_PAGE_SIZE + 1),
   ]);
 
   const memberCount = memberCountResult.count;
@@ -185,6 +249,8 @@ export async function getPropertyDashboard(
   const { data: todoRows, error: todoError } = todoResult;
   const { data: interestRows, error: interestError } = interestResult;
   const { data: documentRows, error: documentsError } = documentsResult;
+  const { data: documentTypeRows, error: documentTypesError } =
+    documentTypesResult;
   const { data: eventRows, error: eventsError } = eventsResult;
 
   if (error || !property) {
@@ -209,6 +275,9 @@ export async function getPropertyDashboard(
   }
   if (documentsError) {
     console.error("[profil] documents:", documentsError.message);
+  }
+  if (documentTypesError) {
+    console.error("[profil] document types:", documentTypesError.message);
   }
   if (eventsError) {
     console.error("[profil] events:", eventsError.message);
@@ -260,11 +329,14 @@ export async function getPropertyDashboard(
 
   const completeness = computeProfileCompleteness({ parts });
 
-  const analysesList = (analyses ?? []).map((a) => ({
-    id: a.id as string,
-    address: a.address as string,
-    created_at: a.created_at as string,
-  }));
+  const analysesPage = takePage(
+    (analyses ?? []).map((a) => ({
+      id: a.id as string,
+      address: a.address as string,
+      created_at: a.created_at as string,
+    })),
+  );
+  const analysesList = analysesPage.items;
 
   const nextPart = pickNextPartAction(parts);
   const todos = buildPropertyTodos({
@@ -287,53 +359,40 @@ export async function getPropertyDashboard(
     openTodos: todos,
   });
 
-  const documents: DashboardDocument[] = (documentRows ?? []).map((d) => ({
-    id: d.id as string,
-    type: d.type as string,
-    file_path: d.file_path as string,
-    note: (d.note as string | null) ?? null,
-    uploaded_at: d.uploaded_at as string,
-  }));
-
-  const events: DashboardEvent[] = (eventRows ?? []).map((e) => ({
-    id: e.id as string,
-    event_type: e.event_type as string,
-    event_date: e.event_date as string,
-    description: (e.description as string | null) ?? null,
-    cost: e.cost != null ? Number(e.cost) : null,
-  }));
-
-  const timeline: DashboardTimelineItem[] = [
-    {
-      key: "created",
-      label: "Fastigheten lades till i Byggello",
-      date: property.created_at as string,
-      kind: "created" as const,
-    },
-    ...analysesList.map((a) => ({
-      key: `analysis-${a.id}`,
-      label: "AI-analys kopplad",
-      date: a.created_at,
-      href: `/mina-analyser/${a.id}`,
-      kind: "analysis" as const,
+  const documentsPage = takePage(
+    (documentRows ?? []).map((d) => ({
+      id: d.id as string,
+      type: d.type as string,
+      file_path: d.file_path as string,
+      note: (d.note as string | null) ?? null,
+      uploaded_at: d.uploaded_at as string,
     })),
-    ...events.map((e) => ({
-      key: `event-${e.id}`,
-      label: e.description?.trim()
-        ? `${eventTypeLabel(e.event_type)}: ${e.description.trim()}`
-        : eventTypeLabel(e.event_type),
-      date: e.event_date,
-      kind: "event" as const,
-    })),
-    ...documents.map((d) => ({
-      key: `doc-${d.id}`,
-      label: `Dokument: ${documentTypeLabel(d.type)} (${displayNameFromFilePath(d.file_path)})`,
-      date: d.uploaded_at,
-      kind: "document" as const,
-    })),
-  ].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
   );
+  const documents = documentsPage.items;
+
+  const documentFolderCounts: Record<string, number> = {};
+  for (const row of documentTypeRows ?? []) {
+    const type = row.type as string;
+    documentFolderCounts[type] = (documentFolderCounts[type] ?? 0) + 1;
+  }
+
+  const eventsPage = takePage(
+    (eventRows ?? []).map((e) => ({
+      id: e.id as string,
+      event_type: e.event_type as string,
+      event_date: e.event_date as string,
+      description: (e.description as string | null) ?? null,
+      cost: e.cost != null ? Number(e.cost) : null,
+    })),
+  );
+  const events = eventsPage.items;
+
+  const timeline = buildDashboardTimeline({
+    createdAt: property.created_at as string,
+    analyses: analysesList,
+    events,
+    documents,
+  });
 
   return {
     id: property.id as string,
@@ -351,6 +410,7 @@ export async function getPropertyDashboard(
     memberCount: memberCount ?? 1,
     created_at: property.created_at as string,
     analyses: analysesList,
+    analysesHasMore: analysesPage.hasMore,
     buildings,
     parts,
     completeness,
@@ -359,7 +419,12 @@ export async function getPropertyDashboard(
     nextStep,
     interestedFeatures: (interestRows ?? []).map((r) => r.feature as string),
     documents,
+    documentsHasMore: documentsPage.hasMore,
+    documentFolderCounts,
     events,
+    eventsHasMore: eventsPage.hasMore,
     timeline,
+    timelineHasMore:
+      analysesPage.hasMore || documentsPage.hasMore || eventsPage.hasMore,
   };
 }

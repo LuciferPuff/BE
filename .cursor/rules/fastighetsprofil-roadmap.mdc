@@ -26,6 +26,13 @@ alwaysApply: false
 - **Egna delar (Fas C)** — endast namn/anteckning/dokument, utan status/livslängd
 - **Återkommande kontroller** — inte husdelar: sotning, radonmätning, vattenprov, service, avloppsbesiktning. Intervall (inte ålder), kopplade till del (t.ex. skorsten → sotning var 3:e år). Stark återkomstmotor — bygg senare.
 
+## Skala / drift (inför större trafik)
+- Övervaka slow queries och connection usage i Supabase Dashboard
+- Använd connection pooler (PgBouncer) under hög concurrent trafik
+- Dokumentkvot per fastighet är kodad (`MAX_DOCUMENTS_PER_PROPERTY`); överväg byte-kvot senare
+- Dashboard-listor pagineras (analyser/dokument/events); undvik admin-vyer utan pagination
+- RPC/`get_property_dashboard` som en query: först när connection-pool trycks
+
 ## Principer
 - Antaget vs verifierat synligt
 - Max 2–3 "Detta kommer"-boxar per sida

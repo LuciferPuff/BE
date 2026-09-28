@@ -1,16 +1,18 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 
 import {
   confirmDocumentUploadAction,
   deleteDocumentAction,
   getDocumentDownloadUrlAction,
+  loadMoreDocumentsAction,
   moveDocumentAction,
   prepareDocumentUploadAction,
   type DocumentActionState,
 } from "@/app/profil/actions";
+import { ShowMoreButton } from "@/components/profil/ShowMoreButton";
 import type { DashboardDocument } from "@/lib/properties/get-property-dashboard";
 import {
   DOCUMENT_FOLDER_ORDER,
@@ -23,6 +25,8 @@ import {
 type Props = {
   propertyId: string;
   documents: DashboardDocument[];
+  documentsHasMore: boolean;
+  folderCounts: Record<string, number>;
   canEdit: boolean;
   canDelete: boolean;
 };
@@ -52,19 +56,6 @@ function docsInFolder(
     );
 }
 
-function folderCounts(
-  documents: DashboardDocument[],
-): Record<DocumentType, number> {
-  const counts = Object.fromEntries(
-    DOCUMENT_FOLDER_ORDER.map((t) => [t, 0]),
-  ) as Record<DocumentType, number>;
-  for (const doc of documents) {
-    const key = isDocumentType(doc.type) ? doc.type : "ovrigt";
-    counts[key] += 1;
-  }
-  return counts;
-}
-
 function dragHasFiles(dt: DataTransfer): boolean {
   return Array.from(dt.types).includes("Files");
 }
@@ -75,12 +66,40 @@ function dragHasDocument(dt: DataTransfer): boolean {
 
 export function PropertyDocumentsSection({
   propertyId,
-  documents,
+  documents: initialDocuments,
+  documentsHasMore,
+  folderCounts: countsFromServer,
   canEdit,
   canDelete,
 }: Props) {
+  const [documents, setDocuments] = useState(initialDocuments);
+  const [hasMore, setHasMore] = useState(documentsHasMore);
+  const [loadingMore, startLoadMore] = useTransition();
   const [activeFolder, setActiveFolder] = useState<DocumentType | null>(null);
-  const counts = folderCounts(documents);
+
+  useEffect(() => {
+    setDocuments(initialDocuments);
+    setHasMore(documentsHasMore);
+  }, [initialDocuments, documentsHasMore]);
+
+  const counts = Object.fromEntries(
+    DOCUMENT_FOLDER_ORDER.map((t) => [t, countsFromServer[t] ?? 0]),
+  ) as Record<DocumentType, number>;
+
+  function loadMore() {
+    startLoadMore(async () => {
+      const result = await loadMoreDocumentsAction(
+        propertyId,
+        documents.length,
+      );
+      if (result.error || !result.items) return;
+      setDocuments((prev) => {
+        const seen = new Set(prev.map((d) => d.id));
+        return [...prev, ...result.items!.filter((d) => !seen.has(d.id))];
+      });
+      setHasMore(Boolean(result.hasMore));
+    });
+  }
 
   return (
     <section
@@ -121,6 +140,9 @@ export function PropertyDocumentsSection({
           ))}
         </ul>
       )}
+      {hasMore ? (
+        <ShowMoreButton onClick={loadMore} pending={loadingMore} />
+      ) : null}
     </section>
   );
 }
