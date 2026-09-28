@@ -1,3 +1,5 @@
+import "server-only";
+
 import { createClient } from "@supabase/supabase-js";
 
 /** Server only. Krävs för analyses-tabellen (RLS, inga publika policies). */

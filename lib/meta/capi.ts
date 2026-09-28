@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * Meta Conversions API – server only. Anropa aldrig från klienten.
  * client_ip_address och client_user_agent skickas i klartext enligt Metas spec

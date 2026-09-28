@@ -1,3 +1,5 @@
+import "server-only";
+
 export async function runClaudeAnalyse(prompt: string): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
   if (!apiKey) {
