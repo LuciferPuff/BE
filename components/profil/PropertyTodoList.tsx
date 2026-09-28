@@ -7,6 +7,10 @@ import {
   updateTodoStateAction,
   type UpdateTodoState,
 } from "@/app/profil/actions";
+import {
+  OpenPartButton,
+  partIdFromDelHref,
+} from "@/components/profil/OpenPartButton";
 import type { PropertyTodoItem } from "@/lib/properties/build-todos";
 
 type Props = {
@@ -143,13 +147,28 @@ function TodoRow({
           </span>
         )}
         {todo.href ? (
-          <Link
-            href={todo.href}
-            className="profile-todo-row-link"
-            scroll={false}
-          >
-            {copy}
-          </Link>
+          (() => {
+            const partId = partIdFromDelHref(todo.href);
+            if (partId) {
+              return (
+                <OpenPartButton
+                  partId={partId}
+                  className="profile-todo-row-link"
+                >
+                  {copy}
+                </OpenPartButton>
+              );
+            }
+            return (
+              <Link
+                href={todo.href}
+                className="profile-todo-row-link"
+                scroll={false}
+              >
+                {copy}
+              </Link>
+            );
+          })()
         ) : (
           copy
         )}

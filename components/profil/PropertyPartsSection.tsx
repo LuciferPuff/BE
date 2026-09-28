@@ -12,6 +12,7 @@ import {
   setPartSnoozedAction,
   updatePropertyPartAction,
 } from "@/app/profil/actions";
+import { subscribeOpenPropertyPart } from "@/components/profil/OpenPartButton";
 import { isSnoozeActive } from "@/lib/properties/get-component-status";
 import type {
   PropertyBuildingView,
@@ -110,6 +111,13 @@ export function PropertyPartsSection({
     openedFromQuery.current = initialPartId;
     setActiveId(match.id);
   }, [initialPartId, buildings]);
+
+  useEffect(() => {
+    return subscribeOpenPropertyPart((partId) => {
+      const match = findPart(buildings, partId);
+      if (match) setActiveId(match.id);
+    });
+  }, [buildings]);
 
   function closeSheet() {
     setActiveId(null);
