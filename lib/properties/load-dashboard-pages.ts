@@ -31,7 +31,7 @@ export async function loadMoreAnalysesPage(
   if (!(await assertPropertyMember(propertyId, userId))) return null;
   const supabase = await createAuthClient();
   const { data, error } = await supabase
-    .from("analyses")
+    .from("user_analyses")
     .select("id, address, created_at")
     .eq("linked_property_id", propertyId)
     .order("created_at", { ascending: false })

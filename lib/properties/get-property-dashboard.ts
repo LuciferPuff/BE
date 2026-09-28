@@ -238,7 +238,7 @@ export async function getPropertyDashboardCore(
       .eq("id", propertyId)
       .maybeSingle(),
     supabase
-      .from("analyses")
+      .from("user_analyses")
       .select("id")
       .eq("linked_property_id", propertyId)
       .limit(1),
@@ -422,7 +422,7 @@ export const getPropertyDashboardSecondary = cache(
   const tParallel = performance.now();
   const [analysesResult, documentsResult, eventsResult] = await Promise.all([
     supabase
-      .from("analyses")
+      .from("user_analyses")
       .select("id, address, created_at")
       .eq("linked_property_id", propertyId)
       .order("created_at", { ascending: false })

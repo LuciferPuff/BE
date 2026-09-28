@@ -35,6 +35,7 @@ type ApiOk = {
   ok: true;
   cached?: boolean;
   analysisId?: string;
+  emailToken?: string;
   eventId?: string;
   analysis: AnalysisResult;
 };
@@ -81,6 +82,7 @@ export function AnalyseForm({ utm }: { utm?: AnalyseUtm }) {
   const [statusStep, setStatusStep] = useState(0);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [analysisId, setAnalysisId] = useState<string | null>(null);
+  const [emailToken, setEmailToken] = useState<string | null>(null);
   const [fromCache, setFromCache] = useState(false);
   const [leadEventId, setLeadEventId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -212,6 +214,11 @@ export function AnalyseForm({ utm }: { utm?: AnalyseUtm }) {
       setAnalysisId(
         typeof data.analysisId === "string" && data.analysisId !== ""
           ? data.analysisId
+          : null,
+      );
+      setEmailToken(
+        typeof data.emailToken === "string" && data.emailToken !== ""
+          ? data.emailToken
           : null,
       );
       setFromCache(data.cached === true);
@@ -464,6 +471,7 @@ export function AnalyseForm({ utm }: { utm?: AnalyseUtm }) {
           <AnalysisResultView
             analysis={analysis}
             analysisId={analysisId}
+            emailToken={emailToken}
             showEmailCapture
             metaLabel={
               fromCache

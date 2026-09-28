@@ -40,7 +40,7 @@ async function assertUserOwnsAnalysis(
   }
 
   const { data, error } = await analyses
-    .from("analyses")
+    .from("user_analyses")
     .select("id, user_id, address, object_type, linked_property_id")
     .eq("id", analysisId)
     .maybeSingle();

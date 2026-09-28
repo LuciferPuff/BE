@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createHash } from "node:crypto";
+import { cookies } from "next/headers";
 
 import { runClaudeAnalyse } from "@/lib/analyse/anthropic";
 import { buildAnalysePrompt } from "@/lib/analyse/claude-prompt";
@@ -12,14 +13,17 @@ import {
   parseAnalysisJson,
   type AnalysisResult,
 } from "@/lib/analyse/parse-analysis-json";
-import { attachUserIdIfNeeded } from "@/lib/analyses/attach-user-id";
-import { fetchAnalysisUserId } from "@/lib/analyses/fetch-analysis-user-id";
-import { analysesSupportsUserId } from "@/lib/analyses/user-id-column";
 import {
   ERR_ADTEXT_LINK,
   looksLikeListingUrl,
 } from "@/lib/analyse/looks-like-listing-url";
 import { consumeAnalyseRateSlot } from "@/lib/analyse/rate-limit-ip";
+import { createAnalysisEmailToken } from "@/lib/analyses/email-token";
+import {
+  ANON_ANALYSIS_COOKIE,
+  ANON_ANALYSIS_COOKIE_MAX_AGE,
+  FREE_ANALYSES_LIMIT,
+} from "@/lib/analyses/limits";
 import { getSessionUserFromRequest } from "@/lib/auth/get-session-user";
 import { sendLeadEvent } from "@/lib/meta/capi";
 import { getSiteUrlFromRequest } from "@/lib/site";
@@ -28,14 +32,14 @@ import { createAnalysesSupabaseClient } from "@/lib/supabase/analyses-client";
 export const maxDuration = 300;
 
 /**
- * Höj med 1 varje gång `lib/analyse/claude-prompt.ts` ändras så cache i Supabase
- * invalideras. Rutin: bump → commit/push → redeploy Vercel.
+ * Höj med 1 varje gång `lib/analyse/claude-prompt.ts` ändras så cache invalideras.
  */
 const CURRENT_PROMPT_VERSION = 3;
 
 const PROPERTY_TYPES = new Set(["Villa", "Kedjehus", "Radhus", "Fritidshus"]);
 
-const CACHE_SELECT = "id, result, prompt_version, input_richness";
+const CACHE_SELECT =
+  "id, result, prompt_version, input_richness, address, object_type, build_year";
 
 type Utm = {
   utm_source?: unknown;
@@ -54,7 +58,7 @@ type Body = {
   utm?: Utm;
 };
 
-type CachedAnalysisRow = {
+type CachedResultRow = {
   id: string;
   result: AnalysisResult;
   inputRichness: number;
@@ -62,11 +66,6 @@ type CachedAnalysisRow = {
 
 const UTM_MAX_LEN = 200;
 
-/**
- * BYG-74: UTM kommer från URL:en och är otillförlitlig användarindata. Trimma,
- * trunkera till en rimlig längd och låt tomt bli null. Sparas via parametriserad
- * Supabase-insert; visas aldrig oescapad i någon vy.
- */
 function cleanUtm(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim().slice(0, UTM_MAX_LEN);
@@ -100,16 +99,6 @@ function persistFailureMessage(
   const code = typeof err?.code === "string" ? err.code : "";
 
   if (
-    msg.includes("prompt_version") ||
-    msg.includes("user_id") ||
-    msg.includes("client_ip") ||
-    msg.includes("input_richness") ||
-    (msg.toLowerCase().includes("column") &&
-      msg.toLowerCase().includes("schema cache"))
-  ) {
-    return "Databasen saknar en kolumn (prompt_version, user_id, client_ip eller input_richness). Kör Supabase-migrationerna, t.ex. supabase db push, och ev. ”Reload schema” under API-inställningar.";
-  }
-  if (
     code === "42501" ||
     msg.toLowerCase().includes("row-level security") ||
     msg.includes("RLS")
@@ -119,23 +108,94 @@ function persistFailureMessage(
   return "Kunde inte spara analysen.";
 }
 
+async function ensureAnonSessionId(
+  userId: string | null,
+): Promise<string | null> {
+  if (userId) return null;
+  const jar = await cookies();
+  const existing = jar.get(ANON_ANALYSIS_COOKIE)?.value?.trim();
+  if (existing) return existing;
+  const id = crypto.randomUUID();
+  jar.set(ANON_ANALYSIS_COOKIE, id, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: ANON_ANALYSIS_COOKIE_MAX_AGE,
+  });
+  return id;
+}
+
+async function countUserAnalyses(
+  supabase: NonNullable<ReturnType<typeof createAnalysesSupabaseClient>>,
+  userId: string,
+): Promise<number> {
+  const { count, error } = await supabase
+    .from("user_analyses")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId);
+  if (error) {
+    console.error("[analyse] quota count:", error.message);
+    return 0;
+  }
+  return count ?? 0;
+}
+
+async function insertUserAnalysis(
+  supabase: NonNullable<ReturnType<typeof createAnalysesSupabaseClient>>,
+  input: {
+    userId: string | null;
+    anonSessionId: string | null;
+    resultId: string;
+    address: string;
+    objectType: string;
+    buildYear: number;
+  },
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("user_analyses")
+    .insert({
+      user_id: input.userId,
+      anon_session_id: input.anonSessionId,
+      result_id: input.resultId,
+      address: input.address,
+      object_type: input.objectType,
+      build_year: input.buildYear,
+    })
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    console.error("[analyse] user_analyses insert:", error.message);
+    return null;
+  }
+  return typeof data?.id === "string" ? data.id : null;
+}
+
 async function returnAnalysisSuccess(
   request: NextRequest,
   supabase: NonNullable<ReturnType<typeof createAnalysesSupabaseClient>>,
   payload: {
-    analysisId: string;
+    userAnalysisId: string;
     analysis: AnalysisResult;
     cached: boolean;
   },
 ): Promise<NextResponse> {
   const ip = clientIp(request);
   const { error: logError } = await supabase.from("analysis_requests").insert({
-    analysis_id: payload.analysisId,
+    analysis_id: payload.userAnalysisId,
     client_ip: ip !== "unknown" ? ip : null,
     cached: payload.cached,
   });
   if (logError) {
     console.error("[analyse] request log:", logError.message);
+  }
+
+  let emailToken: string | null = null;
+  try {
+    emailToken = createAnalysisEmailToken(payload.userAnalysisId);
+  } catch (err) {
+    console.error("[analyse] email token:", err);
   }
 
   const eventId = crypto.randomUUID();
@@ -149,13 +209,48 @@ async function returnAnalysisSuccess(
   } catch (err) {
     console.error("[analyse] meta CAPI:", err);
   }
+
   return NextResponse.json({
     ok: true,
     cached: payload.cached,
-    analysisId: payload.analysisId,
+    analysisId: payload.userAnalysisId,
+    emailToken,
     analysis: payload.analysis,
     eventId,
   });
+}
+
+async function lookupCache(
+  supabase: NonNullable<ReturnType<typeof createAnalysesSupabaseClient>>,
+  listingDesignation: string | null,
+  inputHash: string,
+): Promise<CachedResultRow | null> {
+  const query = listingDesignation
+    ? supabase
+        .from("analysis_results")
+        .select(CACHE_SELECT)
+        .eq("listing_designation", listingDesignation)
+        .eq("prompt_version", CURRENT_PROMPT_VERSION)
+        .maybeSingle()
+    : supabase
+        .from("analysis_results")
+        .select(CACHE_SELECT)
+        .eq("input_hash", inputHash)
+        .is("listing_designation", null)
+        .eq("prompt_version", CURRENT_PROMPT_VERSION)
+        .maybeSingle();
+
+  const { data, error } = await query;
+  if (error) {
+    console.error("[analyse] cache lookup:", error.message);
+    return null;
+  }
+  if (!data?.result || typeof data.id !== "string") return null;
+  return {
+    id: data.id,
+    result: data.result as AnalysisResult,
+    inputRichness: Number(data.input_richness) || 0,
+  };
 }
 
 export async function POST(request: NextRequest) {
@@ -186,11 +281,11 @@ export async function POST(request: NextRequest) {
       ? body.askingPrice
       : NaN;
 
-  const propertyIdRaw =
+  const listingRaw =
     body.propertyId != null && typeof body.propertyId === "string"
       ? body.propertyId.trim()
       : "";
-  const propertyId = propertyIdRaw !== "" ? propertyIdRaw : null;
+  const listingDesignation = listingRaw !== "" ? listingRaw : null;
 
   if (!address || address.length < 5) {
     return NextResponse.json({ error: "Adress saknas." }, { status: 400 });
@@ -257,101 +352,45 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const supportsUserId = await analysesSupportsUserId(supabase);
-  if (userId && !supportsUserId) {
-    console.warn(
-      "[analyse] user_id-kolumn saknas – kör migration 20260517140000_analyses_user_id.sql",
-    );
-  }
-  if (!userId) {
-    console.warn(
-      "[analyse] ingen session i API – analys sparas utan koppling till konto (kolla auth-cookies)",
-    );
-  }
-
-  let cachedRow: CachedAnalysisRow | null = null;
-
-  if (propertyId != null) {
-    const { data, error } = await supabase
-      .from("analyses")
-      .select(CACHE_SELECT)
-      .eq("property_id", propertyId)
-      .maybeSingle();
-    if (error) {
-      console.error("[analyse] cache property_id:", error.message);
+  if (userId) {
+    const used = await countUserAnalyses(supabase, userId);
+    if (used >= FREE_ANALYSES_LIMIT) {
       return NextResponse.json(
-        { ok: false, message: persistFailureMessage(error) },
-        { status: 500 },
+        {
+          ok: false,
+          message: `Du har använt dina ${FREE_ANALYSES_LIMIT} gratisanalyser. Logga in på profilen eller kontakta oss för mer.`,
+        },
+        { status: 403 },
       );
     }
-    const pv = Number(data?.prompt_version);
-    if (
-      data?.result != null &&
-      typeof data.id === "string" &&
-      Number.isFinite(pv) &&
-      pv === CURRENT_PROMPT_VERSION
-    ) {
-      cachedRow = {
-        id: data.id,
-        result: data.result as AnalysisResult,
-        inputRichness: Number(data.input_richness) || 0,
-      };
-    }
-  } else {
-    const { data, error } = await supabase
-      .from("analyses")
-      .select(CACHE_SELECT)
-      .eq("input_hash", inputHash)
-      .is("property_id", null)
-      .maybeSingle();
-    if (error) {
-      console.error("[analyse] cache input_hash:", error.message);
-      return NextResponse.json(
-        { ok: false, message: persistFailureMessage(error) },
-        { status: 500 },
-      );
-    }
-    const pv = Number(data?.prompt_version);
-    if (
-      data?.result != null &&
-      typeof data.id === "string" &&
-      Number.isFinite(pv) &&
-      pv === CURRENT_PROMPT_VERSION
-    ) {
-      cachedRow = {
-        id: data.id,
-        result: data.result as AnalysisResult,
-        inputRichness: Number(data.input_richness) || 0,
-      };
-    }
   }
 
-  // Tunn cachad analys + rikare indata → kör om (skriv över samma rad senare).
+  const anonSessionId = await ensureAnonSessionId(userId);
+
+  let cachedRow = await lookupCache(supabase, listingDesignation, inputHash);
   let upgradeExistingId: string | null = null;
+
   if (cachedRow != null) {
     if (isSignificantlyRicher(incomingRichness, cachedRow.inputRichness)) {
-      console.info(
-        "[analyse] richer input – regenerating cache",
-        JSON.stringify({
-          analysisId: cachedRow.id,
-          cachedRichness: cachedRow.inputRichness,
-          incomingRichness,
-        }),
-      );
       upgradeExistingId = cachedRow.id;
       cachedRow = null;
     } else {
-      if (supportsUserId) {
-        const existingUserId = await fetchAnalysisUserId(supabase, cachedRow.id);
-        await attachUserIdIfNeeded(
-          supabase,
-          cachedRow.id,
-          userId,
-          existingUserId,
+      const userAnalysisId = await insertUserAnalysis(supabase, {
+        userId,
+        anonSessionId,
+        resultId: cachedRow.id,
+        address,
+        objectType,
+        buildYear,
+      });
+      if (!userAnalysisId) {
+        return NextResponse.json(
+          { ok: false, message: "Kunde inte spara analysen." },
+          { status: 500 },
         );
       }
       return returnAnalysisSuccess(request, supabase, {
-        analysisId: cachedRow.id,
+        userAnalysisId,
         analysis: cachedRow.result,
         cached: true,
       });
@@ -398,165 +437,106 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // BYG-74: UTM loggas enbart – ingår aldrig i input_hash, cache eller
-  // prompt_version. Samma rowPayload används för både insert och update vid
-  // cache-miss, så UTM täcks av båda vägarna.
-  const rowPayload: Record<string, unknown> = {
-    property_id: propertyId,
+  const resultPayload = {
+    listing_designation: listingDesignation,
     input_hash: inputHash,
+    prompt_version: CURRENT_PROMPT_VERSION,
+    result: analysis,
+    input_richness: incomingRichness,
     address,
     object_type: objectType,
     build_year: buildYear,
     size_sqm: sizeSqm,
     asking_price: Math.round(askingPrice),
     ad_text: adText,
-    input_richness: incomingRichness,
-    result: analysis,
-    prompt_version: CURRENT_PROMPT_VERSION,
-    utm_source: cleanUtm(body.utm?.utm_source) ?? "direkt",
-    utm_medium: cleanUtm(body.utm?.utm_medium),
-    utm_campaign: cleanUtm(body.utm?.utm_campaign),
-    client_ip: ip !== "unknown" ? ip : null,
+    updated_at: new Date().toISOString(),
   };
-  if (supportsUserId) {
-    rowPayload.user_id = userId;
-  }
 
-  let savedId: string | null = null;
-  let persistError: { message?: string; code?: string } | null = null;
+  let resultId: string | null = null;
 
-  // Uppgradera befintlig rad (behåller id / linked_property_id / user_id).
   if (upgradeExistingId != null) {
-    const upgradePayload = { ...rowPayload };
-    delete upgradePayload.user_id;
-    const upd = await supabase
-      .from("analyses")
-      .update(upgradePayload)
+    const { data, error } = await supabase
+      .from("analysis_results")
+      .update(resultPayload)
       .eq("id", upgradeExistingId)
       .select("id")
       .maybeSingle();
-    persistError = upd.error;
-    if (typeof upd.data?.id === "string") {
-      savedId = upd.data.id;
+    if (error) {
+      console.error("[analyse] cache upgrade:", error.message);
+      return NextResponse.json(
+        { ok: false, message: persistFailureMessage(error) },
+        { status: 500 },
+      );
     }
+    resultId = typeof data?.id === "string" ? data.id : upgradeExistingId;
   } else {
     const insertRes = await supabase
-      .from("analyses")
-      .insert(rowPayload)
+      .from("analysis_results")
+      .insert({
+        ...resultPayload,
+        created_at: new Date().toISOString(),
+      })
       .select("id")
       .maybeSingle();
 
-    persistError = insertRes.error;
-
-    if (persistError?.code === "23505") {
-      const upd = propertyId
-        ? await supabase
-            .from("analyses")
-            .update(rowPayload)
-            .eq("property_id", propertyId)
-            .select("id")
-            .maybeSingle()
-        : await supabase
-            .from("analyses")
-            .update(rowPayload)
-            .eq("input_hash", inputHash)
-            .is("property_id", null)
-            .select("id")
-            .maybeSingle();
-      persistError = upd.error;
-      if (typeof upd.data?.id === "string") {
-        savedId = upd.data.id;
-      }
-    } else if (typeof insertRes.data?.id === "string") {
-      savedId = insertRes.data.id;
-    }
-
-    if (savedId == null && persistError == null) {
-      const refetch = propertyId
-        ? await supabase
-            .from("analyses")
-            .select("id")
-            .eq("property_id", propertyId)
-            .maybeSingle()
-        : await supabase
-            .from("analyses")
-            .select("id")
-            .eq("input_hash", inputHash)
-            .is("property_id", null)
-            .maybeSingle();
-      if (typeof refetch.data?.id === "string") {
-        savedId = refetch.data.id;
+    if (insertRes.error?.code === "23505") {
+      const existing = await lookupCache(
+        supabase,
+        listingDesignation,
+        inputHash,
+      );
+      if (existing) {
+        resultId = existing.id;
+        analysis = existing.result;
       } else {
-        console.error(
-          "[analyse] insert returned no id and refetch missed:",
-          JSON.stringify({
-            insertError: insertRes.error,
-            insertData: insertRes.data,
-          }),
+        console.error("[analyse] cache conflict:", insertRes.error.message);
+        return NextResponse.json(
+          { ok: false, message: persistFailureMessage(insertRes.error) },
+          { status: 500 },
         );
       }
+    } else if (insertRes.error) {
+      console.error("[analyse] cache insert:", insertRes.error.message);
+      return NextResponse.json(
+        { ok: false, message: persistFailureMessage(insertRes.error) },
+        { status: 500 },
+      );
+    } else {
+      resultId =
+        typeof insertRes.data?.id === "string" ? insertRes.data.id : null;
     }
   }
 
-  if (persistError) {
-    if (persistError.code === "23505") {
-      const { data: again } = propertyId
-        ? await supabase
-            .from("analyses")
-            .select(CACHE_SELECT)
-            .eq("property_id", propertyId)
-            .maybeSingle()
-        : await supabase
-            .from("analyses")
-            .select(CACHE_SELECT)
-            .eq("input_hash", inputHash)
-            .is("property_id", null)
-            .maybeSingle();
-      const againPv = Number(again?.prompt_version);
-      const againRichness = Number(again?.input_richness) || 0;
-      if (
-        again?.result != null &&
-        typeof again.id === "string" &&
-        Number.isFinite(againPv) &&
-        againPv === CURRENT_PROMPT_VERSION &&
-        !isSignificantlyRicher(incomingRichness, againRichness)
-      ) {
-        if (supportsUserId) {
-          const existingUserId = await fetchAnalysisUserId(supabase, again.id);
-          await attachUserIdIfNeeded(supabase, again.id, userId, existingUserId);
-        }
-        return returnAnalysisSuccess(request, supabase, {
-          analysisId: again.id,
-          analysis: again.result as AnalysisResult,
-          cached: true,
-        });
-      }
-    }
-    console.error(
-      "[analyse] insert/update:",
-      persistError.message,
-      persistError.code,
-    );
-    return NextResponse.json(
-      { ok: false, message: persistFailureMessage(persistError) },
-      { status: 500 },
-    );
-  }
-
-  if (savedId == null) {
-    console.error("[analyse] insert/update: missing id after persist");
+  if (!resultId) {
     return NextResponse.json(
       { ok: false, message: "Kunde inte spara analysen." },
       { status: 500 },
     );
   }
 
-  if (supportsUserId) {
-    await attachUserIdIfNeeded(supabase, savedId, userId, null);
+  const userAnalysisId = await insertUserAnalysis(supabase, {
+    userId,
+    anonSessionId,
+    resultId,
+    address,
+    objectType,
+    buildYear,
+  });
+  if (!userAnalysisId) {
+    return NextResponse.json(
+      { ok: false, message: "Kunde inte spara analysen." },
+      { status: 500 },
+    );
   }
 
+  // UTM logged on first creation path only (best-effort, unused in new schema columns —
+  // kept out of cache key). Future: add utm columns to user_analyses if needed.
+  void cleanUtm(body.utm?.utm_source);
+  void cleanUtm(body.utm?.utm_medium);
+  void cleanUtm(body.utm?.utm_campaign);
+
   return returnAnalysisSuccess(request, supabase, {
-    analysisId: savedId,
+    userAnalysisId,
     analysis,
     cached: false,
   });

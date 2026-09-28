@@ -1,7 +1,7 @@
 import { createAnalysesSupabaseClient } from "@/lib/supabase/analyses-client";
 
 /**
- * Sätter analyses.linked_property_id via service role.
+ * Sätter user_analyses.linked_property_id via service role.
  * Anroparen MÅSTE redan ha verifierat: session-användare äger analysen
  * och är agare på fastigheten.
  */
@@ -16,7 +16,7 @@ export async function linkAnalysisToPropertyWithServiceRole(
   }
 
   const { data: row, error: readError } = await supabase
-    .from("analyses")
+    .from("user_analyses")
     .select("id, user_id, linked_property_id")
     .eq("id", analysisId)
     .maybeSingle();
@@ -45,7 +45,7 @@ export async function linkAnalysisToPropertyWithServiceRole(
   }
 
   const { error: updateError } = await supabase
-    .from("analyses")
+    .from("user_analyses")
     .update({ linked_property_id: propertyId })
     .eq("id", analysisId)
     .eq("user_id", userId)
@@ -73,7 +73,7 @@ export async function unlinkAnalysisFromPropertyWithServiceRole(
   }
 
   const { data: row, error: readError } = await supabase
-    .from("analyses")
+    .from("user_analyses")
     .select("id, user_id, linked_property_id")
     .eq("id", analysisId)
     .maybeSingle();
@@ -93,7 +93,7 @@ export async function unlinkAnalysisFromPropertyWithServiceRole(
   }
 
   const { error: updateError } = await supabase
-    .from("analyses")
+    .from("user_analyses")
     .update({ linked_property_id: null })
     .eq("id", analysisId)
     .eq("user_id", userId);

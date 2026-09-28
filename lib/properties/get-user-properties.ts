@@ -95,7 +95,7 @@ export async function getUserProperties(
 
   const ids = properties.map((p) => p.id);
   const { data: analyses, error: analysesError } = await supabase
-    .from("analyses")
+    .from("user_analyses")
     .select("id, address, created_at, linked_property_id")
     .in("linked_property_id", ids)
     .order("created_at", { ascending: false });

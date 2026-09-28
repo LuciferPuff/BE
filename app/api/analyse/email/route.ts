@@ -3,17 +3,20 @@ import { type NextRequest, NextResponse } from "next/server";
 import { sendAnalysisEmail } from "@/lib/analyse/send-analysis-email";
 import { consumeEmailAnalysisSlot } from "@/lib/analyse/rate-limit-email";
 import type { AnalysisResult } from "@/lib/analyse/parse-analysis-json";
+import { verifyAnalysisEmailToken } from "@/lib/analyses/email-token";
 import { sendSubscriberWelcomeEmail } from "@/lib/subscribe/send-welcome-email";
 import {
   isValidEmailFormat,
   normalizeSubscriberEmail,
 } from "@/lib/subscribe/validate-email";
+import { getSessionUserFromRequest } from "@/lib/auth/get-session-user";
 import { createAnalysesSupabaseClient } from "@/lib/supabase/analyses-client";
 
 type Body = {
   analysisId?: unknown;
   email?: unknown;
   subscribe?: unknown;
+  emailToken?: unknown;
 };
 
 function clientIp(request: Request): string {
@@ -54,9 +57,23 @@ export async function POST(request: NextRequest) {
     );
   }
   const email = normalizeSubscriberEmail(body.email);
-
-  // Marknadsföringssamtycke: enbart explicit true. Defaultar till false.
   const subscribe = body.subscribe === true;
+  const emailToken =
+    typeof body.emailToken === "string" ? body.emailToken.trim() : "";
+
+  const sessionUser = await getSessionUserFromRequest(request);
+  const tokenOk = emailToken
+    ? verifyAnalysisEmailToken(emailToken)
+    : null;
+  const tokenMatches =
+    tokenOk != null && tokenOk.userAnalysisId === analysisId;
+
+  if (!tokenMatches && !sessionUser) {
+    return NextResponse.json(
+      { ok: false, message: "Ogiltig eller utgången länk. Kör analysen igen." },
+      { status: 401 },
+    );
+  }
 
   if (!consumeEmailAnalysisSlot(clientIp(request))) {
     return NextResponse.json(
@@ -76,31 +93,51 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Hämta analysinnehållet server-side – lita aldrig på innehåll från klienten.
-  const { data, error } = await supabase
-    .from("analyses")
-    .select("id, result, address")
+  const { data: ua, error: uaError } = await supabase
+    .from("user_analyses")
+    .select("id, user_id, analysis_results(result, address)")
     .eq("id", analysisId)
     .maybeSingle();
 
-  if (error) {
-    console.error("[analyse-email] hämta analys:", error.message);
+  if (uaError) {
+    console.error("[analyse-email] hämta analys:", uaError.message);
     return NextResponse.json(
       { ok: false, message: "Något gick fel. Försök igen senare." },
       { status: 500 },
     );
   }
-  if (!data || data.result == null) {
+  if (!ua) {
     return NextResponse.json(
       { ok: false, message: "Analysen kunde inte hittas." },
       { status: 404 },
     );
   }
 
-  const analysis = data.result as AnalysisResult;
-  const address = typeof data.address === "string" ? data.address : "";
+  if (!tokenMatches) {
+    if (!sessionUser || ua.user_id !== sessionUser.id) {
+      return NextResponse.json(
+        { ok: false, message: "Du har inte behörighet till den här analysen." },
+        { status: 403 },
+      );
+    }
+  }
 
-  // Analys-mejlet är den begärda tjänsten – fel surfas till användaren.
+  const embedded = ua.analysis_results as
+    | { result: AnalysisResult; address: string }
+    | { result: AnalysisResult; address: string }[]
+    | null;
+  const row = Array.isArray(embedded) ? embedded[0] : embedded;
+  if (!row?.result) {
+    return NextResponse.json(
+      { ok: false, message: "Analysen kunde inte hittas." },
+      { status: 404 },
+    );
+  }
+
+  const analysis = row.result;
+  const address =
+    typeof row.address === "string" ? row.address : "";
+
   const sent = await sendAnalysisEmail(email, analysis, address);
   if (!sent) {
     return NextResponse.json(
@@ -112,7 +149,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Logg (best-effort) – får inte blockera svaret.
   const { error: logError } = await supabase
     .from("analysis_email_requests")
     .insert({ analysis_id: analysisId, email, subscribed: subscribe });
@@ -120,7 +156,6 @@ export async function POST(request: NextRequest) {
     console.error("[analyse-email] logg:", logError.message);
   }
 
-  // Prenumeration: separat samtycke, får fela tyst (påverkar inte analys-svaret).
   if (subscribe) {
     const unsubscribeToken = crypto.randomUUID();
     const { error: subError } = await supabase.from("subscribers").insert({

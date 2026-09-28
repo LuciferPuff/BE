@@ -7,6 +7,8 @@ import {
   authNextCookieOptions,
 } from "@/lib/auth/auth-next-cookie";
 import { safeNextPath } from "@/lib/auth/safe-next-path";
+import { claimAnonUserAnalyses } from "@/lib/analyses/claim-anon-analyses";
+import { ANON_ANALYSIS_COOKIE } from "@/lib/analyses/limits";
 import { createAuthClient } from "@/lib/supabase/auth-client";
 
 export async function GET(request: Request) {
@@ -28,6 +30,15 @@ export async function GET(request: Request) {
       return NextResponse.redirect(
         new URL("/logga-in?error=auth", site),
       );
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const jar = await cookies();
+      const anonId = jar.get(ANON_ANALYSIS_COOKIE)?.value;
+      await claimAnonUserAnalyses(user.id, anonId);
     }
   } catch (err) {
     console.error("[auth] callback:", err);

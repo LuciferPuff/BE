@@ -6,7 +6,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "tsx --test lib/properties/**/*.test.ts",
+    "test": "tsx --test lib/properties/**/*.test.ts lib/analyses/**/*.test.ts",
     "sanity:deploy": "sanity deploy"
   },
   "engines": {

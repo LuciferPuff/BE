@@ -19,6 +19,7 @@ const COPY = {
 
 type Props = {
   analysisId: string;
+  emailToken?: string | null;
 };
 
 type ApiResponse = {
@@ -27,7 +28,7 @@ type ApiResponse = {
   subscribed?: boolean;
 };
 
-export function EmailAnalysisBox({ analysisId }: Props) {
+export function EmailAnalysisBox({ analysisId, emailToken = null }: Props) {
   const formId = useId();
   const [email, setEmail] = useState("");
   const [subscribe, setSubscribe] = useState(false);
@@ -50,6 +51,7 @@ export function EmailAnalysisBox({ analysisId }: Props) {
           analysisId,
           email: email.trim(),
           subscribe,
+          emailToken: emailToken || undefined,
         }),
       });
       const data = (await res.json()) as ApiResponse;

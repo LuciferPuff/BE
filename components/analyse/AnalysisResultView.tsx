@@ -43,6 +43,7 @@ function AnalysisFindingBody({ item }: { item: AnalysisFinding }) {
 type Props = {
   analysis: AnalysisResult;
   analysisId: string;
+  emailToken?: string | null;
   metaLabel?: string;
   showSuggestHint?: boolean;
   showEmailCapture?: boolean;
@@ -51,6 +52,7 @@ type Props = {
 export function AnalysisResultView({
   analysis,
   analysisId,
+  emailToken = null,
   metaLabel = "Sparad analys.",
   showSuggestHint = true,
   showEmailCapture = false,
@@ -61,7 +63,7 @@ export function AnalysisResultView({
 
       {showEmailCapture && (
         <section className="analyse-email-section analyse-email-section--top">
-          <EmailAnalysisBox analysisId={analysisId} />
+          <EmailAnalysisBox analysisId={analysisId} emailToken={emailToken} />
         </section>
       )}
 

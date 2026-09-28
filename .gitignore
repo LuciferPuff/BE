@@ -36,3 +36,6 @@ pnpm-debug.log*
 # typescript
 *.tsbuildinfo
 .vercel
+.env.vercel.local
+.env.vercel.production.local
+backups/
