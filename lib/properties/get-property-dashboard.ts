@@ -119,89 +119,97 @@ export async function getPropertyDashboard(
     return null;
   }
 
-  const { count: memberCount } = await supabase
-    .from("property_members")
-    .select("id", { count: "exact", head: true })
-    .eq("property_id", propertyId);
+  const [
+    memberCountResult,
+    propertyResult,
+    analysesResult,
+    buildingsResult,
+    partsResult,
+    todoResult,
+    interestResult,
+    documentsResult,
+    eventsResult,
+  ] = await Promise.all([
+    supabase
+      .from("property_members")
+      .select("id", { count: "exact", head: true })
+      .eq("property_id", propertyId),
+    supabase
+      .from("properties")
+      .select(
+        "id, address, designation, postal_code, city, kommun, property_type, construction_year, living_area_sqm, purchase_date, ownership_status, created_at",
+      )
+      .eq("id", propertyId)
+      .maybeSingle(),
+    supabase
+      .from("analyses")
+      .select("id, address, created_at")
+      .eq("linked_property_id", propertyId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("property_buildings")
+      .select("id, type, name, build_year")
+      .eq("property_id", propertyId)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("property_parts")
+      .select(
+        "id, building_id, part_key, name, not_applicable, replaced_year, year_precision, variant, known_issues, role, integrated, checked_at, checked_until, check_note, snoozed_until",
+      )
+      .eq("property_id", propertyId),
+    supabase
+      .from("property_todo_states")
+      .select("task_key, completed_at, note")
+      .eq("property_id", propertyId),
+    supabase
+      .from("feature_interest")
+      .select("feature")
+      .eq("user_id", userId),
+    supabase
+      .from("property_documents")
+      .select("id, type, file_path, note, uploaded_at")
+      .eq("property_id", propertyId)
+      .order("uploaded_at", { ascending: false }),
+    supabase
+      .from("property_events")
+      .select("id, event_type, event_date, description, cost")
+      .eq("property_id", propertyId)
+      .order("event_date", { ascending: false }),
+  ]);
 
-  const { data: property, error } = await supabase
-    .from("properties")
-    .select(
-      "id, address, designation, postal_code, city, kommun, property_type, construction_year, living_area_sqm, purchase_date, ownership_status, created_at",
-    )
-    .eq("id", propertyId)
-    .maybeSingle();
+  const memberCount = memberCountResult.count;
+  const { data: property, error } = propertyResult;
+  const { data: analyses, error: analysesError } = analysesResult;
+  const { data: buildingRows, error: buildingsError } = buildingsResult;
+  const { data: partRows, error: partsError } = partsResult;
+  const { data: todoRows, error: todoError } = todoResult;
+  const { data: interestRows, error: interestError } = interestResult;
+  const { data: documentRows, error: documentsError } = documentsResult;
+  const { data: eventRows, error: eventsError } = eventsResult;
 
   if (error || !property) {
     if (error) console.error("[profil] dashboard property:", error.message);
     return null;
   }
 
-  const { data: analyses, error: analysesError } = await supabase
-    .from("analyses")
-    .select("id, address, created_at")
-    .eq("linked_property_id", propertyId)
-    .order("created_at", { ascending: false });
-
   if (analysesError) {
     console.error("[profil] dashboard analyses:", analysesError.message);
   }
-
-  const { data: buildingRows, error: buildingsError } = await supabase
-    .from("property_buildings")
-    .select("id, type, name, build_year")
-    .eq("property_id", propertyId)
-    .order("created_at", { ascending: true });
-
   if (buildingsError) {
     console.error("[profil] dashboard buildings:", buildingsError.message);
   }
-
-  const { data: partRows, error: partsError } = await supabase
-    .from("property_parts")
-    .select(
-      "id, building_id, part_key, name, not_applicable, replaced_year, year_precision, variant, known_issues, role, integrated, checked_at, checked_until, check_note, snoozed_until",
-    )
-    .eq("property_id", propertyId);
-
   if (partsError) {
     console.error("[profil] dashboard parts:", partsError.message);
   }
-
-  const { data: todoRows, error: todoError } = await supabase
-    .from("property_todo_states")
-    .select("task_key, completed_at, note")
-    .eq("property_id", propertyId);
-
   if (todoError) {
     console.error("[profil] dashboard todos:", todoError.message);
   }
-
-  const { data: interestRows, error: interestError } = await supabase
-    .from("feature_interest")
-    .select("feature")
-    .eq("user_id", userId);
-
   if (interestError) {
     console.error("[profil] feature_interest:", interestError.message);
   }
-
-  const { data: documentRows, error: documentsError } = await supabase
-    .from("property_documents")
-    .select("id, type, file_path, note, uploaded_at")
-    .eq("property_id", propertyId)
-    .order("uploaded_at", { ascending: false });
-
   if (documentsError) {
     console.error("[profil] documents:", documentsError.message);
   }
-
-  const { data: eventRows, error: eventsError } = await supabase
-    .from("property_events")
-    .select("id, event_type, event_date, description, cost")
-    .eq("property_id", propertyId)
-    .order("event_date", { ascending: false });
-
   if (eventsError) {
     console.error("[profil] events:", eventsError.message);
   }
