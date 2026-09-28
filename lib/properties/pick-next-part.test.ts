@@ -17,7 +17,13 @@ function row(
     replaced_year: year,
     year_precision: precision,
     variant:
-      key === "tak" ? "tegel" : key === "grund" ? "platta_pa_mark" : null,
+      key === "tak"
+        ? "tegel"
+        : key === "grund"
+          ? "platta_pa_mark"
+          : key === "ventilation"
+            ? "ftx"
+            : null,
     known_issues: [] as string[],
   };
 }

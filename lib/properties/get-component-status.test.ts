@@ -155,6 +155,50 @@ describe("getComponentStatus", () => {
     assert.match(result.note ?? "", /tillsyn/i);
   });
 
+  it("ventilation utan typ → unknown", () => {
+    const result = getComponentStatus({
+      key: "ventilation",
+      buildYear: 2010,
+      replacedYear: null,
+      yearPrecision: null,
+      variant: null,
+      knownIssues: [],
+      nowYear: 2026,
+    });
+    assert.equal(result.status, "unknown");
+    assert.match(result.prompt ?? "", /ventilation/i);
+  });
+
+  it("FTX har aggregatlivslängd och underhållstips", () => {
+    const result = getComponentStatus({
+      key: "ventilation",
+      buildYear: 2015,
+      replacedYear: 2015,
+      yearPrecision: "exact",
+      variant: "ftx",
+      knownIssues: [],
+      nowYear: 2026,
+    });
+    assert.equal(result.lifespanYears, 18);
+    assert.match(result.note ?? "", /filter/i);
+    assert.match(result.ageLabel, /FTX/i);
+  });
+
+  it("självdrag kräver inte aggregatålder", () => {
+    const result = getComponentStatus({
+      key: "ventilation",
+      buildYear: 1975,
+      replacedYear: null,
+      yearPrecision: null,
+      variant: "sjalvdrag",
+      knownIssues: [],
+      nowYear: 2026,
+    });
+    assert.equal(result.lifespanYears, null);
+    assert.equal(result.status, "assumed_ok");
+    assert.match(result.note ?? "", /aggregat/i);
+  });
+
   it("antagen under 70 % → assumed_ok", () => {
     const result = getComponentStatus({
       key: "el",
@@ -281,7 +325,13 @@ function row(
     replaced_year: year,
     year_precision: precision,
     variant:
-      key === "tak" ? "tegel" : key === "grund" ? "platta_pa_mark" : null,
+      key === "tak"
+        ? "tegel"
+        : key === "grund"
+          ? "platta_pa_mark"
+          : key === "ventilation"
+            ? "ftx"
+            : null,
     known_issues: [] as string[],
   };
 }

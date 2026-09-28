@@ -28,10 +28,15 @@ import {
   ROOF_KNOWN_ISSUES,
   ROOF_MATERIAL_LABELS,
   ROOF_MATERIALS,
+  VENTILATION_KNOWN_ISSUES,
+  VENTILATION_NOTES,
+  VENTILATION_TYPE_LABELS,
+  VENTILATION_TYPES,
   type FoundationType,
   type HeatDistVariant,
   type HeatSourceVariant,
   type RoofMaterial,
+  type VentilationType,
 } from "@/lib/properties/component-lifespans";
 import { addablePartOptions } from "@/lib/properties/parts-catalog";
 
@@ -534,6 +539,9 @@ function PartVerifyForm({
   const [foundationType, setFoundationType] = useState<FoundationType | "">(
     part.variant && isFoundationPick(part.variant) ? part.variant : "",
   );
+  const [ventilationType, setVentilationType] = useState<VentilationType | "">(
+    part.variant && isVentilationPick(part.variant) ? part.variant : "",
+  );
   const [role, setRole] = useState<"primar" | "komplement">(
     part.role === "komplement" ? "komplement" : "primar",
   );
@@ -545,11 +553,13 @@ function PartVerifyForm({
       ? roofMaterial
       : part.key === "grund"
         ? foundationType
-        : part.key === "varmekalla"
-          ? heatSource
-          : part.key === "varmedistribution"
-            ? heatDist
-            : null;
+        : part.key === "ventilation"
+          ? ventilationType
+          : part.key === "varmekalla"
+            ? heatSource
+            : part.key === "varmedistribution"
+              ? heatDist
+              : null;
   const materialLifespan =
     activeVariant
       ? lifespanForPart(part.key, activeVariant)
@@ -561,6 +571,10 @@ function PartVerifyForm({
   const foundationNote =
     foundationType && FOUNDATION_NOTES[foundationType]
       ? FOUNDATION_NOTES[foundationType]
+      : null;
+  const ventilationNote =
+    ventilationType && VENTILATION_NOTES[ventilationType]
+      ? VENTILATION_NOTES[ventilationType]
       : null;
 
   async function runSave(fd: FormData) {
@@ -720,6 +734,45 @@ function PartVerifyForm({
             ) : foundationType === "okand" || !foundationType ? (
               <p className="analyse-form-help">
                 Välj typ för att få rätt riktvärde och tips.
+              </p>
+            ) : null}
+          </fieldset>
+        ) : null}
+
+        {part.key === "ventilation" ? (
+          <fieldset className="profile-part-fieldset">
+            <legend>Typ av ventilation</legend>
+            <div className="profile-part-choice-list">
+              {VENTILATION_TYPES.map((key) => (
+                <label key={key} className="profile-part-choice">
+                  <input
+                    type="radio"
+                    name="variant"
+                    value={key}
+                    checked={ventilationType === key}
+                    onChange={() => setVentilationType(key)}
+                    disabled={pending}
+                    required
+                  />
+                  <span>{VENTILATION_TYPE_LABELS[key]}</span>
+                </label>
+              ))}
+            </div>
+            {ventilationNote ? (
+              <p className="analyse-form-help">{ventilationNote}</p>
+            ) : null}
+            {materialLifespan != null ? (
+              <p className="analyse-form-help">
+                Riktvärde för aggregat/fläkt: ca {materialLifespan} år.
+              </p>
+            ) : ventilationType === "sjalvdrag" ? (
+              <p className="analyse-form-help">
+                Självdrag har inget aggregat att byta – fokusera på ventiler och
+                kanaler.
+              </p>
+            ) : ventilationType === "okand" || !ventilationType ? (
+              <p className="analyse-form-help">
+                Välj typ för att få rätt underhållstips och livslängd.
               </p>
             ) : null}
           </fieldset>
@@ -948,6 +1001,26 @@ function PartVerifyForm({
           </fieldset>
         ) : null}
 
+        {part.key === "ventilation" ? (
+          <fieldset className="profile-part-fieldset">
+            <legend>Kända problem</legend>
+            <div className="profile-part-choice-list">
+              {VENTILATION_KNOWN_ISSUES.map((issue) => (
+                <label key={issue.key} className="profile-part-choice">
+                  <input
+                    type="checkbox"
+                    name="known_issues"
+                    value={issue.key}
+                    defaultChecked={part.knownIssues.includes(issue.key)}
+                    disabled={pending}
+                  />
+                  <span>{issue.label}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
+
         <div className="profile-part-verify-actions">
           <button
             type="submit"
@@ -977,6 +1050,9 @@ function PartVerifyForm({
           ) : null}
           {part.key === "grund" && foundationType ? (
             <input type="hidden" name="variant" value={foundationType} />
+          ) : null}
+          {part.key === "ventilation" && ventilationType ? (
+            <input type="hidden" name="variant" value={ventilationType} />
           ) : null}
           {part.key === "varmekalla" && heatSource ? (
             <>
@@ -1034,4 +1110,8 @@ function isHeatDistPick(value: string): value is HeatDistVariant {
 
 function isFoundationPick(value: string): value is FoundationType {
   return (FOUNDATION_TYPES as readonly string[]).includes(value);
+}
+
+function isVentilationPick(value: string): value is VentilationType {
+  return (VENTILATION_TYPES as readonly string[]).includes(value);
 }

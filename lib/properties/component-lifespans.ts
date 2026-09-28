@@ -110,6 +110,67 @@ export const FOUNDATION_KNOWN_ISSUES = [
 export type FoundationKnownIssue =
   (typeof FOUNDATION_KNOWN_ISSUES)[number]["key"];
 
+/* ---------- Ventilation ---------- */
+
+export const VENTILATION_TYPES = [
+  "sjalvdrag",
+  "franluft",
+  "franluft_varme",
+  "till_franluft",
+  "ftx",
+  "okand",
+] as const;
+
+export type VentilationType = (typeof VENTILATION_TYPES)[number];
+
+export const VENTILATION_TYPE_LABELS: Record<VentilationType, string> = {
+  sjalvdrag: "Självdrag (S)",
+  franluft: "Mekanisk frånluft (F)",
+  franluft_varme: "Frånluft med värmeåtervinning (FX)",
+  till_franluft: "Till- och frånluft (FT)",
+  ftx: "FTX (till/från med värmeväxlare)",
+  okand: "Vet ej",
+};
+
+/** Aggregat/fläkt – självdrag har ingen utrustning att byta. */
+export const VENTILATION_LIFESPAN_YEARS: Record<
+  VentilationType,
+  number | null
+> = {
+  sjalvdrag: null,
+  franluft: 20,
+  franluft_varme: 15,
+  till_franluft: 20,
+  ftx: 18,
+  okand: null,
+};
+
+export const VENTILATION_NOTES: Partial<Record<VentilationType, string>> = {
+  sjalvdrag:
+    "Inget aggregat att byta. Rensa tilluftsventiler och se till att kanaler/skorsten inte är igensatta – särskilt efter fönsterbyte eller tilläggsisolering.",
+  franluft:
+    "En fläkt suger ut luft. Rengör frånluftsdon och låt fläkten/aggregatet servas vid behov.",
+  franluft_varme:
+    "Frånluft med återvinning (ofta kopplat till frånluftsvärmepump). Filter och service är viktigare än vid vanlig frånluft. Detta är inte FTX.",
+  till_franluft:
+    "Balanserad till- och frånluft utan värmeväxlare. Filterbyte och injustering behövs för rätt flöde.",
+  ftx:
+    "Kräver mest underhåll: byt filter 1–2 gånger per år, torka don och ta professionell service ungefär vart 3–5 år.",
+};
+
+export const VENTILATION_KNOWN_ISSUES = [
+  { key: "smutsiga_filter", label: "Smutsiga / igensatta filter" },
+  { key: "dammiga_don", label: "Dammiga ventiler/don" },
+  { key: "obalans", label: "Obalanserat luftflöde" },
+  { key: "ljud", label: "Ljud / vibration" },
+  { key: "larm", label: "Larm på aggregatet" },
+  { key: "daalig_luft", label: "Dålig luft / lukt" },
+  { key: "fukt_imma", label: "Fukt / imma på fönster" },
+] as const;
+
+export type VentilationKnownIssue =
+  (typeof VENTILATION_KNOWN_ISSUES)[number]["key"];
+
 /* ---------- Värmekälla ---------- */
 
 export const HEAT_SOURCE_VARIANTS = [
@@ -334,6 +395,7 @@ export const PART_NEXT_STEP_PRIORITY: readonly PropertyPartKey[] = [
   "enskilt_avlopp",
   "va",
   "el",
+  "ventilation",
   "varmekalla",
   "varmvattenberedare",
   "varmedistribution",
@@ -345,7 +407,6 @@ export const PART_NEXT_STEP_PRIORITY: readonly PropertyPartKey[] = [
   "fonster",
   "fasad",
   "altan",
-  "ventilation",
 ] as const;
 
 export const PART_STATUS_PRIORITY: Record<
@@ -372,6 +433,10 @@ export function isFoundationType(value: string): value is FoundationType {
   return (FOUNDATION_TYPES as readonly string[]).includes(value);
 }
 
+export function isVentilationType(value: string): value is VentilationType {
+  return (VENTILATION_TYPES as readonly string[]).includes(value);
+}
+
 export function isHeatSourceVariant(value: string): value is HeatSourceVariant {
   return (HEAT_SOURCE_VARIANTS as readonly string[]).includes(value);
 }
@@ -391,6 +456,10 @@ export function lifespanForPart(
   if (key === "grund") {
     if (!variant || !isFoundationType(variant)) return null;
     return FOUNDATION_LIFESPAN_YEARS[variant];
+  }
+  if (key === "ventilation") {
+    if (!variant || !isVentilationType(variant)) return null;
+    return VENTILATION_LIFESPAN_YEARS[variant];
   }
   if (key === "varmekalla") {
     if (!variant || !isHeatSourceVariant(variant)) return null;

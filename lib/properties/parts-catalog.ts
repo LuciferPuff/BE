@@ -139,7 +139,7 @@ export const PROPERTY_PARTS: readonly PropertyPartDefinition[] = [
     label: "Ventilation",
     lifespanYears: PART_LIFESPAN_YEARS.ventilation,
     summary:
-      "Rätt ventilation skyddar mot fukt och dålig luft. Systemet behöver underhåll.",
+      "Typ av ventilation styr underhållet – självdrag är enkelt, FTX kräver filterbyte och service.",
     ifWaiting: "Bristfällig ventilation ger fukt, lukt och sämre inomhusklimat.",
     guideHref: PART_GUIDE_HREF.ventilation,
     allowMultiple: false,

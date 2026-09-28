@@ -4,12 +4,15 @@ import {
   HEAT_DIST_LABELS,
   HEAT_SOURCE_LABELS,
   HEAT_SOURCE_NOTES,
+  VENTILATION_NOTES,
+  VENTILATION_TYPE_LABELS,
   WATER_DIST_VARIANTS,
   buildingHasHeatPump,
   heatSourceNeedsWaterDist,
   isFoundationType,
   isHeatDistVariant,
   isHeatSourceVariant,
+  isVentilationType,
   lifespanForPart,
   type HeatDistVariant,
   type HeatSourceVariant,
@@ -34,7 +37,7 @@ export type ComponentInput = {
   buildYear: number | null;
   replacedYear: number | null;
   yearPrecision: YearPrecision | null;
-  /** Takmaterial / grundtyp / värmevariant. */
+  /** Takmaterial / grundtyp / ventilation / värmevariant. */
   variant: string | null;
   knownIssues: string[];
   role?: "primar" | "komplement" | null;
@@ -181,6 +184,68 @@ export function getComponentStatus(
         warning: null,
         prompt: "Vilken typ av grund har huset?",
       });
+    }
+  }
+
+  // Ventilation utan typ: fråga först.
+  if (input.key === "ventilation") {
+    if (!variant || variant === "okand") {
+      return emptyNote({
+        status: "unknown",
+        source: "unknown",
+        ageYears: null,
+        referenceYear: null,
+        lifespanYears: null,
+        statusLabel: "Okänt",
+        ageLabel: "Typ saknas",
+        actionLabel: "Ange typ →",
+        warning: null,
+        prompt: "Vilken typ av ventilation har huset?",
+      });
+    }
+
+    const note =
+      isVentilationType(variant)
+        ? (VENTILATION_NOTES[variant] ?? null)
+        : null;
+    const label = isVentilationType(variant)
+      ? VENTILATION_TYPE_LABELS[variant]
+      : variant;
+
+    // Självdrag: ingen aggregatlivslängd
+    if (variant === "sjalvdrag") {
+      if (input.replacedYear != null || input.yearPrecision === "original") {
+        const ref =
+          input.replacedYear ??
+          (input.yearPrecision === "original" ? input.buildYear : null);
+        const age = ref != null ? Math.max(0, now - ref) : null;
+        return {
+          status: "assumed_ok",
+          source: "verified",
+          ageYears: age,
+          referenceYear: ref,
+          lifespanYears: null,
+          statusLabel: "OK",
+          ageLabel: age != null ? `${label} · ${age} år` : label,
+          actionLabel: formatVerifiedAction(ref),
+          warning: null,
+          prompt: null,
+          note,
+        };
+      }
+      return {
+        status: "assumed_ok",
+        source: "assumed",
+        ageYears: null,
+        referenceYear: null,
+        lifespanYears: null,
+        statusLabel: "OK",
+        ageLabel: label,
+        actionLabel: "Bekräfta →",
+        warning: null,
+        prompt: null,
+        note,
+      };
     }
   }
 
@@ -560,11 +625,37 @@ function withGrundMeta(
   };
 }
 
+function withVentilationMeta(
+  input: ComponentInput,
+  result: ComponentStatusResult,
+): ComponentStatusResult {
+  if (input.key !== "ventilation" || !input.variant) return result;
+  if (!isVentilationType(input.variant) || input.variant === "okand") {
+    return result;
+  }
+  if (input.variant === "sjalvdrag") return result;
+  const label = VENTILATION_TYPE_LABELS[input.variant];
+  const note = VENTILATION_NOTES[input.variant] ?? null;
+  const ageLabel = result.ageLabel.includes(label)
+    ? result.ageLabel
+    : result.ageYears != null || result.ageLabel
+      ? `${label} · ${result.ageLabel}`
+      : label;
+  return {
+    ...result,
+    ageLabel,
+    note: result.note ?? note,
+  };
+}
+
 function decorateResult(
   input: ComponentInput,
   result: ComponentStatusResult,
 ): ComponentStatusResult {
-  return withGrundMeta(input, withDistLabel(input, result));
+  return withVentilationMeta(
+    input,
+    withGrundMeta(input, withDistLabel(input, result)),
+  );
 }
 
 function formatVerifiedAction(year: number | null | undefined): string {

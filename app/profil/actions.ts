@@ -32,7 +32,9 @@ import {
   isHeatDistVariant,
   isHeatSourceVariant,
   isRoofMaterial,
+  isVentilationType,
   ROOF_KNOWN_ISSUES,
+  VENTILATION_KNOWN_ISSUES,
 } from "@/lib/properties/component-lifespans";
 import {
   MAX_NOTE_LENGTH,
@@ -612,10 +614,12 @@ export async function updatePropertyPartAction(
       ? ROOF_KNOWN_ISSUES.map((i) => i.key as string)
       : partKey === "grund"
         ? FOUNDATION_KNOWN_ISSUES.map((i) => i.key as string)
-        : [],
+        : partKey === "ventilation"
+          ? VENTILATION_KNOWN_ISSUES.map((i) => i.key as string)
+          : [],
   );
   const known_issues =
-    partKey === "tak" || partKey === "grund"
+    partKey === "tak" || partKey === "grund" || partKey === "ventilation"
       ? knownIssues.filter((k) => allowedIssues.has(k)).slice(0, 10)
       : [];
 
@@ -632,6 +636,14 @@ export async function updatePropertyPartAction(
     if (!variantRaw || !isFoundationType(variantRaw)) {
       if (!clear && precisionRaw !== "unknown") {
         return { error: "Välj typ av grund." };
+      }
+    } else {
+      variant = variantRaw;
+    }
+  } else if (partKey === "ventilation") {
+    if (!variantRaw || !isVentilationType(variantRaw)) {
+      if (!clear && precisionRaw !== "unknown") {
+        return { error: "Välj typ av ventilation." };
       }
     } else {
       variant = variantRaw;
@@ -679,6 +691,7 @@ export async function updatePropertyPartAction(
         variant:
           partKey === "tak" ||
           partKey === "grund" ||
+          partKey === "ventilation" ||
           partKey === "varmekalla" ||
           partKey === "varmedistribution"
             ? variant
@@ -814,6 +827,38 @@ export async function updatePropertyPartAction(
     return { ok: true };
   }
 
+  // Ventilation: tillåt spara bara typ (år optional)
+  if (
+    partKey === "ventilation" &&
+    variant &&
+    !yearRaw &&
+    !decadeRaw &&
+    precisionRaw !== "original" &&
+    precisionRaw !== "decade" &&
+    precisionRaw !== "exact"
+  ) {
+    const { error } = await supabase
+      .from("property_parts")
+      .update({
+        replaced_year: null,
+        year_precision: null,
+        variant,
+        known_issues,
+        name,
+        not_applicable: false,
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", partId)
+      .eq("property_id", propertyId);
+    if (error) {
+      console.error("[profil] property_parts:", error.message, error.code);
+      return { error: "Kunde inte spara. Försök igen." };
+    }
+    revalidatePath(`/profil/${propertyId}`);
+    return { ok: true };
+  }
+
   // Distribution: tillåt spara bara variant
   if (
     partKey === "varmedistribution" &&
@@ -900,6 +945,7 @@ export async function updatePropertyPartAction(
       variant:
         partKey === "tak" ||
         partKey === "grund" ||
+        partKey === "ventilation" ||
         partKey === "varmekalla" ||
         partKey === "varmedistribution"
           ? variant
