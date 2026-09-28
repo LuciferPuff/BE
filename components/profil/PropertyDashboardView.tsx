@@ -2,10 +2,7 @@ import Link from "next/link";
 
 import { MarkBoughtHouseButton } from "@/components/profil/MarkBoughtHouseButton";
 import { NotifyMeButton } from "@/components/profil/NotifyMeButton";
-import {
-  OpenPartButton,
-  partIdFromDelHref,
-} from "@/components/profil/OpenPartButton";
+import { NextStepCta } from "@/components/profil/NextStepCta";
 import { OwnershipStatusSwitch } from "@/components/profil/OwnershipStatusSwitch";
 import { PropertyDocumentsSection } from "@/components/profil/PropertyDocumentsSection";
 import { PropertyPartsSection } from "@/components/profil/PropertyPartsSection";
@@ -77,7 +74,6 @@ export function PropertyDashboardView({
     : null;
   const { completeness, nextStep } = property;
   const nextHref = resolveNextStepHref(property, nextStep.ctaHref);
-  const nextPartId = nextHref ? partIdFromDelHref(nextHref) : null;
   const showBoughtPrimary =
     canOwnStatus &&
     property.ownership_status === "funderar" &&
@@ -193,16 +189,8 @@ export function PropertyDashboardView({
               {showBoughtPrimary && !nextHref ? (
                 <MarkBoughtHouseButton propertyId={property.id} />
               ) : null}
-              {nextPartId ? (
-                <OpenPartButton
-                  partId={nextPartId}
-                  label={nextStep.ctaLabel}
-                  className="home-btn home-btn-primary"
-                />
-              ) : nextHref ? (
-                <Link href={nextHref} className="home-btn home-btn-primary">
-                  {nextStep.ctaLabel}
-                </Link>
+              {nextHref ? (
+                <NextStepCta href={nextHref} label={nextStep.ctaLabel} />
               ) : null}
               {canOwnStatus &&
               property.ownership_status === "funderar" &&

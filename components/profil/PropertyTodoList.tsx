@@ -9,8 +9,8 @@ import {
 } from "@/app/profil/actions";
 import {
   OpenPartButton,
-  partIdFromDelHref,
 } from "@/components/profil/OpenPartButton";
+import { partIdFromDelHref } from "@/lib/properties/part-href";
 import type { PropertyTodoItem } from "@/lib/properties/build-todos";
 
 type Props = {
