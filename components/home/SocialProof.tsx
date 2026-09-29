@@ -29,7 +29,7 @@ export function SocialProof({ count }: Props) {
           </>
         )}
         <span className="home-social-proof-text">
-          Se vad som kan gömma sig i annonsen innan du lägger bud.
+          Förstå bostaden innan bud – och ha koll efteråt med din profil.
         </span>
       </div>
     </section>

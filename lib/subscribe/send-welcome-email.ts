@@ -34,8 +34,8 @@ export async function sendSubscriberWelcomeEmail(
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
     },
     html: `<p style="font-family:sans-serif;color:#1B2E3C;line-height:1.6">Tack för att du vill hålla dig uppdaterad.</p>
-<p style="font-family:sans-serif;color:#1B2E3C;line-height:1.6">Vi återkommer med nyheter och tips kring bostadsköp.</p>
-<p style="font-family:sans-serif;color:#1B2E3C;line-height:1.6"><a href="${site}" style="color:#F26522">Besök Byggello</a></p>
+<p style="font-family:sans-serif;color:#1B2E3C;line-height:1.6">Vi återkommer med nyheter och tips kring bostadsköp och din fastighetsprofil.</p>
+<p style="font-family:sans-serif;color:#1B2E3C;line-height:1.6"><a href="${site}/logga-in?next=/profil" style="color:#F26522">Skapa din fastighetsprofil</a> · <a href="${site}" style="color:#F26522">Besök Byggello</a></p>
 <hr style="border:none;border-top:1px solid #E5E7EB;margin:24px 0" />
 <p style="font-family:sans-serif;color:#1B2E3C;line-height:1.6;font-size:0.8125rem;opacity:0.7">Du får detta mail eftersom du anmält dig till Byggellos uppdateringar. <a href="${visibleUnsubscribeUrl}" style="color:#1B2E3C">Avregistrera dig</a> när du vill.</p>`,
   });

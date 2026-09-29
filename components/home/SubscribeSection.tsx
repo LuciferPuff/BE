@@ -70,7 +70,8 @@ export function SubscribeSection() {
           Håll dig uppdaterad
         </h2>
         <p className="home-subscribe-lead">
-          Få tips och nyheter om tryggare bostadsköp – direkt i din inkorg.
+          Få tips om bostadsköp, underhåll och hur du får koll med din
+          fastighetsprofil.
         </p>
         <form className="home-subscribe-form" onSubmit={onSubmit} noValidate>
           <label className="home-subscribe-label" htmlFor={`${formId}-email`}>

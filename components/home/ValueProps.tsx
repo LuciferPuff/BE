@@ -1,15 +1,15 @@
 const props = [
   {
-    title: "Byggt för husköpare",
-    text: "Fokus på det du behöver veta – inte teknisk jargong du måste googla.",
+    title: "Byggt för husköpare och husägare",
+    text: "Fokus på det du behöver veta – innan budet och när du redan bor kvar.",
   },
   {
-    title: "Digitalt från start",
-    text: "Inget papperskrångel. Jobba när det passar dig, på mobil eller dator.",
+    title: "Analys och profil på ett ställe",
+    text: "Förstå riskerna i annonsen, sedan behåll koll på underhåll och dokument i din fastighetsprofil.",
   },
   {
     title: "Underlag du kan använda",
-    text: "Rapporten ger struktur i dialog med mäklare, bank eller besiktningsman.",
+    text: "Tydliga nästa steg i dialog med mäklare, bank, besiktningsman – eller när du planerar underhåll.",
   },
 ];
 

@@ -13,8 +13,8 @@ const steps = [
   },
   {
     n: "03",
-    title: "Gå in i köpet förberedd",
-    text: "Med analysen i handen vet du vad du ska titta extra noga på, vad som kan bli dyrt och vad du ska förhandla om. Just nu Gratis!",
+    title: "Skapa profil och behåll koll",
+    text: "Spara analysen i din fastighetsprofil. Där samlar du husdelar, dokument och nästa steg – så du har koll både inför köpet och långt efter.",
   },
 ];
 
@@ -30,7 +30,7 @@ export function HowItWorks() {
           Så funkar det
         </h2>
         <p className="home-section-subtitle">
-          Från annons till trygghet – på tre steg.
+          Från annons till koll på huset – på tre steg.
         </p>
         <ol className="home-steps">
           {steps.map((s) => (
@@ -43,13 +43,16 @@ export function HowItWorks() {
         </ol>
         <div className="home-how-alt-cta">
           <p className="home-how-alt-cta-text">
-            Inte redo att analysera ett objekt ännu?{" "}
-            <Link href="/registrera" className="home-how-alt-cta-link">
-              Registrera dig med din mejladress
+            Vill du börja med profilen?{" "}
+            <Link
+              href="/logga-in?next=/profil"
+              className="home-how-alt-cta-link"
+            >
+              Skapa fastighetsprofil
             </Link>{" "}
-            eller skapa ett konto{" "}
-            <Link href="/logga-in" className="home-how-alt-cta-link">
-              här
+            – eller{" "}
+            <Link href="/analys" className="home-how-alt-cta-link">
+              starta en analys
             </Link>
             .
           </p>

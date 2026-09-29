@@ -10,29 +10,37 @@ export function ProductTeaser() {
             <p className="home-section-intro">
               Vi analyserar bostaden utifrån byggnadsår, konstruktion och vad som saknas
               i annonsen – och ger dig konkreta frågor att ställa innan du lägger bud.
+              Sedan samlar du allt i en fastighetsprofil så du behåller koll.
             </p>
             <ul className="home-checklist">
               <li>Digital bostadsanalys anpassad för bostadsköp</li>
-              <li>Dokumenterat underlag och tydliga nästa steg</li>
+              <li>Fastighetsprofil för underhåll, dokument och nästa steg</li>
               <li>Perfekt komplement till teknisk besiktning och rådgivning</li>
             </ul>
-            <Link href="/analys" className="home-btn home-btn-primary">
-              Kom igång
-            </Link>
+            <div className="home-hero-actions">
+              <Link
+                href="/logga-in?next=/profil"
+                className="home-btn home-btn-primary"
+              >
+                Skapa profil
+              </Link>
+              <Link href="/analys" className="home-link-all">
+                Starta analys
+              </Link>
+            </div>
           </div>
           <div className="home-product-card" aria-hidden="true">
             <div className="home-product-card-inner">
-              <span className="home-product-label">I verktyget</span>
-              <p className="home-product-card-title">Struktur &amp; trygghet</p>
+              <span className="home-product-label">Analys</span>
+              <p className="home-product-card-title">Innan du köper</p>
               <p className="home-product-card-text">
-                Svara på frågor, ladda upp material och få överblick över
-                bostadens skick.
+                Röda flaggor, frågor till mäklaren och vad som kan bli dyrt.
               </p>
               <div className="home-product-divider" />
-              <span className="home-product-label">Efteråt</span>
-              <p className="home-product-card-title">Rapport</p>
+              <span className="home-product-label">Profil</span>
+              <p className="home-product-card-title">Koll på huset</p>
               <p className="home-product-card-text">
-                Sammanfattning och underlag du kan använda i köpprocessen.
+                Husdelar, dokument och underhåll – samlat på ett ställe.
               </p>
             </div>
           </div>

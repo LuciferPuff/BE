@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function PostPurchaseSection() {
   return (
     <section
@@ -9,13 +11,19 @@ export function PostPurchaseSection() {
           id="post-purchase-heading"
           className="home-section-title home-section-title-center"
         >
-          Byggello följer med efter köpet
+          Ha koll på huset – skapa din fastighetsprofil
         </h2>
         <p className="home-post-purchase-text">
-          När du köpt klart skapar Byggello en fastighetsprofil för ditt hus.
-          Håll koll på underhåll, spara dokumentation och planera framtida
-          projekt – allt på ett ställe.{" "}
-          <span className="home-post-purchase-accent">Kom igång gratis.</span>
+          Samla underhåll, husdelar, dokument och analyser på ett ställe. Skapa
+          en profil för ditt hus och få en tydlig överblick över vad som behöver
+          göras – oavsett om du funderar på att köpa eller redan äger.{" "}
+          <Link
+            href="/logga-in?next=/profil"
+            className="home-post-purchase-accent"
+          >
+            Skapa profil gratis
+          </Link>
+          .
         </p>
       </div>
     </section>

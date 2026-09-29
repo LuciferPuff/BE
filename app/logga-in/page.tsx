@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     url: `${base}/logga-in`,
     title: "Logga in | Byggello",
     description:
-      "Få en inloggningslänk via e-post och fortsätt till din bostadsanalys.",
+      "Få en inloggningslänk via e-post och öppna din fastighetsprofil.",
   },
   robots: { index: false, follow: true },
 };
@@ -48,8 +48,8 @@ export default async function LoggaInPage({ searchParams }: Props) {
             Logga in
           </h1>
           <p className="auth-hero-lead">
-            Vi skickar en säker länk till din e-post så att du kan spara och
-            hitta tillbaka till dina analyser.
+            Vi skickar en säker länk till din e-post så att du kan öppna din
+            fastighetsprofil och komma tillbaka till dina analyser.
           </p>
         </div>
       </section>

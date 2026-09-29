@@ -26,7 +26,7 @@ export async function SiteFooter() {
             className="home-footer-logo-image"
           />
           <p className="home-footer-tagline">
-            Bostadsanalys och rapporter för tryggare bostadsköp.
+            Bostadsanalys och fastighetsprofil – koll före köpet och efter.
           </p>
         </div>
         <nav className="home-footer-nav" aria-label="Sidfot">
@@ -35,7 +35,9 @@ export async function SiteFooter() {
           <Link href="/artiklar">Artiklar</Link>
           <Link href="/guider">Guider</Link>
           <Link href="/analys">Analys</Link>
-          {showAccountLinks && <Link href="/profil">Min profil</Link>}
+          <Link href={showAccountLinks ? "/profil" : "/logga-in?next=/profil"}>
+            Fastighetsprofil
+          </Link>
           {showAccountLinks && <Link href="/mina-analyser">Mina analyser</Link>}
           <Link href="/integritetspolicy">Integritetspolicy</Link>
         </nav>

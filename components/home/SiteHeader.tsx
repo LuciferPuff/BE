@@ -22,8 +22,8 @@ async function AuthNav() {
     user = await getSessionUser();
   } catch {
     return (
-      <Link href="/logga-in" className="home-nav-auth-link">
-        Logga in
+      <Link href="/logga-in?next=/profil" className="home-nav-auth-link">
+        Skapa profil
       </Link>
     );
   }
@@ -50,8 +50,8 @@ async function AuthNav() {
   }
 
   return (
-    <Link href="/logga-in" className="home-nav-auth-link">
-      Logga in
+    <Link href="/logga-in?next=/profil" className="home-nav-auth-link">
+      Skapa profil
     </Link>
   );
 }

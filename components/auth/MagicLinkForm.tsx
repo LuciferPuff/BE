@@ -115,7 +115,7 @@ export function MagicLinkForm({ authError = false, nextPath }: Props) {
       )}
       <p className="auth-form-footer">
         Vill du bara få nyhetsbrev?{" "}
-        <Link href="/registrera">Registrera intresse</Link>.
+        <Link href="/registrera">Anmäl dig här</Link>.
       </p>
     </form>
   );

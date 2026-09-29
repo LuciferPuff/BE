@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     template: "%s | Byggello",
   },
   description:
-    "Strukturerad bostadsanalys online, tydliga rapporter och guider för dig som ska köpa hus eller lägenhet.",
+    "Analysera bostaden innan du köper och skapa en fastighetsprofil för att ha koll på underhåll, dokument och nästa steg.",
   openGraph: {
     type: "website",
     locale: "sv_SE",

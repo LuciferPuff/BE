@@ -3,19 +3,20 @@ import { SiteFooter } from "@/components/home/SiteFooter";
 import { SiteHeader } from "@/components/home/SiteHeader";
 import { getSiteUrl } from "@/lib/site";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 const base = getSiteUrl();
 
 export const metadata: Metadata = {
-  title: "Registrera",
+  title: "Nyhetsbrev",
   description:
-    "Anmäl ditt intresse för fastighetsprofilen och Byggello – vi hör av oss när inloggning finns.",
+    "Få tips och nyheter från Byggello om tryggare bostadsköp och fastighetsprofil.",
   alternates: { canonical: `${base}/registrera` },
   openGraph: {
     url: `${base}/registrera`,
-    title: "Registrera | Byggello",
+    title: "Nyhetsbrev | Byggello",
     description:
-      "Håll dig uppdaterad när fastighetsprofilen och inloggning lanseras.",
+      "Få tips och nyheter från Byggello om tryggare bostadsköp och fastighetsprofil.",
   },
 };
 
@@ -24,11 +25,13 @@ export default function RegistreraPage() {
     <main className="home analyse-landing">
       <SiteHeader />
       <div className="home-container analyse-landing-inner">
-        <h1 className="analyse-landing-title">Registrera ditt intresse</h1>
+        <h1 className="analyse-landing-title">Få tips från Byggello</h1>
         <p className="analyse-landing-intro">
-          Håll dig uppdaterad om när vi har skapat fastighetsprofilen och
-          inloggningen. Anslut dig tidigt till vår plattform och ta emot
-          exklusiva erbjudanden längs vägen.
+          Vill du ha nyheter och tips om bostadsköp och underhåll? Anmäl dig
+          här. Redan redo att komma igång?{" "}
+          <Link href="/logga-in?next=/profil">Skapa din fastighetsprofil</Link>{" "}
+          eller{" "}
+          <Link href="/analys">starta en analys</Link>.
         </p>
         <EarlyAccessEmailForm />
       </div>
