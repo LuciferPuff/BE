@@ -7,8 +7,10 @@ import { getSessionUser } from "@/lib/auth/get-session-user";
 import { parseSwedishMunicipality } from "@/lib/geo/swedish-municipalities";
 import {
   isOwnershipStatus,
+  isPropertyRole,
   isPropertyType,
   type OwnershipStatus,
+  type PropertyRole,
   type PropertyType,
 } from "@/lib/properties/labels";
 import {
@@ -1865,4 +1867,295 @@ export async function loadMoreTimelineAction(
     hasMore: page.hasMore,
     nextOffsets: page.nextOffsets,
   };
+}
+
+export type PropertyMemberAccessState = {
+  error?: string;
+  ok?: boolean;
+};
+
+async function assertPropertyOwner(
+  propertyId: string,
+  userId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = await createAuthClient();
+  const { data, error } = await supabase
+    .from("property_members")
+    .select("role")
+    .eq("property_id", propertyId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[profil] assertPropertyOwner:", error.message);
+    return { ok: false, error: "Kunde inte kontrollera behörighet." };
+  }
+  if (!data || data.role !== "agare") {
+    return {
+      ok: false,
+      error: "Bara ägare kan ändra vem som har tillgång.",
+    };
+  }
+  return { ok: true };
+}
+
+function mapMemberWriteError(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes("last owner") || lower.includes("sista")) {
+    return "Du kan inte ta bort eller degradera den sista ägaren.";
+  }
+  if (
+    lower.includes("duplicate") ||
+    lower.includes("unique") ||
+    lower.includes("23505")
+  ) {
+    return "Personen har redan tillgång till fastigheten.";
+  }
+  return "Kunde inte uppdatera åtkomst. Försök igen.";
+}
+
+/** Fas F: lägg till befintligt Byggello-konto som medlem/gäst/ägare. */
+export async function addPropertyMemberAction(
+  _prev: PropertyMemberAccessState,
+  formData: FormData,
+): Promise<PropertyMemberAccessState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  const emailRaw = optionalText(formData, "email");
+  const roleRaw = optionalText(formData, "role") ?? "gast";
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId) return { error: "Saknar fastighet." };
+  if (!emailRaw) return { error: "Ange en e-postadress." };
+  if (!isPropertyRole(roleRaw)) return { error: "Ogiltig roll." };
+  const role: PropertyRole = roleRaw;
+
+  const owner = await assertPropertyOwner(propertyId, user.id);
+  if (!owner.ok) return { error: owner.error };
+
+  const supabase = await createAuthClient();
+  const { data: profileId, error: lookupError } = await supabase.rpc(
+    "find_profile_id_by_email_for_owner",
+    {
+      p_property_id: propertyId,
+      p_email: emailRaw,
+    },
+  );
+
+  if (lookupError) {
+    console.error("[profil] find_profile_id:", lookupError.message);
+    return { error: "Kunde inte söka efter användaren." };
+  }
+  if (!profileId || typeof profileId !== "string") {
+    return {
+      error:
+        "Ingen användare med den e-posten. Personen måste ha ett Byggello-konto först.",
+    };
+  }
+  if (profileId === user.id && role === "agare") {
+    return { error: "Du är redan ägare." };
+  }
+
+  const { error } = await supabase.from("property_members").insert({
+    property_id: propertyId,
+    user_id: profileId,
+    role,
+  });
+
+  if (error) {
+    console.error("[profil] addPropertyMember:", error.message, error.code);
+    return { error: mapMemberWriteError(error.message) };
+  }
+
+  revalidatePath(`/profil/${propertyId}`);
+  revalidatePath("/profil");
+  return { ok: true };
+}
+
+/** Fas F: ändra roll för en medlem. */
+export async function updatePropertyMemberRoleAction(
+  _prev: PropertyMemberAccessState,
+  formData: FormData,
+): Promise<PropertyMemberAccessState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  const memberId = optionalText(formData, "member_id");
+  const roleRaw = optionalText(formData, "role");
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId || !memberId) return { error: "Ogiltig begäran." };
+  if (!roleRaw || !isPropertyRole(roleRaw)) return { error: "Ogiltig roll." };
+  const role: PropertyRole = roleRaw;
+
+  const owner = await assertPropertyOwner(propertyId, user.id);
+  if (!owner.ok) return { error: owner.error };
+
+  const supabase = await createAuthClient();
+  const { data, error } = await supabase
+    .from("property_members")
+    .update({ role })
+    .eq("id", memberId)
+    .eq("property_id", propertyId)
+    .select("id");
+
+  if (error) {
+    console.error("[profil] updatePropertyMemberRole:", error.message);
+    return { error: mapMemberWriteError(error.message) };
+  }
+  if (!data || data.length === 0) {
+    return { error: "Kunde inte hitta personen på fastigheten." };
+  }
+
+  revalidatePath(`/profil/${propertyId}`);
+  revalidatePath("/profil");
+  return { ok: true };
+}
+
+/** Fas F: ta bort någons åtkomst. */
+export async function removePropertyMemberAction(
+  _prev: PropertyMemberAccessState,
+  formData: FormData,
+): Promise<PropertyMemberAccessState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  const memberId = optionalText(formData, "member_id");
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId || !memberId) return { error: "Ogiltig begäran." };
+
+  const owner = await assertPropertyOwner(propertyId, user.id);
+  if (!owner.ok) return { error: owner.error };
+
+  const supabase = await createAuthClient();
+  const { data: target } = await supabase
+    .from("property_members")
+    .select("id, user_id, role")
+    .eq("id", memberId)
+    .eq("property_id", propertyId)
+    .maybeSingle();
+
+  if (!target) {
+    return { error: "Kunde inte hitta personen på fastigheten." };
+  }
+
+  const { error } = await supabase
+    .from("property_members")
+    .delete()
+    .eq("id", memberId)
+    .eq("property_id", propertyId);
+
+  if (error) {
+    console.error("[profil] removePropertyMember:", error.message);
+    return { error: mapMemberWriteError(error.message) };
+  }
+
+  revalidatePath(`/profil/${propertyId}`);
+  revalidatePath("/profil");
+
+  if (target.user_id === user.id) {
+    redirect("/profil");
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Fas F: överlåt ägarskap till en annan member.
+ * Mottagaren blir agare; du blir medlem (behåller tillgång, förlorar styrning).
+ */
+export async function transferPropertyOwnershipAction(
+  _prev: PropertyMemberAccessState,
+  formData: FormData,
+): Promise<PropertyMemberAccessState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  const memberId = optionalText(formData, "member_id");
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId || !memberId) return { error: "Ogiltig begäran." };
+
+  const owner = await assertPropertyOwner(propertyId, user.id);
+  if (!owner.ok) return { error: owner.error };
+
+  const supabase = await createAuthClient();
+  const { data: target } = await supabase
+    .from("property_members")
+    .select("id, user_id, role")
+    .eq("id", memberId)
+    .eq("property_id", propertyId)
+    .maybeSingle();
+
+  if (!target) {
+    return { error: "Kunde inte hitta personen på fastigheten." };
+  }
+  if (target.user_id === user.id) {
+    return { error: "Du kan inte överlåta ägarskapet till dig själv." };
+  }
+
+  // Promote first so demoting yourself never hits the last-owner guard.
+  if (target.role !== "agare") {
+    const { error: promoteError } = await supabase
+      .from("property_members")
+      .update({ role: "agare" })
+      .eq("id", target.id)
+      .eq("property_id", propertyId);
+
+    if (promoteError) {
+      console.error(
+        "[profil] transferOwnership promote:",
+        promoteError.message,
+      );
+      return { error: mapMemberWriteError(promoteError.message) };
+    }
+  }
+
+  const { data: selfRow } = await supabase
+    .from("property_members")
+    .select("id")
+    .eq("property_id", propertyId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!selfRow) {
+    return { error: "Kunde inte hitta din medlemsrad." };
+  }
+
+  const { error: demoteError } = await supabase
+    .from("property_members")
+    .update({ role: "medlem" })
+    .eq("id", selfRow.id)
+    .eq("property_id", propertyId);
+
+  if (demoteError) {
+    console.error("[profil] transferOwnership demote:", demoteError.message);
+    return { error: mapMemberWriteError(demoteError.message) };
+  }
+
+  revalidatePath(`/profil/${propertyId}`);
+  revalidatePath("/profil");
+  return { ok: true };
 }

@@ -29,6 +29,10 @@ export function propertyRoleLabel(role: string): string {
   return role;
 }
 
+export function isPropertyRole(value: string): value is PropertyRole {
+  return (PROPERTY_ROLES as readonly string[]).includes(value);
+}
+
 export function propertyTypeLabel(type: string | null | undefined): string {
   if (!type) return "—";
   if (type in TYPE_LABELS) return TYPE_LABELS[type as PropertyType];

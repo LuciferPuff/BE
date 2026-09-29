@@ -1,7 +1,9 @@
 import { PropertyAnalysesList } from "@/components/profil/PropertyAnalysesList";
 import { PropertyDocumentsSectionLazy } from "@/components/profil/PropertyDocumentsSectionLazy";
+import { PropertyMembersSection } from "@/components/profil/PropertyMembersSection";
 import { PropertyTimelineSection } from "@/components/profil/PropertyTimelineSection";
 import { getPropertyDashboardSecondary } from "@/lib/properties/get-property-dashboard";
+import { getPropertyMembers } from "@/lib/properties/get-property-members";
 import type { OwnershipStatus } from "@/lib/properties/labels";
 
 type AsideProps = {
@@ -17,18 +19,24 @@ export async function PropertyDashboardAside({
   createdAt,
   role,
 }: AsideProps) {
-  const secondary = await getPropertyDashboardSecondary(
-    propertyId,
-    userId,
-    createdAt,
-  );
+  const [secondary, members] = await Promise.all([
+    getPropertyDashboardSecondary(propertyId, userId, createdAt),
+    getPropertyMembers(propertyId),
+  ]);
   if (!secondary) return null;
 
   const canEdit = role === "agare" || role === "medlem";
   const canDelete = role === "agare";
+  const canManageAccess = role === "agare";
 
   return (
     <>
+      <PropertyMembersSection
+        propertyId={propertyId}
+        currentUserId={userId}
+        canManage={canManageAccess}
+        members={members}
+      />
       <PropertyTimelineSection
         propertyId={propertyId}
         createdAt={createdAt}

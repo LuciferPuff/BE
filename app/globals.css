@@ -1168,6 +1168,157 @@ main.content-page {
   margin-top: 1rem;
 }
 
+.profile-access-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.profile-access-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(27, 46, 60, 0.08);
+}
+
+.profile-access-item:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.profile-access-copy {
+  min-width: 0;
+  flex: 1 1 10rem;
+}
+
+.profile-access-name {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.profile-access-you {
+  font-weight: 500;
+  color: rgba(27, 46, 60, 0.55);
+}
+
+.profile-access-email,
+.profile-access-hint {
+  margin: 0.15rem 0 0;
+  font-size: 0.8125rem;
+  color: rgba(27, 46, 60, 0.65);
+}
+
+.profile-access-role-static {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(27, 46, 60, 0.75);
+}
+
+.profile-access-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  max-width: 100%;
+}
+
+.profile-access-role-form {
+  margin: 0;
+}
+
+.profile-access-select {
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid rgba(27, 46, 60, 0.18);
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-white);
+  color: inherit;
+}
+
+.profile-access-select:disabled {
+  opacity: 0.6;
+}
+
+.profile-access-remove {
+  font: inherit;
+  font-size: 0.8125rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: rgba(27, 46, 60, 0.55);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.profile-access-remove:hover:not(:disabled) {
+  color: rgba(27, 46, 60, 0.9);
+}
+
+.profile-access-remove:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.profile-access-transfer {
+  font: inherit;
+  font-size: 0.8125rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #8a6110;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.profile-access-transfer:hover:not(:disabled) {
+  color: #6e4c0c;
+}
+
+.profile-access-transfer:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.profile-access-add {
+  margin-top: 1.15rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(27, 46, 60, 0.08);
+}
+
+.profile-access-add-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.profile-access-add-help {
+  margin-bottom: 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.profile-access-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.profile-access-email-input {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
 .profile-next-actions {
   display: flex;
   flex-wrap: wrap;
