@@ -4162,3 +4162,112 @@ main.home {
   color: var(--color-text);
   opacity: 0.72;
 }
+
+/* Admin overview (Fas G) */
+.admin-hero {
+  padding: clamp(2rem, 5vw, 3rem) 0 1rem;
+}
+
+.admin-hero-inner {
+  max-width: 52rem;
+}
+
+.admin-title {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  color: var(--color-primary, #1b2e3c);
+}
+
+.admin-intro,
+.admin-fetched,
+.admin-empty,
+.admin-error {
+  margin: 0;
+  color: rgba(27, 46, 60, 0.75);
+  font-size: 0.9875rem;
+  line-height: 1.55;
+}
+
+.admin-content {
+  max-width: 52rem;
+  padding-bottom: clamp(3rem, 8vw, 5rem);
+}
+
+.admin-fetched {
+  margin-bottom: 1.5rem;
+  font-size: 0.8125rem;
+}
+
+.admin-error {
+  color: #9b2c2c;
+}
+
+.admin-section {
+  margin-bottom: 2rem;
+  padding: 1.25rem 1.35rem;
+  background: var(--color-white, #fff);
+  border: 1px solid rgba(27, 46, 60, 0.08);
+  border-radius: var(--radius-lg, 12px);
+}
+
+.admin-section-title {
+  margin: 0 0 1rem;
+  font-size: 1.125rem;
+}
+
+.admin-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.85rem;
+}
+
+.admin-metric {
+  padding: 0.85rem 1rem;
+  background: rgba(232, 240, 247, 0.45);
+  border-radius: var(--radius, 8px);
+}
+
+.admin-metric-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: rgba(27, 46, 60, 0.55);
+}
+
+.admin-metric-value {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-primary, #1b2e3c);
+  line-height: 1.2;
+}
+
+.admin-metric-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  color: rgba(27, 46, 60, 0.5);
+}
+
+.admin-interest-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-interest-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(27, 46, 60, 0.08);
+  font-size: 0.9375rem;
+}
+
+.admin-interest-item:last-child {
+  border-bottom: none;
+}

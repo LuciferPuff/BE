@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { getSessionUser } from "@/lib/auth/get-session-user";
+import { getSessionProfile, isStaffRole } from "@/lib/auth/get-session-profile";
 
 const LOGO_SRC = "/bilder/byggello-logo.png";
 
@@ -16,10 +16,10 @@ function truncateEmail(email: string, max = 22): string {
 }
 
 async function AuthNav() {
-  let user: Awaited<ReturnType<typeof getSessionUser>> = null;
+  let profile: Awaited<ReturnType<typeof getSessionProfile>> = null;
 
   try {
-    user = await getSessionUser();
+    profile = await getSessionProfile();
   } catch {
     return (
       <Link href="/logga-in?next=/profil" className="home-nav-auth-link">
@@ -28,18 +28,26 @@ async function AuthNav() {
     );
   }
 
-  if (user?.email) {
+  if (profile) {
+    const showAdmin = isStaffRole(profile.appRole);
     return (
       <span className="home-nav-auth home-nav-auth--signed-in">
+        {showAdmin ? (
+          <Link href="/admin" className="home-nav-auth-link">
+            Admin
+          </Link>
+        ) : null}
         <Link href="/profil" className="home-nav-auth-link">
           Min profil
         </Link>
         <Link href="/mina-analyser" className="home-nav-auth-link">
           Mina analyser
         </Link>
-        <span className="home-nav-auth-email" title={user.email}>
-          {truncateEmail(user.email)}
-        </span>
+        {profile.email ? (
+          <span className="home-nav-auth-email" title={profile.email}>
+            {truncateEmail(profile.email)}
+          </span>
+        ) : null}
         <form action="/api/auth/logout" method="post" className="home-nav-auth-logout">
           <button type="submit" className="home-nav-auth-logout-btn">
             Logga ut

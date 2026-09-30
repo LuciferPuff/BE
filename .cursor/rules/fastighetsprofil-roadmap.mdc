@@ -12,24 +12,30 @@ alwaysApply: false
 - **Fas D** — dokumentuppladdning (signed URLs), tidslinje med events, Meddela mig på teasers
 - **Husdelar A+B modell** — `property_buildings`, multi-instans, "finns inte", byggår per byggnad (UI för komplementbyggnader kommer)
 
+## Fas G — Admin-överblick (intern) ✅ MVP
+Intern statusvy `/admin` för `admin` / `super_admin`.
+- Konton, profiler, analyser, engagemang, delning, feature_interest ✅
+- Trafik: länk/hint till Vercel/Meta (ingen egen lagring ännu)
+- Senare: grafer 7/30 dagar, aktivitetslista
+
 ## Fas E — Ekonomi + premium-teaser
 - Schablon 1/5/10 år
 - Låst/teaser i gratis
 - Energi senare
 
-## Fas F — Delning + hantverkare
+## Fas F — Delning + hantverkare (kärna klar)
 - **Vem har tillgång** — ägare ser tydligt lista över members/gäster (e-post/namn + roll) på profilen ✅
 - **Pedagogisk kontroll** — lägg till / ändra roll / ta bort åtkomst i UI (agare styr; gast syns men kan inte redigera) ✅ (befintliga konton; pending invite senare)
 - Dela via roller (UI) — bygger på `property_members` (`agare` / `medlem` / `gast`) ✅
 - Offert-CTA sparsamt
 - **Pending invite** — bjuda in e-post utan konto ännu (token/claim vid signup)
+- **Överlåt ägarskap** — knapp + varning i UI ✅
 
 ## Backlog
 - **Komplementbyggnader UI** — skapa/redigera garage, attefall m.m. (datamodell klar)
 - **Egna delar (Fas C)** — endast namn/anteckning/dokument, utan status/livslängd
 - **Återkommande kontroller** — inte husdelar: sotning, radonmätning, vattenprov, service, avloppsbesiktning. Intervall (inte ålder), kopplade till del (t.ex. skorsten → sotning var 3:e år). Stark återkomstmotor — bygg senare.
 - **Dubbletter (samma adress)** — flera `properties` kan ha samma adress (ingen unikhet). Gäller bl.a. efter ägaröverlåtelse: den som lämnat ägarskap (eller den nye ägaren) kan skapa en *ny* profil på samma adress och “börja om” — det blir en separat UUID, inte samma hus. Behöver produktbeslut: varna vid skapande, mjuk merge, eller tydlig lista “dina fastigheter med liknande adress”. Separat från delad AI-cache (`analysis_results` per `input_hash`).
-- **Överlåt ägarskap** — knapp + varning i UI ✅ (du blir medlem; mottagaren blir ägare)
 
 ## Skala / drift (inför större trafik)
 - Övervaka slow queries och connection usage i Supabase Dashboard
@@ -39,6 +45,7 @@ alwaysApply: false
 - Dashboard loggar timings: `[profil] dashboard membership|core_*|secondary_*` (ms) — jämför TTFB vs hydration
 - Core streamas först; tidslinje/dokument/analyser via Suspense
 - RPC/`get_property_dashboard` som en query: först när connection-pool/timings kräver det
+- Admin-vyer: bara aggregat + pagination — aldrig full dump av analyser/resultat i UI
 
 ## Principer
 - Antaget vs verifierat synligt
