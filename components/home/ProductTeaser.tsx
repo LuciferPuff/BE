@@ -24,7 +24,7 @@ export function ProductTeaser() {
               >
                 Skapa profil
               </Link>
-              <Link href="/analys" className="home-link-all">
+              <Link href="/analys" className="home-btn home-btn-secondary">
                 Starta analys
               </Link>
             </div>

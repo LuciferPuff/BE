@@ -3358,6 +3358,18 @@ main.home {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.home-btn-secondary {
+  background: transparent;
+  color: var(--color-primary);
+  border: 1.5px solid rgba(27, 46, 60, 0.28);
+}
+
+.home-btn-secondary:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  transform: translateY(-1px);
+}
+
 /* Social proof (BYG-62) – hero-footer, mörk bakgrund */
 .home-social-proof {
   background: var(--color-primary);
