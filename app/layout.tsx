@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 
 import { MetaPixel } from "@/components/MetaPixel";
 import "./globals.css";
@@ -53,6 +54,7 @@ export default function RootLayout({
     <html lang="sv" className={plusJakartaSans.variable}>
       <body>
         {children}
+        <Analytics />
         <MetaPixel />
       </body>
     </html>

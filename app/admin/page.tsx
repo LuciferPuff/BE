@@ -203,8 +203,16 @@ export default async function AdminPage() {
                 Trafik / besök
               </h2>
               <p className="admin-empty">
-                Sidbesök finns inte i databasen ännu. Titta i Vercel Analytics
-                eller Meta Events Manager tills vidare.
+                Sidvisningar samlas via Vercel Analytics. Öppna{" "}
+                <a
+                  href="https://vercel.com/dashboard"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="profile-edit-link"
+                >
+                  Vercel Dashboard → Analytics
+                </a>{" "}
+                för besökare, sidvisningar och toppsidor.
               </p>
             </section>
           </>
