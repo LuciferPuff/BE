@@ -1,15 +1,16 @@
 import type { NextRequest } from "next/server";
+import { cache } from "react";
 
 import { createAuthClient } from "@/lib/supabase/auth-client";
 import { createAuthClientFromRequest } from "@/lib/supabase/auth-request";
 
-/** Server Components / sidor – cookies() från next/headers. */
-export async function getSessionUser() {
+/** Server Components / sidor – cookies() från next/headers. Dedupad per request. */
+export const getSessionUser = cache(async () => {
   const supabase = await createAuthClient();
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) return null;
   return data.user;
-}
+});
 
 /** Route Handlers – session från request och/eller next/headers cookies. */
 export async function getSessionUserFromRequest(request: NextRequest) {

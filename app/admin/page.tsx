@@ -77,7 +77,8 @@ export default async function AdminPage() {
       <div className="home-container admin-content">
         {!stats ? (
           <p className="admin-error" role="alert">
-            Kunde inte hämta statistik (saknar service role eller DB-fel).
+            Kunde inte hämta statistik. Kontrollera att migreringen
+            get_admin_dashboard_stats är körd.
           </p>
         ) : (
           <>

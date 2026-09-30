@@ -1,7 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { getSessionProfile, isStaffRole } from "@/lib/auth/get-session-profile";
+import {
+  getSessionProfile,
+  isStaffRole,
+  type SessionProfile,
+} from "@/lib/auth/get-session-profile";
 
 const LOGO_SRC = "/bilder/byggello-logo.png";
 
@@ -15,19 +19,7 @@ function truncateEmail(email: string, max = 22): string {
   return `${local.slice(0, 6)}…${domain}`;
 }
 
-async function AuthNav() {
-  let profile: Awaited<ReturnType<typeof getSessionProfile>> = null;
-
-  try {
-    profile = await getSessionProfile();
-  } catch {
-    return (
-      <Link href="/logga-in?next=/profil" className="home-nav-auth-link">
-        Skapa profil
-      </Link>
-    );
-  }
-
+function AuthNav({ profile }: { profile: SessionProfile | null }) {
   if (profile) {
     const showAdmin = isStaffRole(profile.appRole);
     return (
@@ -65,6 +57,13 @@ async function AuthNav() {
 }
 
 export async function SiteHeader() {
+  let profile: SessionProfile | null = null;
+  try {
+    profile = await getSessionProfile();
+  } catch {
+    profile = null;
+  }
+
   return (
     <header className="home-header">
       <div className="home-header-inner">
@@ -83,7 +82,7 @@ export async function SiteHeader() {
           <Link href="/#hur-det-funkar">Så funkar det</Link>
           <Link href="/artiklar">Artiklar</Link>
           <Link href="/guider">Guider</Link>
-          <AuthNav />
+          <AuthNav profile={profile} />
           <Link href="/analys" className="home-nav-cta">
             Starta analys
           </Link>
@@ -95,7 +94,7 @@ export async function SiteHeader() {
             <Link href="/#hur-det-funkar">Så funkar det</Link>
             <Link href="/artiklar">Artiklar</Link>
             <Link href="/guider">Guider</Link>
-            <AuthNav />
+            <AuthNav profile={profile} />
             <Link href="/analys" className="home-nav-cta">
               Starta analys
             </Link>

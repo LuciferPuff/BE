@@ -1,5 +1,8 @@
 import "server-only";
 
+import { cache } from "react";
+
+import { getSessionUser } from "@/lib/auth/get-session-user";
 import { createAuthClient } from "@/lib/supabase/auth-client";
 
 export type AppRole = "user" | "admin" | "super_admin";
@@ -22,27 +25,29 @@ export function isStaffRole(role: AppRole): boolean {
   return role === "admin" || role === "super_admin";
 }
 
-/** Läser inloggad användares profiles-rad (inkl. app_role). */
-export async function getSessionProfile(): Promise<SessionProfile | null> {
-  const supabase = await createAuthClient();
-  const { data: auth, error: authError } = await supabase.auth.getUser();
-  if (authError || !auth.user) return null;
+/** Dedupad per request – header/footer/admin delar samma fetch. */
+export const getSessionProfile = cache(
+  async (): Promise<SessionProfile | null> => {
+    const user = await getSessionUser();
+    if (!user) return null;
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, email, full_name, app_role")
-    .eq("id", auth.user.id)
-    .maybeSingle();
+    const supabase = await createAuthClient();
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, email, full_name, app_role")
+      .eq("id", user.id)
+      .maybeSingle();
 
-  if (error || !data) {
-    if (error) console.error("[auth] getSessionProfile:", error.message);
-    return null;
-  }
+    if (error || !data) {
+      if (error) console.error("[auth] getSessionProfile:", error.message);
+      return null;
+    }
 
-  return {
-    id: data.id as string,
-    email: (data.email as string | null) ?? auth.user.email ?? null,
-    fullName: (data.full_name as string | null) ?? null,
-    appRole: parseAppRole(data.app_role),
-  };
-}
+    return {
+      id: data.id as string,
+      email: (data.email as string | null) ?? user.email ?? null,
+      fullName: (data.full_name as string | null) ?? null,
+      appRole: parseAppRole(data.app_role),
+    };
+  },
+);
