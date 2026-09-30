@@ -6,7 +6,7 @@ import "./globals.css";
 import { getSiteUrl } from "@/lib/site";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ["latin", "latin-ext"],
+  subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
   display: "swap",
@@ -34,8 +34,10 @@ export const metadata: Metadata = {
     follow: true,
   },
   icons: {
-    icon: "/bilder/byggello-logo.png",
-    apple: "/bilder/byggello-logo.png",
+    icon: [{ url: "/bilder/favicon-32.png", sizes: "32x32", type: "image/png" }],
+    apple: [
+      { url: "/bilder/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
   verification: {
     google: "x9eAba2N-8VySN9qLE1GKLHbzbw2lyl_908-kkEb64c",

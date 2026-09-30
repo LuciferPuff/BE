@@ -74,6 +74,7 @@ export async function SiteHeader() {
             width={420}
             height={118}
             className="home-logo-image"
+            sizes="(max-width: 640px) 160px, 220px"
             priority
           />
         </Link>

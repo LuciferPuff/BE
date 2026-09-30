@@ -64,6 +64,7 @@ const studioCsp = [
 const nextConfig: NextConfig = {
   transpilePackages: ["next-sanity"],
   images: {
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       {
         protocol: "https",
@@ -95,6 +96,15 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      {
+        source: "/bilder/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
       {
         source: "/studio/:path*",
         headers: [

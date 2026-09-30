@@ -8,24 +8,38 @@ function getPixelId(): string | null {
   return raw;
 }
 
+/**
+ * Stub köar fbq-anrop direkt (ingen nätverksfil).
+ * fbevents.js laddas lazy så LCP/TBT på mobil inte blockeras.
+ */
 export function MetaPixel() {
   const pixelId = getPixelId();
   if (pixelId == null) return null;
 
   return (
     <>
-      <Script id="meta-pixel" strategy="afterInteractive">
+      <Script id="meta-pixel-stub" strategy="beforeInteractive">
         {`
-!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+!function(f,n){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
 n.callMethod.apply(n,arguments):n.queue.push(arguments)};
 if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '${pixelId}');
-fbq('track', 'PageView');
+n.queue=[];}(window);
+        `}
+      </Script>
+      <Script id="meta-pixel" strategy="lazyOnload">
+        {`
+(function(){
+  var s=document.createElement('script');
+  s.async=true;
+  s.src='https://connect.facebook.net/en_US/fbevents.js';
+  s.onload=function(){
+    if(typeof fbq==='function'){
+      fbq('init','${pixelId}');
+      fbq('track','PageView');
+    }
+  };
+  document.head.appendChild(s);
+})();
         `}
       </Script>
       <noscript>

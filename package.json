@@ -37,5 +37,12 @@
     "styled-components": "^6.3.12",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3"
-  }
+  },
+  "browserslist": [
+    "chrome >= 92",
+    "firefox >= 90",
+    "safari >= 15",
+    "ios_saf >= 15",
+    "not dead"
+  ]
 }

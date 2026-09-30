@@ -24,6 +24,7 @@ export async function SiteFooter() {
             width={360}
             height={100}
             className="home-footer-logo-image"
+            sizes="160px"
           />
           <p className="home-footer-tagline">
             Bostadsanalys och fastighetsprofil – koll före köpet och efter.
