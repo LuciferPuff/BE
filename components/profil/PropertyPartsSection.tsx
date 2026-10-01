@@ -155,7 +155,7 @@ export function PropertyPartsSection({
       <p className="profile-dashboard-text">
         Heldragen färg = verifierat. Dämpat = antaget från byggnadens byggår.
         Markera &quot;Finns inte&quot; om delen saknas. Lägg till garage,
-        attefall och andra byggnnader under listan.
+        attefall, friggebod och andra byggnader under listan.
       </p>
 
       <div className="profile-buildings">
@@ -489,6 +489,8 @@ function AddBuildingForm({ propertyId }: { propertyId: string }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [buildingType, setBuildingType] = useState("");
+  const nameRequired = buildingType === "annat";
 
   return (
     <details
@@ -500,8 +502,8 @@ function AddBuildingForm({ propertyId }: { propertyId: string }) {
         Lägg till byggnad
       </summary>
       <p className="profile-dashboard-text profile-building-add-help">
-        Garage, attefall, uthus och liknande. Du kan lägga till flera av samma
-        typ – ge dem gärna olika namn.
+        Garage, friggebod, attefall och liknande. Välj Annat och skriv namnet
+        om typen saknas. Du kan lägga till flera.
       </p>
       <form
         className="profile-part-add"
@@ -521,6 +523,7 @@ function AddBuildingForm({ propertyId }: { propertyId: string }) {
                 return;
               }
               form.reset();
+              setBuildingType("");
               setOpen(false);
               refreshInBackground(router);
             } catch {
@@ -539,7 +542,8 @@ function AddBuildingForm({ propertyId }: { propertyId: string }) {
             className="analyse-form-input"
             required
             disabled={pending}
-            defaultValue=""
+            value={buildingType}
+            onChange={(e) => setBuildingType(e.target.value)}
           >
             <option value="" disabled>
               Välj typ…
@@ -552,14 +556,19 @@ function AddBuildingForm({ propertyId }: { propertyId: string }) {
           </select>
         </label>
         <label className="profile-part-field">
-          <span>Namn (valfritt)</span>
+          <span>{nameRequired ? "Namn" : "Namn (valfritt)"}</span>
           <input
             type="text"
             name="name"
             className="analyse-form-input"
             maxLength={80}
             disabled={pending}
-            placeholder="t.ex. Friggebod, Garage syd"
+            required={nameRequired}
+            placeholder={
+              nameRequired
+                ? "t.ex. Orangeri, Bastu"
+                : "t.ex. Garage syd"
+            }
           />
         </label>
         <label className="profile-part-field">

@@ -241,8 +241,10 @@ export const BUILDING_TYPES = [
   "tillbyggnad",
   "garage",
   "attefall",
+  "friggebod",
   "uthus",
   "gaststuga",
+  "annat",
 ] as const;
 
 export type BuildingType = (typeof BUILDING_TYPES)[number];
@@ -252,8 +254,10 @@ export const BUILDING_TYPE_LABELS: Record<BuildingType, string> = {
   tillbyggnad: "Tillbyggnad",
   garage: "Garage",
   attefall: "Attefallshus",
+  friggebod: "Friggebod",
   uthus: "Uthus",
   gaststuga: "Gäststuga",
+  annat: "Annat",
 };
 
 /** Typer användaren får skapa i UI (inte huvudbyggnad). */
@@ -289,6 +293,7 @@ export const BUILDING_DEFAULT_PARTS: Record<
   tillbyggnad: ["tak", "fasad", "fonster", "el", "va"],
   garage: ["tak", "fasad", "el", "grund"],
   attefall: ["tak", "fasad", "fonster", "el", "va", "ventilation"],
+  friggebod: ["tak", "fasad", "el"],
   uthus: ["tak", "fasad", "el"],
   gaststuga: [
     "tak",
@@ -299,6 +304,8 @@ export const BUILDING_DEFAULT_PARTS: Record<
     "ventilation",
     "vatrum",
   ],
+  /** Minimal seed – användaren namnger och lägger till delar själv. */
+  annat: ["tak", "fasad", "el"],
 };
 
 export type PartRole = "primar" | "komplement";

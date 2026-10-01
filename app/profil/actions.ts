@@ -2208,6 +2208,9 @@ export async function addPropertyBuildingAction(
   const supabase = await createAuthClient();
 
   let name = nameRaw?.trim().slice(0, 80) || "";
+  if (typeRaw === "annat" && !name) {
+    return { error: "Ange vad byggnaden heter." };
+  }
   if (!name) {
     const label = BUILDING_TYPE_LABELS[typeRaw];
     const { count } = await supabase
