@@ -5,11 +5,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { startTransition, useEffect, useId, useRef, useState } from "react";
 
 import {
+  addPropertyBuildingAction,
   addPropertyPartAction,
+  deletePropertyBuildingAction,
   deletePropertyPartAction,
   setPartCheckedAction,
   setPartNotApplicableAction,
   setPartSnoozedAction,
+  updatePropertyBuildingAction,
   updatePropertyPartAction,
 } from "@/app/profil/actions";
 import { subscribeOpenPropertyPart } from "@/components/profil/OpenPartButton";
@@ -47,7 +50,11 @@ import {
   type RoofMaterial,
   type VentilationType,
 } from "@/lib/properties/component-lifespans";
-import { addablePartOptions } from "@/lib/properties/parts-catalog";
+import {
+  addablePartOptions,
+  BUILDING_TYPE_LABELS,
+  COMPLEMENT_BUILDING_TYPES,
+} from "@/lib/properties/parts-catalog";
 
 type Props = {
   propertyId: string;
@@ -147,7 +154,8 @@ export function PropertyPartsSection({
       </h2>
       <p className="profile-dashboard-text">
         Heldragen färg = verifierat. Dämpat = antaget från byggnadens byggår.
-        Markera &quot;Finns inte&quot; om delen saknas.
+        Markera &quot;Finns inte&quot; om delen saknas. Lägg till garage,
+        attefall och andra byggnnader under listan.
       </p>
 
       <div className="profile-buildings">
@@ -162,6 +170,8 @@ export function PropertyPartsSection({
           />
         ))}
       </div>
+
+      {canEdit ? <AddBuildingForm propertyId={propertyId} /> : null}
 
       {active ? (
         <div
@@ -271,6 +281,10 @@ function BuildingBlock({
 }) {
   const yearLabel =
     building.buildYear != null ? ` · Byggår ${building.buildYear}` : "";
+  const typeLabel =
+    building.type !== "huvudbyggnad"
+      ? BUILDING_TYPE_LABELS[building.type] ?? building.type
+      : null;
 
   return (
     <details className="profile-building" open={defaultOpen}>
@@ -278,6 +292,9 @@ function BuildingBlock({
         <span className="profile-building-name">
           {building.name}
           {yearLabel}
+          {typeLabel && building.name !== typeLabel ? (
+            <span className="profile-building-type"> · {typeLabel}</span>
+          ) : null}
         </span>
         <span className="profile-building-meta">
           {building.verifiedCount}/{building.relevantCount} verifierade
@@ -310,12 +327,266 @@ function BuildingBlock({
       </ul>
 
       {canEdit ? (
-        <AddPartForm
-          propertyId={propertyId}
-          buildingId={building.id}
-          existingKeys={building.parts.map((p) => p.key)}
-        />
+        <>
+          <BuildingMetaForm propertyId={propertyId} building={building} />
+          <AddPartForm
+            propertyId={propertyId}
+            buildingId={building.id}
+            existingKeys={building.parts.map((p) => p.key)}
+          />
+          {building.type !== "huvudbyggnad" ? (
+            <DeleteBuildingButton
+              propertyId={propertyId}
+              buildingId={building.id}
+              buildingName={building.name}
+            />
+          ) : null}
+        </>
       ) : null}
+    </details>
+  );
+}
+
+function BuildingMetaForm({
+  propertyId,
+  building,
+}: {
+  propertyId: string;
+  building: PropertyBuildingView;
+}) {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <form
+      className="profile-building-meta-form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const form = e.currentTarget;
+        void (async () => {
+          setPending(true);
+          setError(null);
+          try {
+            const result = await updatePropertyBuildingAction(
+              {},
+              new FormData(form),
+            );
+            if (result.error) {
+              setError(result.error);
+              return;
+            }
+            refreshInBackground(router);
+          } catch {
+            setError("Kunde inte spara.");
+          } finally {
+            setPending(false);
+          }
+        })();
+      }}
+    >
+      <input type="hidden" name="property_id" value={propertyId} />
+      <input type="hidden" name="building_id" value={building.id} />
+      <label className="profile-part-field">
+        <span>Namn</span>
+        <input
+          type="text"
+          name="name"
+          className="analyse-form-input"
+          maxLength={80}
+          required
+          disabled={pending}
+          defaultValue={building.name}
+        />
+      </label>
+      <label className="profile-part-field">
+        <span>Byggår</span>
+        <input
+          type="number"
+          name="build_year"
+          className="analyse-form-input"
+          min={1800}
+          max={2100}
+          disabled={pending}
+          defaultValue={building.buildYear ?? ""}
+          placeholder="t.ex. 1985"
+        />
+      </label>
+      <button
+        type="submit"
+        className="profile-edit-link"
+        disabled={pending}
+      >
+        {pending ? "Sparar…" : "Spara byggnad"}
+      </button>
+      {error ? (
+        <p className="profile-ownership-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </form>
+  );
+}
+
+function DeleteBuildingButton({
+  propertyId,
+  buildingId,
+  buildingName,
+}: {
+  propertyId: string;
+  buildingId: string;
+  buildingName: string;
+}) {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <div className="profile-building-delete">
+      <button
+        type="button"
+        className="profile-access-remove"
+        disabled={pending}
+        onClick={() => {
+          const ok = window.confirm(
+            `Ta bort ${buildingName}?\n\nAlla husdelar på den byggnaden tas bort. Det går inte att ångra.`,
+          );
+          if (!ok) return;
+          void (async () => {
+            setPending(true);
+            setError(null);
+            try {
+              const fd = new FormData();
+              fd.set("property_id", propertyId);
+              fd.set("building_id", buildingId);
+              const result = await deletePropertyBuildingAction({}, fd);
+              if (result.error) {
+                setError(result.error);
+                return;
+              }
+              refreshInBackground(router);
+            } catch {
+              setError("Kunde inte ta bort byggnaden.");
+            } finally {
+              setPending(false);
+            }
+          })();
+        }}
+      >
+        {pending ? "Tar bort…" : "Ta bort byggnad"}
+      </button>
+      {error ? (
+        <p className="profile-ownership-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function AddBuildingForm({ propertyId }: { propertyId: string }) {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+
+  return (
+    <details
+      className="profile-building-add"
+      open={open}
+      onToggle={(e) => setOpen(e.currentTarget.open)}
+    >
+      <summary className="profile-building-add-summary">
+        Lägg till byggnad
+      </summary>
+      <p className="profile-dashboard-text profile-building-add-help">
+        Garage, attefall, uthus och liknande. Du kan lägga till flera av samma
+        typ – ge dem gärna olika namn.
+      </p>
+      <form
+        className="profile-part-add"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const form = e.currentTarget;
+          void (async () => {
+            setPending(true);
+            setError(null);
+            try {
+              const result = await addPropertyBuildingAction(
+                {},
+                new FormData(form),
+              );
+              if (result.error) {
+                setError(result.error);
+                return;
+              }
+              form.reset();
+              setOpen(false);
+              refreshInBackground(router);
+            } catch {
+              setError("Kunde inte lägga till byggnaden.");
+            } finally {
+              setPending(false);
+            }
+          })();
+        }}
+      >
+        <input type="hidden" name="property_id" value={propertyId} />
+        <label className="profile-part-field">
+          <span>Typ</span>
+          <select
+            name="building_type"
+            className="analyse-form-input"
+            required
+            disabled={pending}
+            defaultValue=""
+          >
+            <option value="" disabled>
+              Välj typ…
+            </option>
+            {COMPLEMENT_BUILDING_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {BUILDING_TYPE_LABELS[type]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="profile-part-field">
+          <span>Namn (valfritt)</span>
+          <input
+            type="text"
+            name="name"
+            className="analyse-form-input"
+            maxLength={80}
+            disabled={pending}
+            placeholder="t.ex. Friggebod, Garage syd"
+          />
+        </label>
+        <label className="profile-part-field">
+          <span>Byggår (valfritt)</span>
+          <input
+            type="number"
+            name="build_year"
+            className="analyse-form-input"
+            min={1800}
+            max={2100}
+            disabled={pending}
+            placeholder="t.ex. 2012"
+          />
+        </label>
+        <button
+          type="submit"
+          className="home-btn home-btn-primary profile-part-add-btn"
+          disabled={pending}
+        >
+          {pending ? "Lägger till…" : "Lägg till byggnad"}
+        </button>
+        {error ? (
+          <p className="profile-ownership-error" role="alert">
+            {error}
+          </p>
+        ) : null}
+      </form>
     </details>
   );
 }

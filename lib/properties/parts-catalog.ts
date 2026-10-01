@@ -256,6 +256,17 @@ export const BUILDING_TYPE_LABELS: Record<BuildingType, string> = {
   gaststuga: "Gäststuga",
 };
 
+/** Typer användaren får skapa i UI (inte huvudbyggnad). */
+export const COMPLEMENT_BUILDING_TYPES = BUILDING_TYPES.filter(
+  (t): t is Exclude<BuildingType, "huvudbyggnad"> => t !== "huvudbyggnad",
+);
+
+export function isComplementBuildingType(
+  value: string,
+): value is Exclude<BuildingType, "huvudbyggnad"> {
+  return (COMPLEMENT_BUILDING_TYPES as readonly string[]).includes(value);
+}
+
 /** Standarddelar som seedas när en byggnad skapas. */
 export const BUILDING_DEFAULT_PARTS: Record<
   BuildingType,

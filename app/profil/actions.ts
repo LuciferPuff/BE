@@ -32,7 +32,9 @@ import type {
   DashboardTimelineItem,
 } from "@/lib/properties/get-property-dashboard";
 import {
+  BUILDING_TYPE_LABELS,
   getPartDefinition,
+  isComplementBuildingType,
   isPartRole,
   isPropertyPartKey,
   partAllowsMultiple,
@@ -2157,5 +2159,189 @@ export async function transferPropertyOwnershipAction(
 
   revalidatePath(`/profil/${propertyId}`);
   revalidatePath("/profil");
+  return { ok: true };
+}
+
+export type PropertyBuildingState = {
+  error?: string;
+  ok?: boolean;
+};
+
+function parseBuildYear(raw: string | null): number | null | { error: string } {
+  if (raw == null || raw.trim() === "") return null;
+  const year = Number.parseInt(raw.trim(), 10);
+  if (!Number.isFinite(year) || year < 1800 || year > 2100) {
+    return { error: "Ange ett giltigt byggår (1800–2100)." };
+  }
+  return year;
+}
+
+/** Lägg till komplementbyggnad (garage, attefall, …) med standarddelar. */
+export async function addPropertyBuildingAction(
+  _prev: PropertyBuildingState,
+  formData: FormData,
+): Promise<PropertyBuildingState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  const typeRaw = optionalText(formData, "building_type");
+  const nameRaw = optionalText(formData, "name");
+  const yearRaw = optionalText(formData, "build_year");
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId) return { error: "Saknar fastighet." };
+  if (!typeRaw || !isComplementBuildingType(typeRaw)) {
+    return { error: "Välj typ av byggnad." };
+  }
+
+  const yearParsed = parseBuildYear(yearRaw);
+  if (yearParsed && typeof yearParsed === "object" && "error" in yearParsed) {
+    return { error: yearParsed.error };
+  }
+  const buildYear = yearParsed as number | null;
+
+  const supabase = await createAuthClient();
+
+  let name = nameRaw?.trim().slice(0, 80) || "";
+  if (!name) {
+    const label = BUILDING_TYPE_LABELS[typeRaw];
+    const { count } = await supabase
+      .from("property_buildings")
+      .select("*", { count: "exact", head: true })
+      .eq("property_id", propertyId)
+      .eq("type", typeRaw);
+    const n = count ?? 0;
+    name = n > 0 ? `${label} ${n + 1}` : label;
+  }
+
+  const result = await createBuildingWithDefaultParts(supabase, {
+    propertyId,
+    type: typeRaw,
+    name,
+    buildYear,
+  });
+
+  if (result.error) {
+    return { error: result.error };
+  }
+
+  revalidatePath(`/profil/${propertyId}`);
+  return { ok: true };
+}
+
+/** Uppdatera namn/byggår på en byggnad. */
+export async function updatePropertyBuildingAction(
+  _prev: PropertyBuildingState,
+  formData: FormData,
+): Promise<PropertyBuildingState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  const buildingId = optionalText(formData, "building_id");
+  const nameRaw = optionalText(formData, "name");
+  const yearRaw = optionalText(formData, "build_year");
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId || !buildingId) return { error: "Ogiltig begäran." };
+  if (!nameRaw?.trim()) return { error: "Ange ett namn." };
+
+  const yearParsed = parseBuildYear(yearRaw);
+  if (yearParsed && typeof yearParsed === "object" && "error" in yearParsed) {
+    return { error: yearParsed.error };
+  }
+  const buildYear = yearParsed as number | null;
+
+  const supabase = await createAuthClient();
+  const { data: building } = await supabase
+    .from("property_buildings")
+    .select("id, type")
+    .eq("id", buildingId)
+    .eq("property_id", propertyId)
+    .maybeSingle();
+
+  if (!building) return { error: "Byggnaden hittades inte." };
+
+  const { error } = await supabase
+    .from("property_buildings")
+    .update({
+      name: nameRaw.trim().slice(0, 80),
+      build_year: buildYear,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", buildingId)
+    .eq("property_id", propertyId);
+
+  if (error) {
+    console.error("[profil] update building:", error.message);
+    return { error: "Kunde inte spara byggnaden." };
+  }
+
+  if (building.type === "huvudbyggnad") {
+    const { error: propError } = await supabase
+      .from("properties")
+      .update({ construction_year: buildYear })
+      .eq("id", propertyId);
+    if (propError) {
+      console.error("[profil] sync property year:", propError.message);
+    }
+  }
+
+  revalidatePath(`/profil/${propertyId}`);
+  return { ok: true };
+}
+
+/** Ta bort komplementbyggnad (cascade tar husdelar). Inte huvudbyggnad. */
+export async function deletePropertyBuildingAction(
+  _prev: PropertyBuildingState,
+  formData: FormData,
+): Promise<PropertyBuildingState> {
+  const user = await getSessionUser();
+  const propertyId = optionalText(formData, "property_id");
+  const buildingId = optionalText(formData, "building_id");
+
+  if (!user) {
+    redirect(
+      propertyId
+        ? `/logga-in?next=/profil/${propertyId}`
+        : "/logga-in?next=/profil",
+    );
+  }
+  if (!propertyId || !buildingId) return { error: "Ogiltig begäran." };
+
+  const supabase = await createAuthClient();
+  const { data: building } = await supabase
+    .from("property_buildings")
+    .select("id, type")
+    .eq("id", buildingId)
+    .eq("property_id", propertyId)
+    .maybeSingle();
+
+  if (!building) return { error: "Byggnaden hittades inte." };
+  if (building.type === "huvudbyggnad") {
+    return { error: "Huvudbyggnaden kan inte tas bort." };
+  }
+
+  const { error } = await supabase
+    .from("property_buildings")
+    .delete()
+    .eq("id", buildingId)
+    .eq("property_id", propertyId);
+
+  if (error) {
+    console.error("[profil] delete building:", error.message);
+    return { error: "Kunde inte ta bort byggnaden." };
+  }
+
+  revalidatePath(`/profil/${propertyId}`);
   return { ok: true };
 }

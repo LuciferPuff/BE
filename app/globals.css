@@ -2006,6 +2006,50 @@ main.content-page {
   color: var(--color-primary);
 }
 
+.profile-building-type {
+  font-weight: 500;
+  color: rgba(27, 46, 60, 0.5);
+}
+
+.profile-building-meta-form {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: flex-end;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(27, 46, 60, 0.08);
+}
+
+.profile-building-delete {
+  margin-top: 0.65rem;
+}
+
+.profile-building-add {
+  margin-top: 1rem;
+  border: 1px dashed rgba(27, 46, 60, 0.2);
+  border-radius: var(--radius);
+  padding: 0.15rem 0.85rem 0.85rem;
+  background: transparent;
+}
+
+.profile-building-add-summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 0.75rem 0 0.35rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.profile-building-add-summary::-webkit-details-marker {
+  display: none;
+}
+
+.profile-building-add-help {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+}
+
 .profile-part-add {
   margin-top: 0.85rem;
   display: flex;
