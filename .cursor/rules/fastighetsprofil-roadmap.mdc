@@ -35,6 +35,7 @@ Intern statusvy `/admin` för `admin` / `super_admin`.
 - **Komplementbyggnader UI** — skapa/redigera garage, attefall m.m. ✅ (flera av samma typ; kollapsad "Lägg till byggnad")
 - **Egna delar (Fas C)** — endast namn/anteckning/dokument, utan status/livslängd
 - **Återkommande kontroller** — inte husdelar: sotning, radonmätning, vattenprov, service, avloppsbesiktning. Intervall (inte ålder), kopplade till del (t.ex. skorsten → sotning var 3:e år). Stark återkomstmotor — bygg senare.
+- **Påminnelser (e-post)** — faktisk leverans när något närmar sig / snooze går ut / återkommande kontroll. Idag: snooze + "Meddela mig"-intresse i UI, ingen schemalagd utskick. Bygg efter Fas E (eller parallellt med återkommande kontroller).
 - **Dubbletter (samma adress)** — flera `properties` kan ha samma adress (ingen unikhet). Gäller bl.a. efter ägaröverlåtelse: den som lämnat ägarskap (eller den nye ägaren) kan skapa en *ny* profil på samma adress och “börja om” — det blir en separat UUID, inte samma hus. Behöver produktbeslut: varna vid skapande, mjuk merge, eller tydlig lista “dina fastigheter med liknande adress”. Separat från delad AI-cache (`analysis_results` per `input_hash`).
 
 ## Skala / drift (inför större trafik)

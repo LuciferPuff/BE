@@ -40,7 +40,9 @@ export function PropertyTodoList({ propertyId, todos, canEdit }: Props) {
       <p className="profile-dashboard-text">
         {openCount === 0
           ? "Inga öppna punkter just nu."
-          : `${openCount} öppna punkt${openCount === 1 ? "" : "er"}.`}
+          : openCount === 1
+            ? "1 öppen punkt."
+            : `${openCount} öppna punkter.`}
       </p>
       <ul className="profile-todo-list">
         {visible.map((todo) => (
