@@ -2,11 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-declare global {
-  interface Window {
-    fbq?: (...args: unknown[]) => void;
-  }
-}
+import { isMetaPixelReady } from "@/lib/consent";
 
 type Props = {
   eventId: string | null;
@@ -18,12 +14,23 @@ export function MetaLeadTracker({ eventId }: Props) {
 
   useEffect(() => {
     if (eventId == null || eventId === "") return;
-    if (firedRef.current === eventId) return;
-    firedRef.current = eventId;
 
-    if (typeof window.fbq === "function") {
+    const tryFire = () => {
+      if (firedRef.current === eventId) return true;
+      if (!isMetaPixelReady()) return false;
+      if (typeof window.fbq !== "function") return false;
       window.fbq("track", "Lead", {}, { eventID: eventId });
-    }
+      firedRef.current = eventId;
+      return true;
+    };
+
+    if (tryFire()) return;
+
+    const onReady = () => {
+      tryFire();
+    };
+    window.addEventListener("byggello-meta-ready", onReady);
+    return () => window.removeEventListener("byggello-meta-ready", onReady);
   }, [eventId]);
 
   return null;

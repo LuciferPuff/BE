@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { CookieSettingsLink } from "@/components/CookieSettingsLink";
 import { getSessionUser } from "@/lib/auth/get-session-user";
 
 const LOGO_SRC = "/bilder/byggello-logo.png";
@@ -41,6 +42,7 @@ export async function SiteFooter() {
           </Link>
           {showAccountLinks && <Link href="/mina-analyser">Mina analyser</Link>}
           <Link href="/integritetspolicy">Integritetspolicy</Link>
+          <CookieSettingsLink />
         </nav>
         <p className="home-footer-copy">
           © {new Date().getFullYear()} Byggello

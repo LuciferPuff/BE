@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useId, useState } from "react";
 
+import { track } from "@/lib/analytics";
+
 // TODO(BYG-97): GDPR-raden (`gdpr`) och tips-underraden (`confirmSubscribed`) är
 // platshållare tills den exakta copyn från Linear-kommentaren klistrats in.
 const COPY = {
@@ -59,6 +61,7 @@ export function EmailAnalysisBox({ analysisId, emailToken = null }: Props) {
       if (res.ok && data.ok === true) {
         setDidSubscribe(data.subscribed === true);
         setStatus("success");
+        track("epost_fangad");
         return;
       }
 

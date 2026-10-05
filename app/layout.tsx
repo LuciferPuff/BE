@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 
+import { ConsentAnalytics } from "@/components/ConsentAnalytics";
+import { CookieBanner } from "@/components/CookieBanner";
 import { MetaPixel } from "@/components/MetaPixel";
 import "./globals.css";
 import { getSiteUrl } from "@/lib/site";
@@ -55,7 +57,9 @@ export default function RootLayout({
       <body>
         {children}
         <Analytics />
+        <ConsentAnalytics />
         <MetaPixel />
+        <CookieBanner />
       </body>
     </html>
   );

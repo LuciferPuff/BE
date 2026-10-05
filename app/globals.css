@@ -3997,6 +3997,109 @@ main.home {
   text-underline-offset: 3px;
 }
 
+.home-footer-cookie-settings {
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.home-footer-cookie-settings:hover {
+  color: var(--color-white);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cookie-banner {
+  position: fixed;
+  z-index: 80;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.85rem 1rem calc(0.85rem + env(safe-area-inset-bottom, 0px));
+  background: var(--color-primary);
+  color: var(--color-white);
+  box-shadow: 0 -8px 28px rgba(27, 46, 60, 0.22);
+}
+
+.cookie-banner-inner {
+  max-width: 72rem;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+}
+
+.cookie-banner-copy {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.cookie-banner-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.cookie-banner-text {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.cookie-banner-text a {
+  color: var(--color-white);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cookie-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  flex: 0 0 auto;
+}
+
+.cookie-banner-btn {
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  padding: 0.65rem 1.15rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  min-width: 7.5rem;
+}
+
+.cookie-banner-btn--accept {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-white);
+}
+
+.cookie-banner-btn--deny {
+  background: var(--color-white);
+  border-color: var(--color-white);
+  color: var(--color-primary);
+}
+
+.cookie-banner-btn:hover {
+  filter: brightness(1.05);
+}
+
+.cookie-banner-btn:focus-visible {
+  outline: 2px solid var(--color-white);
+  outline-offset: 2px;
+}
+
 .home-footer-copy {
   grid-column: 1 / -1;
   font-size: 0.8125rem;

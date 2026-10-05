@@ -42,7 +42,7 @@ export default function IntegritetspolicyPage() {
         <article className="article-card content-article-card">
           <div className="content-article-head">
             <h1 className="article-title">Integritetspolicy</h1>
-            <p className="article-meta">Senast uppdaterad: maj 2026</p>
+            <p className="article-meta">Senast uppdaterad: oktober 2026</p>
           </div>
           <div className="article-body">
             <p>
@@ -109,13 +109,31 @@ export default function IntegritetspolicyPage() {
 
             <h2>Cookies</h2>
             <p>
-              Byggello använder inga spårningscookies eller reklamcookies för
-              vår egen analys eller marknadsföring. Vi använder tekniska
-              cookies som är nödvändiga för att sajten ska fungera. När du
-              fokuserar adressfältet på <Link href="/analys">/analys</Link>{" "}
-              laddar vi Google Maps Platform – Google kan då sätta egna cookies
-              i din webbläsare för att hantera autocomplete-sessionen. Mer
-              information finns under Tredjepartsleverantörer nedan.
+              Vi använder tekniska cookies som krävs för att sajten ska fungera
+              (till exempel inloggning och säkerhet).
+            </p>
+            <p>
+              För statistik (Google Analytics 4) och annonsmätning (Meta Pixel)
+              använder vi cookies endast om du godkänner det i cookiebannern.
+              Scripten laddas inte innan du har godkänt. Du kan när som helst
+              ändra ditt val via &quot;Cookieinställningar&quot; i sidfoten. Om
+              du nekar efter att ha godkänt raderas mät- och annonscookies på
+              byggello.se (bland annat <code>_ga</code>, <code>_ga_*</code>,{" "}
+              <code>_fbp</code> och <code>_fbc</code>) och sidan laddas om så
+              att spårningsscripten stoppas. Cookies på andras domäner (till
+              exempel google.com eller facebook.com) kan vi inte radera.
+            </p>
+            <p>
+              När du fokuserar adressfältet på{" "}
+              <Link href="/analys">/analys</Link> laddar vi Google Maps
+              Platform – Google kan då sätta egna cookies för
+              autocomplete-sessionen. Mer information finns under
+              Tredjepartsleverantörer nedan.
+            </p>
+            <p>
+              Vercel Analytics (första parts) används för aggregerade
+              sidvisningar hos vår hostingleverantör och styrs inte av
+              cookiebannern.
             </p>
 
             <h2>Tredjepartsleverantörer</h2>
@@ -125,7 +143,7 @@ export default function IntegritetspolicyPage() {
                 <strong>Supabase</strong> – databaslagring (EU West)
               </li>
               <li>
-                <strong>Vercel</strong> – hosting
+                <strong>Vercel</strong> – hosting och Vercel Analytics
               </li>
               <li>
                 <strong>Resend</strong> – e-postutskick
@@ -134,6 +152,16 @@ export default function IntegritetspolicyPage() {
                 <strong>Anthropic</strong> – AI-analys (data skickas för
                 bearbetning men sparas inte av Anthropic enligt deras
                 databehandlingsavtal)
+              </li>
+              <li>
+                <strong>Google Analytics 4</strong> – statistik över hur
+                sajten används, endast efter ditt godkännande i
+                cookiebannern
+              </li>
+              <li>
+                <strong>Meta (Facebook) Pixel</strong> – annonsmätning och
+                konverteringsspårning, endast efter ditt godkännande i
+                cookiebannern
               </li>
               <li>
                 <strong>Google Maps Platform</strong> – adressförslag i

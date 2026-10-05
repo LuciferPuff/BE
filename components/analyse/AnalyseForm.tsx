@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { AddressAutocomplete } from "@/components/analyse/AddressAutocomplete";
 import { AnalysisResultView } from "@/components/analyse/AnalysisResultView";
@@ -10,6 +10,7 @@ import {
   looksLikeListingUrl,
 } from "@/lib/analyse/looks-like-listing-url";
 import type { AnalysisResult } from "@/lib/analyse/parse-analysis-json";
+import { track } from "@/lib/analytics";
 
 const PROPERTY_TYPES = ["Villa", "Kedjehus", "Radhus", "Fritidshus"] as const;
 
@@ -91,6 +92,7 @@ export function AnalyseForm({ utm }: { utm?: AnalyseUtm }) {
     buildYear?: string;
     adText?: string;
   }>({});
+  const analysKlarFired = useRef<string | null>(null);
 
   useEffect(() => {
     if (!loading) {
@@ -105,6 +107,13 @@ export function AnalyseForm({ utm }: { utm?: AnalyseUtm }) {
     }, ANALYSE_STATUS_STEP_MS);
     return () => window.clearInterval(id);
   }, [loading]);
+
+  useEffect(() => {
+    if (analysisId == null || analysisId === "") return;
+    if (analysKlarFired.current === analysisId) return;
+    analysKlarFired.current = analysisId;
+    track("analys_klar");
+  }, [analysisId]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -185,6 +194,7 @@ export function AnalyseForm({ utm }: { utm?: AnalyseUtm }) {
     }
 
     setLoading(true);
+    track("analys_startad");
     try {
       const res = await fetch("/api/analyse", {
         method: "POST",
