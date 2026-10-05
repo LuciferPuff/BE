@@ -30,6 +30,8 @@ const siteScriptSrc = [
   "https://*.googleapis.com",
   "https://*.gstatic.com",
   "https://connect.facebook.net",
+  "https://www.googletagmanager.com",
+  "https://www.google-analytics.com",
 ].join(" ");
 
 const siteCsp = [
@@ -37,15 +39,14 @@ const siteCsp = [
   siteScriptSrc,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: https://cdn.sanity.io https://*.googleapis.com https://*.gstatic.com https://www.facebook.com",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://www.facebook.com https://connect.facebook.net",
+  "img-src 'self' data: https://cdn.sanity.io https://*.googleapis.com https://*.gstatic.com https://www.facebook.com https://www.google-analytics.com https://www.googletagmanager.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://www.facebook.com https://connect.facebook.net https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com",
   "frame-ancestors 'none'",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
   "upgrade-insecure-requests",
 ].join("; ");
-
 const studioCsp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:",
